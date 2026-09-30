@@ -1,0 +1,42 @@
+====================================================================
+           GESTÃO ECLESIÁSTICA — VERSÃO LOCAL VITALÍCIA (OFFLINE)
+====================================================================
+
+Parabéns por adquirir o Sistema de Gestão Eclesiástica!
+Este software foi desenvolvido para funcionar 100% OFFLINE no computador da sua igreja, com banco de dados local seguro (IndexedDB), sem mensalidades e sem dependência de internet.
+
+--------------------------------------------------------------------
+1. COMO ABRIR E USAR NO COMPUTADOR
+--------------------------------------------------------------------
+- No Windows: dê DUPLO CLIQUE no arquivo "ABRIR_SISTEMA.bat".
+  (Ele abrirá uma janela limpa em modo aplicativo no Microsoft Edge ou Google Chrome).
+  Se preferir, você também pode dar duplo clique direto no arquivo "index.html".
+
+- No Mac (macOS): dê duplo clique no arquivo "ABRIR_SISTEMA.command" ou abra "index.html" no Google Chrome / Safari.
+
+- Navegadores recomendados: Microsoft Edge ou Google Chrome (ambos possuem suporte completo e de alta performance ao banco de dados offline).
+
+--------------------------------------------------------------------
+2. PRIMEIRO ACESSO (CONFIGURAÇÃO INICIAL)
+--------------------------------------------------------------------
+- Ao abrir o sistema pela primeira vez, você verá a tela de "Configurar Administrador Geral".
+- Crie o seu Usuário (ex.: admin) e defina sua Senha segura.
+- Guarde essa senha com cuidado.
+- Uma vez cadastrado, você terá acesso total a todas as áreas: Membros, Congregados, Obreiros, Dízimos e Planilhas, Escalas, Calendário, Documentos Oficiais e Configurações.
+
+--------------------------------------------------------------------
+3. IMPORTANTE: SEGURANÇA E BACKUP DOS SEUS DADOS
+--------------------------------------------------------------------
+- Seus dados ficam salvos de forma 100% segura no banco de dados local (IndexedDB) do navegador deste computador. Nenhuma informação vai para a nuvem de terceiros.
+- ATENÇÃO: NÃO utilize opções como "Limpar dados de navegação / Limpar armazenamento de sites" do navegador, pois isso pode apagar o banco local.
+- RECOMENDAÇÃO DE OURO — FAÇA BACKUP REGULAR:
+  No menu "Configurações" -> seção "Backup e Restauração", clique no botão "Exportar Backup Completo (.adtcbackup)".
+  Salve esse arquivo semanalmente em um Pen Drive, HD externo ou pasta na nuvem (Google Drive, OneDrive).
+  Com esse arquivo, você nunca perde nada e pode restaurar todo o sistema com 1 clique caso troque de computador.
+
+--------------------------------------------------------------------
+4. SUPORTE E DÚVIDAS
+--------------------------------------------------------------------
+Em caso de dúvidas sobre o uso ou necessidade de auxílio, consulte os modelos e o guia incluído no painel de Configurações do sistema.
+
+Deus abençoe grandemente a sua congregação e ministério!

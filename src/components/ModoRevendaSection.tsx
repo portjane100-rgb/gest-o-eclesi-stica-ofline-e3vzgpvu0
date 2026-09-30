@@ -67,7 +67,6 @@ export const ModoRevendaSection: React.FC = () => {
     config.labelCalendario || 'Calendário de Festas',
   )
   const [labelSalmos, setLabelSalmos] = useState(config.labelSalmos || 'Salmos Musicados')
-  const [labelMuralFotos, setLabelMuralFotos] = useState(config.labelMuralFotos || 'Mural de Fotos')
 
   // Logo upload
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
@@ -99,7 +98,6 @@ export const ModoRevendaSection: React.FC = () => {
     setLabelEscala(config.labelEscala || 'Escala de Trabalho')
     setLabelCalendario(config.labelCalendario || 'Calendário de Festas')
     setLabelSalmos(config.labelSalmos || 'Salmos Musicados')
-    setLabelMuralFotos(config.labelMuralFotos || 'Mural de Fotos')
   }, [config])
 
   const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,7 +223,6 @@ export const ModoRevendaSection: React.FC = () => {
         rotulo_escala: labelEscala.trim(),
         rotulo_calendario: labelCalendario.trim(),
         rotulo_salmos: labelSalmos.trim(),
-        rotulo_mural_fotos: labelMuralFotos.trim(),
       })
 
       toast({
@@ -709,16 +706,6 @@ export const ModoRevendaSection: React.FC = () => {
                   value={labelSalmos}
                   disabled={!isTesoureiro}
                   onChange={(e) => setLabelSalmos(e.target.value)}
-                  className="bg-white border-[#E6E2D8] text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Mural de Fotos</label>
-                <Input
-                  value={labelMuralFotos}
-                  disabled={!isTesoureiro}
-                  onChange={(e) => setLabelMuralFotos(e.target.value)}
                   className="bg-white border-[#E6E2D8] text-xs"
                 />
               </div>

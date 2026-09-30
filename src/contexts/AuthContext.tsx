@@ -232,7 +232,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     password: string,
   ): Promise<{ success: boolean; error?: string }> => {
     const clean = (loginOrEmail || '').trim().toLowerCase()
-    if (!clean) return { success: false, error: 'Informe seu usuário ou e-mail.' }
+    if (!clean) return { success: false, error: 'Informe seu usuário.' }
     if (!password) return { success: false, error: 'Informe sua senha.' }
 
     try {
@@ -275,7 +275,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       if (!match) {
-        return { success: false, error: 'Usuário ou e-mail não encontrado no banco local.' }
+        return { success: false, error: 'Usuário não encontrado no banco local.' }
       }
 
       if (match.ativo === false) {

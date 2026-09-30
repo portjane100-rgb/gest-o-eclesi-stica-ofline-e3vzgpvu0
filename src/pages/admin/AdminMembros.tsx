@@ -62,14 +62,20 @@ export const AdminMembros: React.FC = () => {
   const [congregados, setCongregados] = useState<Congregado[]>([])
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoCadastro[]>([])
   const [abaAtiva, setAbaAtiva] = useState<AbaMembros>(() => {
-    const params = new URLSearchParams(window.location.search)
+    // Suporte tanto para search padrão (?aba=...) quanto para HashRouter (#/admin/membros?aba=...)
+    const fullHref = typeof window !== 'undefined' ? window.location.href : ''
+    const searchIdx = fullHref.indexOf('?')
+    const queryString = searchIdx !== -1 ? fullHref.substring(searchIdx) : window.location.search
+    const params = new URLSearchParams(queryString)
     const abaParam = params.get('aba')
     if (
       abaParam === 'aniversariantes' ||
       abaParam === 'pendentes' ||
       abaParam === 'inativos' ||
+      abaParam === 'in_memoria' ||
       abaParam === 'falecidos'
     ) {
+      if (abaParam === 'falecidos') return 'in_memoria'
       return abaParam as AbaMembros
     }
     return 'ativos'
@@ -316,6 +322,31 @@ export const AdminMembros: React.FC = () => {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Suporte a parâmetro ?novo=true vindo do Dashboard ou links externos
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const fullHref = window.location.href
+    const searchIdx = fullHref.indexOf('?')
+    const queryString = searchIdx !== -1 ? fullHref.substring(searchIdx) : window.location.search
+    const params = new URLSearchParams(queryString)
+    if (params.get('novo') === 'true') {
+      handleOpenCreate()
+    }
+    const abaParam = params.get('aba')
+    if (abaParam) {
+      if (
+        abaParam === 'aniversariantes' ||
+        abaParam === 'pendentes' ||
+        abaParam === 'inativos' ||
+        abaParam === 'in_memoria'
+      ) {
+        setAbaAtiva(abaParam as AbaMembros)
+      } else if (abaParam === 'falecidos') {
+        setAbaAtiva('in_memoria')
+      }
+    }
+  }, [membros.length])
 
   // Inscrições Realtime
   useRealtime<Membro>('membros', () => loadData())

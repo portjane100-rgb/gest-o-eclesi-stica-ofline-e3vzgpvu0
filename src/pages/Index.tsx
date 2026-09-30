@@ -43,7 +43,6 @@ import { UNIDADES, DIAS_SEMANA } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
 import { InlineText } from '@/components/InlineText'
 import { SalmosMusicados } from '@/components/SalmosMusicados'
-import { MuralDeFotos } from '@/components/MuralDeFotos'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 import { useToast } from '@/hooks/use-toast'
@@ -74,16 +73,6 @@ interface ProximoEventoInfo {
   diasFaltando: number
   unidade?: string
   categoria?: string
-}
-
-interface FotoMuralItem {
-  id: string
-  titulo: string
-  legenda?: string
-  arquivo: string
-  unidade?: string
-  data_evento?: string
-  created: string
 }
 
 interface SalmoDoDiaItem {
@@ -123,9 +112,6 @@ export const Index: React.FC = () => {
 
   // Salmo do dia
   const [salmoDoDia, setSalmoDoDia] = useState<SalmoDoDiaItem | null>(null)
-
-  // Recorte do Mural de Fotos
-  const [fotosMuralPreview, setFotosMuralPreview] = useState<FotoMuralItem[]>([])
 
   // Versículo rotativo no Hero com transição suave
   const [heroVerseIndex, setHeroVerseIndex] = useState<number>(0)
@@ -182,10 +168,6 @@ export const Index: React.FC = () => {
   const [tituloSalmos, setTituloSalmos] = useState('Salmos Musicados')
   const [subtituloSalmos, setSubtituloSalmos] = useState(
     'Ouça os louvores e cânticos de salmos da igreja',
-  )
-  const [tituloMural, setTituloMural] = useState('Mural de Fotos')
-  const [subtituloMural, setSubtituloMural] = useState(
-    'Momentos especiais, cultos solenes e festividades das congregações',
   )
 
   // Modais de Edição Admin da Home
@@ -446,16 +428,6 @@ export const Index: React.FC = () => {
         console.warn('Erro ao carregar salmo do dia:', err)
       }
 
-      // 6. Recorte do Mural de Fotos
-      try {
-        const fotosRes = await pb.collection('fotos').getList<any>(1, 6, {
-          sort: '-created',
-        })
-        setFotosMuralPreview(fotosRes.items)
-      } catch (err) {
-        console.warn('Erro ao carregar fotos do mural:', err)
-      }
-
       // Carrega configurações da coleção
       try {
         const configs = await pb.collection('configuracoes').getFullList<Configuracao>()
@@ -489,8 +461,6 @@ export const Index: React.FC = () => {
           if (cfg.chave === 'home_tag_pix' && cfg.valor) setTagPix(cfg.valor)
           if (cfg.chave === 'home_titulo_salmos' && cfg.valor) setTituloSalmos(cfg.valor)
           if (cfg.chave === 'home_subtitulo_salmos' && cfg.valor) setSubtituloSalmos(cfg.valor)
-          if (cfg.chave === 'home_titulo_mural' && cfg.valor) setTituloMural(cfg.valor)
-          if (cfg.chave === 'home_subtitulo_mural' && cfg.valor) setSubtituloMural(cfg.valor)
         })
       } catch {
         /* ignore */
@@ -1604,67 +1574,6 @@ export const Index: React.FC = () => {
               </div>
             )}
           </div>
-        </div>
-      </section>
-
-      {/* 5. SEÇÃO AZUL-ESCURO: RECORTE DA GALERIA DO MURAL DE FOTOS */}
-      <section className="bg-gradient-to-b from-[#0B356B] via-[#092B57] to-[#072348] py-16 text-white relative overflow-hidden border-b-2 border-[#C9A227]/30">
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#F3CA52_1px,transparent_1px)] [background-size:24px_24px]" />
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 relative z-10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-b border-[#C9A227]/30 pb-4">
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-[#F3CA52] block">
-                Galeria de Momentos
-              </span>
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white drop-shadow-sm">
-                Mural de Fotos ADTC
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
-                Cultos solenes, batismos, aniversários e festividades registradas das congregações.
-              </p>
-            </div>
-            <Button
-              asChild
-              className="bg-gradient-to-r from-[#C9A227] to-[#E6BA30] hover:from-[#B08E1E] hover:to-[#C9A227] text-[#072348] font-bold text-xs shadow-md border border-amber-300 flex-shrink-0"
-            >
-              <Link to="/mural" className="flex items-center gap-1.5">
-                Ver Mural Completo
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </Button>
-          </div>
-
-          {fotosMuralPreview.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-              {fotosMuralPreview.map((foto) => (
-                <Link
-                  key={foto.id}
-                  to="/mural"
-                  className="group relative block aspect-square rounded-xl overflow-hidden border border-[#C9A227]/40 shadow-lg hover:shadow-2xl hover:border-[#C9A227] transition-all"
-                >
-                  <img
-                    src={pb.files.getURL(foto, foto.arquivo)}
-                    alt={foto.titulo}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2.5">
-                    <p className="text-[11px] font-bold text-white leading-tight line-clamp-1">
-                      {foto.titulo}
-                    </p>
-                    {foto.unidade && (
-                      <span className="text-[9px] text-[#F3CA52]">{foto.unidade}</span>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 rounded-xl bg-black/20 border border-white/10 text-slate-300 text-xs">
-              Mural pronto para acolher as memórias e fotos das congregações.
-            </div>
-          )}
         </div>
       </section>
 

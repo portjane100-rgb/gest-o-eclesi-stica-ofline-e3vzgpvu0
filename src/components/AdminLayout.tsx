@@ -63,7 +63,6 @@ export const AdminLayout: React.FC = () => {
       label: config.labelCalendario || 'Calendário de Festas',
       icon: CalendarDays,
     },
-    { to: '/admin/mural-fotos', label: config.labelMuralFotos || 'Mural de Fotos', icon: Camera },
     { to: '/admin/documentos', label: 'Documentos Oficiais', icon: FileText },
     { to: '/admin/config', label: 'Configurações', icon: Settings },
   ]

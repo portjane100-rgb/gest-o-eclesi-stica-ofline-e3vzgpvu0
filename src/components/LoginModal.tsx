@@ -299,15 +299,13 @@ export const LoginModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Input de Usuário ou E-mail */}
+              {/* Input de Usuário */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#1A1A1A]">
-                  Usuário ou E-mail Cadastrado
-                </label>
+                <label className="text-xs font-semibold text-[#1A1A1A]">Usuário Cadastrado</label>
                 <div className="relative">
                   <Input
                     type="text"
-                    placeholder="Ex: tesoureiro, secretario1 ou seu email..."
+                    placeholder="Ex: tesoureiro, secretario1..."
                     value={loginInput}
                     onChange={(e) => {
                       setLoginInput(e.target.value)

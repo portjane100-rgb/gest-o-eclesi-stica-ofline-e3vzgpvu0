@@ -839,7 +839,7 @@ export const KitImplantacaoSection: React.FC = () => {
                 <li>Todos os Dizimistas, Ofertas e Planilhas Financeiras Mensais</li>
                 <li>Todos os Bens do Patrimônio e Inventário</li>
                 <li>Todas as Escalas Semanais de Trabalho e Calendário de Eventos</li>
-                <li>Todos os Salmos e Álbuns do Mural de Fotos</li>
+                <li>Todos os Salmos e Cânticos</li>
                 <li>Todas as Cartas de Recomendação, Mudança e Certificados emitidos</li>
                 <li>Todas as assinaturas manuscritas gravadas</li>
               </ul>

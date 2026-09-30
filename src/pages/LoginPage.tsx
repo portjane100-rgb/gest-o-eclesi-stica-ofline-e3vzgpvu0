@@ -80,7 +80,7 @@ export const LoginPage: React.FC = () => {
     setErro(null)
 
     if (!identificador.trim()) {
-      setErro('Informe o seu usuário ou e-mail.')
+      setErro('Informe o seu usuário.')
       return
     }
     if (!senha) {
@@ -242,13 +242,13 @@ export const LoginPage: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <Label htmlFor="setupEmail" className="text-xs text-slate-700">
-                    E-mail ou Usuário de Acesso
+                    Usuário de Acesso
                   </Label>
                   <Input
                     id="setupEmail"
                     type="text"
                     required
-                    placeholder="admin@igreja.local"
+                    placeholder="admin ou seu usuário"
                     value={setupEmail}
                     onChange={(e) => setSetupEmail(e.target.value)}
                     className="h-10 text-sm"
@@ -303,13 +303,13 @@ export const LoginPage: React.FC = () => {
               <form onSubmit={handleLogin} className="space-y-3.5">
                 <div className="space-y-1.5">
                   <Label htmlFor="identificador" className="text-xs text-slate-700">
-                    Usuário ou E-mail
+                    Usuário
                   </Label>
                   <Input
                     id="identificador"
                     type="text"
                     required
-                    placeholder="Ex.: admin, tesoureiro ou seu e-mail"
+                    placeholder="Ex.: admin, tesoureiro ou seu usuário"
                     value={identificador}
                     onChange={(e) => setIdentificador(e.target.value)}
                     className="h-10 text-sm"

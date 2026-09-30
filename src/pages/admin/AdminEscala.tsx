@@ -64,6 +64,18 @@ export const AdminEscala: React.FC = () => {
     loadSemanas()
   }, [])
 
+  // Suporte a ?novo=true vindo do Dashboard
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const fullHref = window.location.href
+    const searchIdx = fullHref.indexOf('?')
+    const queryString = searchIdx !== -1 ? fullHref.substring(searchIdx) : window.location.search
+    const params = new URLSearchParams(queryString)
+    if (params.get('novo') === 'true') {
+      handleOpenCreateSemana()
+    }
+  }, [])
+
   useRealtime<EscalaSemanaItem>('escala_semana', () => {
     loadSemanas()
   })

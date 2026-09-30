@@ -653,8 +653,8 @@ export const AdminConfig: React.FC = () => {
     if (!editEmail.trim()) {
       toast({
         variant: 'destructive',
-        title: 'E-mail obrigatório',
-        description: 'Informe um e-mail válido para este login.',
+        title: 'Usuário obrigatório',
+        description: 'Informe um usuário válido para este login.',
       })
       return
     }
@@ -787,8 +787,8 @@ export const AdminConfig: React.FC = () => {
     if (!newUserEmail.trim()) {
       toast({
         variant: 'destructive',
-        title: 'E-mail obrigatório',
-        description: 'Informe o e-mail do secretário.',
+        title: 'Usuário obrigatório',
+        description: 'Informe o usuário do secretário.',
       })
       return
     }
@@ -930,7 +930,7 @@ export const AdminConfig: React.FC = () => {
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm text-rose-900/80">
                   Apaga todos os registros operacionais (membros, congregados, obreiros, dízimos,
-                  escalas, eventos, patrimônio, fotos e documentos gerados).
+                  escalas, eventos, patrimônio e documentos gerados).
                   <strong> Mantém intactos:</strong> congregações, configurações da igreja e contas
                   de usuários (logins).
                 </CardDescription>
@@ -1028,7 +1028,7 @@ export const AdminConfig: React.FC = () => {
                   loginSug: 'secretario2',
                   emailPadrao: 'secretaria2@adtc.local',
                   descricao:
-                    'Membros, congregações, documentos oficiais, fotos e patrimônio. Sem módulo financeiro.',
+                    'Membros, congregações, documentos oficiais e patrimônio. Sem módulo financeiro.',
                   badgeCor: 'bg-indigo-100 text-indigo-900 border-indigo-300',
                   icone: FileText,
                 },
@@ -1126,18 +1126,18 @@ export const AdminConfig: React.FC = () => {
 
                           <div className="space-y-1">
                             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
-                              E-mail Real Cadastrado para Login *
+                              Usuário / Identificador Cadastrado *
                             </label>
                             <Input
-                              type="email"
+                              type="text"
                               value={editEmail}
                               onChange={(e) => setEditEmail(e.target.value)}
-                              placeholder="exemplo@gmail.com"
+                              placeholder="exemplo@gmail.com ou seu usuário"
                               className="h-8 text-xs bg-white border-[#E6E2D8]"
                               required
                             />
                             <p className="text-[9px] text-slate-500">
-                              O usuário poderá entrar com este e-mail real ou com @{p.loginSug}.
+                              O usuário poderá entrar com este usuário ou com @{p.loginSug}.
                             </p>
                           </div>
 
@@ -1236,7 +1236,7 @@ export const AdminConfig: React.FC = () => {
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] uppercase font-bold text-slate-400">
-                              E-mail de acesso:
+                              Usuário de acesso:
                             </span>
                             <span
                               className="font-mono text-[11px] text-slate-600 truncate max-w-[140px]"
@@ -1942,12 +1942,14 @@ export const AdminConfig: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">E-mail do Secretário *</label>
+              <label className="text-xs font-semibold text-slate-700">
+                Usuário do Secretário *
+              </label>
               <Input
-                type="email"
+                type="text"
                 value={newUserEmail}
                 onChange={(e) => setNewUserEmail(e.target.value)}
-                placeholder="secretario@email.com"
+                placeholder="secretario1 ou nome de usuário"
                 className="text-xs border-[#E6E2D8]"
                 required
               />
@@ -2119,7 +2121,7 @@ export const AdminConfig: React.FC = () => {
                     <li>Dizimistas e Planilhas Mensais</li>
                     <li>Bens de Patrimônio</li>
                     <li>Calendário e Agenda Semanal</li>
-                    <li>Salmos, Álbuns e Fotos</li>
+                    <li>Salmos e Cânticos</li>
                     <li>Cartas Oficiais e Solicitações</li>
                   </ul>
                 </div>

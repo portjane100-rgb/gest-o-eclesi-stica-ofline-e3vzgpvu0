@@ -43,7 +43,7 @@ export const ProtectedFinanceiroRoute: React.FC<{
               </div>
               <p className="text-[11px]">
                 Seu perfil possui permissão completa para Membros, Congregados, Obreiros,
-                Patrimônio, Escala, Calendário, Mural e Documentos Oficiais.
+                Patrimônio, Escala, Calendário e Documentos Oficiais.
               </p>
             </div>
 

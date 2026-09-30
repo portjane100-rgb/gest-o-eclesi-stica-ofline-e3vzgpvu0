@@ -40,7 +40,6 @@ export interface ChurchConfig {
   labelUnidades: string
   labelEscala: string
   labelCalendario: string
-  labelMuralFotos: string
   labelSalmos?: string
 
   // Financeiro / PIX
@@ -92,7 +91,6 @@ export const CHURCH_CONFIG_DEFAULTS: ChurchConfig = {
   labelUnidades: 'Congregações',
   labelEscala: 'Escala de Trabalho',
   labelCalendario: 'Calendário de Festas',
-  labelMuralFotos: 'Mural de Fotos',
   labelSalmos: 'Salmos Musicados',
 
   pixChave: '14.037.658/0001-82',
@@ -270,8 +268,6 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
         labelEscala: map['rotulo_escala']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelEscala,
         labelCalendario:
           map['rotulo_calendario']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelCalendario,
-        labelMuralFotos:
-          map['rotulo_mural_fotos']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelMuralFotos,
         labelSalmos: map['rotulo_salmos']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelSalmos,
 
         pixChave: map['pix_chave_copia_e_cola']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixChave,

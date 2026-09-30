@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { HashRouter, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { ChurchConfigProvider } from '@/contexts/ChurchConfigContext'
 import { Toaster } from '@/components/ui/toaster'
@@ -19,20 +19,20 @@ import AdminPatrimonio from '@/pages/admin/AdminPatrimonio'
 import AdminEscala from '@/pages/admin/AdminEscala'
 import AdminCalendario from '@/pages/admin/AdminCalendario'
 import AdminDocumentos from '@/pages/admin/AdminDocumentos'
-import AdminMuralFotos from '@/pages/admin/AdminMuralFotos'
 import AdminConfig from '@/pages/admin/AdminConfig'
 
 export function App() {
   return (
     <AuthProvider>
       <ChurchConfigProvider>
-        <BrowserRouter>
+        <HashRouter>
           <Routes>
             {/* A tela de login local passa a ser a porta de entrada do sistema */}
             <Route path="/" element={<LoginPage />} />
             <Route path="/login" element={<LoginPage />} />
 
             {/* Carteirinha para visualização / impressão local */}
+            <Route path="/carteirinha" element={<CarteirinhaPublica />} />
             <Route path="/carteirinha/:id" element={<CarteirinhaPublica />} />
 
             {/* Painel Administrativo Local */}
@@ -60,7 +60,6 @@ export function App() {
               <Route path="calendario" element={<AdminCalendario />} />
               <Route path="patrimonio" element={<AdminPatrimonio />} />
               <Route path="obreiros" element={<AdminObreiros />} />
-              <Route path="mural" element={<AdminMuralFotos />} />
               <Route path="documentos" element={<AdminDocumentos />} />
               <Route path="config" element={<AdminConfig />} />
             </Route>
@@ -68,7 +67,7 @@ export function App() {
             {/* Fallback de rotas desconhecidas */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </HashRouter>
         <Toaster />
       </ChurchConfigProvider>
     </AuthProvider>
