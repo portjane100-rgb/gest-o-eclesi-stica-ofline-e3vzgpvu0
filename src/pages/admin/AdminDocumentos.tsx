@@ -37,7 +37,6 @@ import {
   PenTool,
   Check,
   UserPlus,
-  Sparkles,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { formatarDataBr } from '@/lib/utils'
@@ -616,12 +615,7 @@ export const AdminDocumentos: React.FC = () => {
   // Impressão / Exportação PDF usando modelos dedicados A4 com nova logo embutida (Data URI)
   const handlePrintOrDownload = async () => {
     try {
-      const [logoDataUri, pastorSigDataUri, sec1SigDataUri, sec2SigDataUri] = await Promise.all([
-        getLogoAsDataUri(ADTC_LOGO_URL),
-        assinaturaPastorUrl ? convertImageUrlToDataUri(assinaturaPastorUrl) : Promise.resolve(null),
-        assinatura1SecUrl ? convertImageUrlToDataUri(assinatura1SecUrl) : Promise.resolve(null),
-        assinatura2SecUrl ? convertImageUrlToDataUri(assinatura2SecUrl) : Promise.resolve(null),
-      ])
+      const logoDataUri = await getLogoAsDataUri(ADTC_LOGO_URL)
 
       let htmlCompleto = ''
 
@@ -647,9 +641,6 @@ export const AdminDocumentos: React.FC = () => {
           cargo2Sec: (recCargo2Sec || cargo2Secretario || '2ºSecretário').trim(),
           logoDataUri,
           watermarkDataUri: ADTC_TOCHA_WATERMARK_DATA_URI,
-          assinaturaPastorDataUri: pastorSigDataUri,
-          assinatura1SecDataUri: sec1SigDataUri,
-          assinatura2SecDataUri: sec2SigDataUri,
           churchIdentity,
         })
       } else if (selectedDocType === 'mudanca') {
@@ -665,9 +656,6 @@ export const AdminDocumentos: React.FC = () => {
           cargo2Sec: (mudCargo2Sec || cargo2Secretario || '2ºSecretário').trim(),
           logoDataUri,
           watermarkDataUri: ADTC_TOCHA_WATERMARK_DATA_URI,
-          assinaturaPastorDataUri: pastorSigDataUri,
-          assinatura1SecDataUri: sec1SigDataUri,
-          assinatura2SecDataUri: sec2SigDataUri,
           churchIdentity,
         })
       } else if (selectedDocType === 'carteira' && selectedCarteiraMembro) {
@@ -704,7 +692,6 @@ export const AdminDocumentos: React.FC = () => {
           fotoDataUri,
           logoDataUri,
           pastorPresidente: (carteiraPastor || nomePastor || 'Pastor Presidente').trim(),
-          assinaturaPastorDataUri: pastorSigDataUri,
           churchIdentity,
         })
       } else if (selectedDocType === 'apresentacao') {
@@ -721,7 +708,6 @@ export const AdminDocumentos: React.FC = () => {
           pastorOficiante: (aprPastorOficiante || nomePastor || 'Pastor Oficiante').trim(),
           logoDataUri,
           watermarkDataUri: ADTC_TOCHA_WATERMARK_DATA_URI,
-          assinaturaPastorDataUri: pastorSigDataUri,
           churchIdentity,
         })
       }
@@ -2915,14 +2901,7 @@ export const AdminDocumentos: React.FC = () => {
                   <div className="grid grid-cols-2 gap-8 items-start text-center">
                     {/* Assinatura do Pastor */}
                     <div className="flex flex-col items-center">
-                      {assinaturaPastorUrl && (
-                        <img
-                          src={assinaturaPastorUrl}
-                          alt="Assinatura Pastor"
-                          className="h-10 max-w-[160px] object-contain -mb-2 pointer-events-none"
-                        />
-                      )}
-                      <div className="w-56 border-t border-slate-800 mb-1.5" />
+                      <div className="w-56 border-t border-slate-800 mb-1.5 pt-6" />
                       <p className="font-bold text-sm text-[#1E3A5F]">
                         {recPastorAssinatura || nomePastor}
                       </p>
@@ -2934,14 +2913,7 @@ export const AdminDocumentos: React.FC = () => {
                     {/* Assinaturas dos Secretários */}
                     <div className="flex flex-col items-center space-y-4">
                       <div className="flex flex-col items-center">
-                        {assinatura1SecUrl && (
-                          <img
-                            src={assinatura1SecUrl}
-                            alt="Assinatura 1º Secretário"
-                            className="h-10 max-w-[160px] object-contain -mb-2 pointer-events-none"
-                          />
-                        )}
-                        <div className="w-56 border-t border-slate-800 mb-1.5" />
+                        <div className="w-56 border-t border-slate-800 mb-1.5 pt-6" />
                         <p className="font-bold text-sm text-[#1E3A5F]">
                           {rec1SecAssinatura || nome1Secretario}
                         </p>
@@ -2951,14 +2923,7 @@ export const AdminDocumentos: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col items-center">
-                        {assinatura2SecUrl && (
-                          <img
-                            src={assinatura2SecUrl}
-                            alt="Assinatura 2º Secretário"
-                            className="h-10 max-w-[160px] object-contain -mb-2 pointer-events-none"
-                          />
-                        )}
-                        <div className="w-56 border-t border-slate-800 mb-1.5" />
+                        <div className="w-56 border-t border-slate-800 mb-1.5 pt-6" />
                         <p className="font-bold text-sm text-[#1E3A5F]">
                           {rec2SecAssinatura || nome2Secretario}
                         </p>
@@ -3040,14 +3005,7 @@ export const AdminDocumentos: React.FC = () => {
                   <div className="grid grid-cols-2 gap-8 items-start text-center">
                     {/* Assinatura do Pastor */}
                     <div className="flex flex-col items-center">
-                      {assinaturaPastorUrl && (
-                        <img
-                          src={assinaturaPastorUrl}
-                          alt="Assinatura Pastor"
-                          className="h-10 max-w-[160px] object-contain -mb-2 pointer-events-none"
-                        />
-                      )}
-                      <div className="w-56 border-t border-slate-800 mb-1.5" />
+                      <div className="w-56 border-t border-slate-800 mb-1.5 pt-6" />
                       <p className="font-bold text-sm text-[#1E3A5F]">
                         {mudPastorAssinatura || nomePastor}
                       </p>
@@ -3059,14 +3017,7 @@ export const AdminDocumentos: React.FC = () => {
                     {/* Assinaturas dos Secretários */}
                     <div className="flex flex-col items-center space-y-4">
                       <div className="flex flex-col items-center">
-                        {assinatura1SecUrl && (
-                          <img
-                            src={assinatura1SecUrl}
-                            alt="Assinatura 1º Secretário"
-                            className="h-10 max-w-[160px] object-contain -mb-2 pointer-events-none"
-                          />
-                        )}
-                        <div className="w-56 border-t border-slate-800 mb-1.5" />
+                        <div className="w-56 border-t border-slate-800 mb-1.5 pt-6" />
                         <p className="font-bold text-sm text-[#1E3A5F]">
                           {mud1SecAssinatura || nome1Secretario}
                         </p>
@@ -3076,14 +3027,7 @@ export const AdminDocumentos: React.FC = () => {
                       </div>
 
                       <div className="flex flex-col items-center">
-                        {assinatura2SecUrl && (
-                          <img
-                            src={assinatura2SecUrl}
-                            alt="Assinatura 2º Secretário"
-                            className="h-10 max-w-[160px] object-contain -mb-2 pointer-events-none"
-                          />
-                        )}
-                        <div className="w-56 border-t border-slate-800 mb-1.5" />
+                        <div className="w-56 border-t border-slate-800 mb-1.5 pt-6" />
                         <p className="font-bold text-sm text-[#1E3A5F]">
                           {mud2SecAssinatura || nome2Secretario}
                         </p>
@@ -3111,7 +3055,6 @@ export const AdminDocumentos: React.FC = () => {
                 funcao={carteiraCargo}
                 dataEmissao={carteiraEmissao}
                 pastorPresidente={carteiraPastor || nomePastor}
-                assinaturaPastorUrl={assinaturaPastorUrl}
               />
             )}
 
@@ -3138,78 +3081,6 @@ export const AdminDocumentos: React.FC = () => {
             >
               <Printer className="w-4 h-4" />
               Imprimir / Salvar em PDF
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ======================================================== */}
-      {/* MODAL DE PRÉ-VISUALIZAÇÃO DA ASSINATURA TRATADA */}
-      {/* ======================================================== */}
-      <Dialog open={!!pendingDocSig} onOpenChange={(open) => !open && setPendingDocSig(null)}>
-        <DialogContent className="max-w-md bg-white border border-[#E6E2D8] shadow-2xl rounded-2xl">
-          <DialogHeader>
-            <div className="w-10 h-10 rounded-full bg-amber-50 text-[#C9A227] flex items-center justify-center mx-auto mb-2 border border-amber-200">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <DialogTitle className="text-center font-serif text-lg text-[#1E3A5F]">
-              Pré-visualização da Assinatura
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-[#5A5A5A]">
-              {pendingDocSig?.title}. Traço detectado, fundo clareado/transparente e contraste
-              reforçado.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <div className="p-4 bg-[repeating-conic-gradient(#e2e8f0_0_25%,transparent_0_50%)] bg-[length:16px_16px] rounded-xl border border-[#CBD5E1] flex items-center justify-center min-h-[140px] shadow-inner">
-              {pendingDocSig?.previewUrl && (
-                <img
-                  src={pendingDocSig.previewUrl}
-                  alt="Pré-visualização tratada"
-                  className="max-h-28 max-w-full object-contain filter drop-shadow-sm"
-                />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] text-slate-500 bg-[#F7F5F0] p-2.5 rounded-lg border border-[#E6E2D8]">
-              <span>PNG Transparente</span>
-              {pendingDocSig?.width ? (
-                <span>
-                  {pendingDocSig.width} × {pendingDocSig.height}px
-                </span>
-              ) : null}
-              <span className="text-emerald-700 font-semibold">Otimizada para documentos</span>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-[#E6E2D8]">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPendingDocSig(null)}
-              disabled={!!uploadingSigAdminDoc}
-              className="text-xs flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirmarAssinaturaDoc}
-              disabled={!!uploadingSigAdminDoc}
-              className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs flex-1 font-semibold"
-            >
-              {uploadingSigAdminDoc ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  Gravando...
-                </>
-              ) : (
-                <>
-                  <Check className="w-3.5 h-3.5 mr-1.5 text-[#C9A227]" />
-                  Confirmar e Gravar
-                </>
-              )}
             </Button>
           </DialogFooter>
         </DialogContent>

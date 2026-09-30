@@ -422,7 +422,7 @@ export const AdminCongregados: React.FC = () => {
   <div class="header">
     <div class="church-info">
       <h1>${config.nomeIgreja || 'Gestão Eclesiástica'}</h1>
-      <p>${config.denominacao || 'Igreja Evangélica'} ${config.cidadeIgreja ? `• ${config.cidadeIgreja}` : ''}</p>
+      <p>${config.denominacao || 'Igreja Evangélica'} ${config.cidadeUf ? `• ${config.cidadeUf}` : ''}</p>
       ${config.enderecoIgreja ? `<p>${config.enderecoIgreja}</p>` : ''}
     </div>
     ${logoHtml}

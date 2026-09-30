@@ -28,8 +28,11 @@ import {
   ArrowDown,
   Upload,
   AlertTriangle,
+  FileText,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useChurchConfig } from '@/contexts/ChurchConfigContext'
+import { formatarDataBr } from '@/lib/utils'
 
 export const AdminObreiros: React.FC = () => {
   const { config } = useChurchConfig()
@@ -309,7 +312,7 @@ export const AdminObreiros: React.FC = () => {
   <div class="header">
     <div class="church-info">
       <h1>${config.nomeIgreja || 'Gestão Eclesiástica'}</h1>
-      <p>${config.denominacao || 'Igreja Evangélica'} ${config.cidadeIgreja ? `• ${config.cidadeIgreja}` : ''}</p>
+      <p>${config.denominacao || 'Igreja Evangélica'} ${config.cidadeUf ? `• ${config.cidadeUf}` : ''}</p>
       ${config.enderecoIgreja ? `<p>${config.enderecoIgreja}</p>` : ''}
     </div>
     ${logoHtml}

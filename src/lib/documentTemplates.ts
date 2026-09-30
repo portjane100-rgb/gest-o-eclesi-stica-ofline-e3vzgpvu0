@@ -320,6 +320,8 @@ export interface DocChurchIdentity {
   cidadeUf?: string
   siglaIgreja?: string
   logoUrl?: string
+  cnpj?: string
+  nomePastor?: string
 }
 export interface DocRecomendacaoData {
   corpoHtml: string

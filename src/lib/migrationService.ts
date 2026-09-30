@@ -3,7 +3,7 @@
  * Permite que a igreja faça a transição completa para a versão Desktop offline.
  */
 
-import { pbRemote as pb } from '@/lib/pocketbase/client'
+import pb from '@/lib/pocketbase/client'
 import { localDb, hashPassword, type LocalCollectionName } from './localDb'
 import { CONGREGACOES_FALLBACK } from '@/hooks/useCongregacoes'
 import { CHURCH_CONFIG_DEFAULTS } from '@/contexts/ChurchConfigContext'

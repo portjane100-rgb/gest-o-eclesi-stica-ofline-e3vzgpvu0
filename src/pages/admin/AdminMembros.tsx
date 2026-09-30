@@ -483,7 +483,7 @@ export const AdminMembros: React.FC = () => {
           siglaIgreja: config.siglaIgreja,
           denominacao: config.denominacao,
           enderecoIgreja: config.enderecoIgreja,
-          cidadeUf: config.cidadeIgreja,
+          cidadeUf: config.cidadeUf,
           nomePastor: config.nomePastor,
         },
       })
@@ -1307,72 +1307,6 @@ export const AdminMembros: React.FC = () => {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Personalização da Mensagem de Aniversário */}
-      <Dialog open={isModalMsgAnivOpen} onOpenChange={setIsModalMsgAnivOpen}>
-        <DialogContent className="max-w-lg bg-white border border-[#E6E2D8] shadow-2xl rounded-2xl">
-          <DialogHeader>
-            <div className="w-12 h-12 rounded-full bg-pink-50 border border-pink-200 text-pink-600 flex items-center justify-center mx-auto mb-2">
-              <Cake className="w-6 h-6 text-pink-600" />
-            </div>
-            <DialogTitle className="text-center font-serif text-xl font-bold text-[#1E3A5F]">
-              Mensagem de Felicitações (WhatsApp)
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-[#5A5A5A]">
-              Personalize o texto enviado aos aniversariantes. A tag <code>{'{nome}'}</code> será
-              substituída automaticamente pelo nome do aniversariante.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 pt-2">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-[#1A1A1A]">Texto da Mensagem</label>
-              <textarea
-                value={tempMensagemAniv}
-                onChange={(e) => setTempMensagemAniv(e.target.value)}
-                rows={4}
-                className="w-full p-3 rounded-lg border border-[#E6E2D8] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setTempMensagemAniv(MENSAGEM_PADRAO_ANIVERSARIO)}
-                className="text-xs text-slate-500 hover:text-slate-800"
-              >
-                Restaurar Padrão
-              </Button>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0 pt-3 border-t border-[#E6E2D8]">
-            <Button
-              variant="outline"
-              onClick={() => setIsModalMsgAnivOpen(false)}
-              className="text-xs flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSalvarMensagemAniversario}
-              disabled={salvandoMsgAniv}
-              className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs flex-1 font-semibold"
-            >
-              {salvandoMsgAniv ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                'Salvar Mensagem'
-              )}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
