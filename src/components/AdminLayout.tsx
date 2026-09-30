@@ -45,29 +45,42 @@ export const AdminLayout: React.FC = () => {
   // Se o usuário não tem permissão financeira (Secretários), o item 'Dizimistas & Planilha' é ocultado
   const allMenuItems = [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-    { to: '/admin/membros', label: config.labelMembros || 'Membros', icon: Users },
-    { to: '/admin/congregados', label: config.labelCongregados || 'Congregados', icon: UserCheck },
-    { to: '/admin/obreiros', label: config.labelObreiros || 'Obreiros', icon: Award },
+    { to: '/admin/membros', label: config.labelMembros || 'Membros', icon: Users, exact: false },
+    {
+      to: '/admin/congregados',
+      label: config.labelCongregados || 'Congregados',
+      icon: UserCheck,
+      exact: false,
+    },
+    { to: '/admin/obreiros', label: config.labelObreiros || 'Obreiros', icon: Award, exact: false },
     {
       to: '/admin/congregacoes',
       label: config.labelUnidades || 'Congregações / Unidades',
       icon: Church,
+      exact: false,
     },
     {
       to: '/admin/dizimistas',
       label: config.labelDizimistas || 'Dizimistas & Planilha',
       icon: Wallet,
       financeiroOnly: true,
+      exact: false,
     },
-    { to: '/admin/patrimonio', label: 'Patrimônio', icon: Building },
-    { to: '/admin/escala', label: config.labelEscala || 'Escala de Trabalho', icon: Clock },
+    { to: '/admin/patrimonio', label: 'Patrimônio', icon: Building, exact: false },
+    {
+      to: '/admin/escala',
+      label: config.labelEscala || 'Escala de Trabalho',
+      icon: Clock,
+      exact: false,
+    },
     {
       to: '/admin/calendario',
       label: config.labelCalendario || 'Calendário de Festas',
       icon: CalendarDays,
+      exact: false,
     },
-    { to: '/admin/documentos', label: 'Documentos Oficiais', icon: FileText },
-    { to: '/admin/config', label: 'Configurações', icon: Settings },
+    { to: '/admin/documentos', label: 'Documentos Oficiais', icon: FileText, exact: false },
+    { to: '/admin/config', label: 'Configurações', icon: Settings, exact: false },
   ]
 
   const menuItems = allMenuItems.filter((item) => !item.financeiroOnly || podeAcessarFinanceiro)
