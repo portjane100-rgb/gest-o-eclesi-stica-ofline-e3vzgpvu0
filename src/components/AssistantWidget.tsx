@@ -189,19 +189,11 @@ function generateLocalFallback(
       return `Claro. Em qual congregação você quer saber: ${nomes}?`
     }
 
-    if (p.includes('casinhas')) {
-      return 'Nas Casinhas, os cultos acontecem às segundas (19h), quartas (19h), sextas (19h) e domingos (09h e 19h).'
+    if (congregacoesLista && congregacoesLista.length > 0) {
+      const nomes = congregacoesLista.map((c) => c.nome).join(', ')
+      return `Em qual unidade você deseja saber a programação: ${nomes}?`
     }
-    if (p.includes('alto')) {
-      return 'No Alto, temos cultos às sextas-feiras (19h) e domingos (09h e 19h).'
-    }
-    if (p.includes('vila')) {
-      return 'Na Vila dos Pescadores, temos culto às segundas (19h) e sextas (18h30).'
-    }
-    if (p.includes('sede')) {
-      return 'Na Sede, temos culto de doutrina às quintas-feiras às 19h e aos domingos às 09h (EBD) e 19h.'
-    }
-    return 'Claro. Em qual congregação você quer saber: Sede, Casinhas, Alto ou Vila dos Pescadores?'
+    return 'Consulte a programação completa dos cultos no menu do sistema.'
   }
 
   // Festividades / Calendário

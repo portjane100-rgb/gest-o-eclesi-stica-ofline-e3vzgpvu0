@@ -19,6 +19,7 @@ import AdminPatrimonio from '@/pages/admin/AdminPatrimonio'
 import AdminEscala from '@/pages/admin/AdminEscala'
 import AdminCalendario from '@/pages/admin/AdminCalendario'
 import AdminDocumentos from '@/pages/admin/AdminDocumentos'
+import AdminCongregacoes from '@/pages/admin/AdminCongregacoes'
 import AdminConfig from '@/pages/admin/AdminConfig'
 
 export function App() {
@@ -60,6 +61,7 @@ export function App() {
               <Route path="calendario" element={<AdminCalendario />} />
               <Route path="patrimonio" element={<AdminPatrimonio />} />
               <Route path="obreiros" element={<AdminObreiros />} />
+              <Route path="congregacoes" element={<AdminCongregacoes />} />
               <Route path="documentos" element={<AdminDocumentos />} />
               <Route path="config" element={<AdminConfig />} />
             </Route>

@@ -27,10 +27,10 @@ export interface ChurchConfig {
   // Textos Institucionais
   homeHeroBadge: string
   homeHeroTitle: string
-  homeHeroSubtitle: string
-  homeHeroEndereco: string
-  textoRodape: string
-  mensagemAniversario: string
+  homeHeroSubtitle?: string
+  homeHeroEndereco?: string
+  textoRodape?: string
+  mensagemAniversario?: string
 
   // Rótulos / Labels
   labelMembros: string
@@ -67,11 +67,9 @@ export const CHURCH_CONFIG_DEFAULTS: ChurchConfig = {
 
   homeHeroBadge: 'Assembleia de Deus Templo Central',
   homeHeroTitle: 'ADTC Campanário',
-  homeHeroSubtitle:
-    'Um lugar de adoração, comunhão fraternal e proclamação da genuína Palavra de Deus para toda a família.',
-  homeHeroEndereco: 'Sede: Rua Alberto Batista Fontenele, nº 141, Campanário',
-  textoRodape:
-    'Igreja Evangélica Assembleia de Deus Templo Central. Uma igreja acolhedora, comprometida com a pregação bíblica, comunhão fraternal e a glória de Deus.',
+  homeHeroSubtitle: '',
+  homeHeroEndereco: '',
+  textoRodape: '',
   mensagemAniversario:
     'A paz do Senhor, {nome}! A nossa igreja deseja a você muitas felicidades e que Deus abençoe seu novo ano de vida! Jeremias 29:11',
 
@@ -227,13 +225,10 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
           map['home_hero_title']?.valor?.trim() ||
           map['igreja_nome']?.valor?.trim() ||
           CHURCH_CONFIG_DEFAULTS.homeHeroTitle,
-        homeHeroSubtitle:
-          map['home_hero_subtitle']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.homeHeroSubtitle,
+        homeHeroSubtitle: map['home_hero_subtitle']?.valor?.trim() || '',
         homeHeroEndereco:
-          map['home_hero_endereco']?.valor?.trim() ||
-          map['igreja_endereco']?.valor?.trim() ||
-          CHURCH_CONFIG_DEFAULTS.homeHeroEndereco,
-        textoRodape: map['igreja_rodape']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.textoRodape,
+          map['home_hero_endereco']?.valor?.trim() || map['igreja_endereco']?.valor?.trim() || '',
+        textoRodape: map['igreja_rodape']?.valor?.trim() || '',
         mensagemAniversario:
           map['mensagem_aniversario']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.mensagemAniversario,
 

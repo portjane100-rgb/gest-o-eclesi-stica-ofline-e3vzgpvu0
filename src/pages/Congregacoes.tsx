@@ -43,50 +43,14 @@ interface CongregacaoInfo {
   dirigenteGeral: string
 }
 
-const INFO_CONGREGACOES_PADRAO: CongregacaoInfo[] = [
-  {
-    nome: 'Sede',
-    titulo: 'Templo Sede ADTC',
-    subtitulo: 'Centro de Adoração e Sede Administrativa',
-    endereco: 'Rua Alberto Batista Fontenele, nº 141, Campanário',
-    diasCulto: 'Quinta-feira e Domingo (19h00) • Escola Bíblica aos Domingos (09h00)',
-    dirigenteGeral: 'Liderança Geral do Pastor Presidente',
-  },
-  {
-    nome: 'Congregação das Casinhas',
-    titulo: 'Congregação das Casinhas',
-    subtitulo: 'Filial 1 • Bairro Novo Campanário',
-    endereco: 'Conjunto Habitacional Novo Campanário (Casinhas)',
-    diasCulto: 'Segunda, Quarta, Sexta e Domingo',
-    dirigenteGeral: 'Presbítero Responsável',
-  },
-  {
-    nome: 'Congregação do Alto',
-    titulo: 'Congregação do Alto',
-    subtitulo: 'Filial 2 • Comunidade do Alto',
-    endereco: 'Bairro do Alto, Campanário',
-    diasCulto: 'Sexta (19h00) e Domingo (09h00 e 19h00)',
-    dirigenteGeral: 'Presbítero Responsável',
-  },
-  {
-    nome: 'Congregação da Vila dos Pescadores',
-    titulo: 'Vila dos Pescadores',
-    subtitulo: 'Filial 3 • Comunidade Pesqueira',
-    endereco: 'Comunidade da Vila dos Pescadores',
-    diasCulto: 'Segunda (19h00) e Sexta (18h30)',
-    dirigenteGeral: 'Evangelista Responsável',
-  },
-]
-
 export const Congregacoes: React.FC = () => {
   const { isAdmin } = useAuth()
   const { toast } = useToast()
 
   const [membros, setMembros] = useState<Membro[]>([])
   const [congregados, setCongregados] = useState<Congregado[]>([])
-  const [listaCongregacoes, setListaCongregacoes] =
-    useState<CongregacaoInfo[]>(INFO_CONGREGACOES_PADRAO)
-  const [selectedUnidade, setSelectedUnidade] = useState<string>('Sede')
+  const [listaCongregacoes, setListaCongregacoes] = useState<CongregacaoInfo[]>([])
+  const [selectedUnidade, setSelectedUnidade] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -125,52 +89,84 @@ export const Congregacoes: React.FC = () => {
     congregacao: CongregacaoInfo
     totalMembros: number
     totalCongregados: number
-    isOficial: boolean
   } | null>(null)
-  const [confirmacaoTexto, setConfirmacaoTexto] = useState('')
   const [isDeletingCongregacao, setIsDeletingCongregacao] = useState(false)
 
   const fetchData = async () => {
     try {
       setLoading(true)
       setFetchError(null)
-      const [membrosRes, congregadosRes, congsRes] = await Promise.all([
-        pb.collection('membros').getFullList<Membro>({
+
+      // Carrega membros e congregados (IndexedDB com fallback PB)
+      let membrosRes: Membro[] = []
+      let congregadosRes: Congregado[] = []
+      let congsRes: any[] = []
+
+      try {
+        const localMembros = await localDb.getFullList<Membro>('membros')
+        membrosRes = isAdmin
+          ? localMembros
+          : localMembros.filter((m) => (m.status || 'Ativo') === 'Ativo')
+      } catch {
+        membrosRes = await pb.collection('membros').getFullList<Membro>({
           filter: isAdmin ? '' : "status='Ativo'",
           sort: 'nome',
-        }),
-        pb.collection('congregados').getFullList<Congregado>({
+        }).catch(() => [])
+      }
+
+      try {
+        const localCongregados = await localDb.getFullList<Congregado>('congregados')
+        congregadosRes = isAdmin
+          ? localCongregados
+          : localCongregados.filter((c) => !c.status || c.status === 'Ativo')
+      } catch {
+        congregadosRes = await pb.collection('congregados').getFullList<Congregado>({
           filter: isAdmin ? '' : "status='Ativo' || status='' || status=null",
           sort: 'nome',
-        }),
-        pb
-          .collection('congregacoes')
-          .getFullList({
-            sort: 'ordem,created',
-          })
-          .catch(() => []),
-      ])
-
-      if (congsRes && congsRes.length > 0) {
-        const mapeadas: CongregacaoInfo[] = congsRes.map((c: any) => ({
-          id: c.id,
-          nome: c.nome,
-          titulo: c.titulo || c.nome,
-          subtitulo: c.subtitulo || `Congregação ADTC`,
-          endereco: c.endereco || 'Endereço a definir',
-          diasCulto: c.dias_culto || 'Dias e horários de culto a definir',
-          dirigenteGeral: c.dirigente_geral || 'Liderança local responsável',
-        }))
-        setListaCongregacoes(mapeadas)
-      } else {
-        setListaCongregacoes(INFO_CONGREGACOES_PADRAO)
+        }).catch(() => [])
       }
+
+      try {
+        const localCongs = await localDb.getFullList<any>('congregacoes')
+        if (localCongs && localCongs.length > 0) {
+          congsRes = localCongs
+        } else {
+          congsRes = await pb
+            .collection('congregacoes')
+            .getFullList({ sort: 'ordem,created' })
+            .catch(() => [])
+        }
+      } catch {
+        congsRes = await pb
+          .collection('congregacoes')
+          .getFullList({ sort: 'ordem,created' })
+          .catch(() => [])
+      }
+
+      const mapeadas: CongregacaoInfo[] = (congsRes || []).map((c: any) => ({
+        id: c.id,
+        nome: c.nome || '',
+        titulo: c.titulo || c.nome || '',
+        subtitulo: c.subtitulo || c.bairro || 'Unidade Congregacional',
+        endereco: c.endereco || [c.bairro, c.cidade].filter(Boolean).join(', ') || 'Endereço a definir',
+        diasCulto: c.diasCulto || c.dias_culto || 'Dias de culto a definir',
+        dirigenteGeral: c.dirigenteGeral || c.dirigente_geral || 'Liderança responsável',
+      })).filter((c) => Boolean(c.nome))
+
+      setListaCongregacoes(mapeadas)
+
+      setSelectedUnidade((prev) => {
+        if (prev && mapeadas.some((m) => m.nome === prev)) {
+          return prev
+        }
+        return mapeadas.length > 0 ? mapeadas[0].nome : ''
+      })
 
       setMembros(membrosRes)
       setCongregados(congregadosRes)
     } catch (err: any) {
-      console.error('Erro ao buscar membros/congregados:', err)
-      const msg = err?.message || 'Falha na conexão com o banco de dados.'
+      console.error('Erro ao buscar dados:', err)
+      const msg = err?.message || 'Falha ao sincronizar dados locais.'
       setFetchError(msg)
       toast({
         variant: 'destructive',
@@ -207,7 +203,7 @@ export const Congregacoes: React.FC = () => {
   const currentInfo =
     listaCongregacoes.find((c) => c.nome === selectedUnidade) ||
     listaCongregacoes[0] ||
-    INFO_CONGREGACOES_PADRAO[0]
+    null
 
   // Contadores (apenas Ativos na visão pública)
   const totalMembrosUnidade = membros.filter(
@@ -247,26 +243,43 @@ export const Congregacoes: React.FC = () => {
     setIsSubmittingCongregacao(true)
     try {
       const payload = {
+        id: localDb.generateId(),
         nome: novaNome.trim(),
         titulo: novaTitulo.trim() || novaNome.trim(),
-        subtitulo: novaSubtitulo.trim() || `Filial ADTC • Campanário`,
-        endereco: novaEndereco.trim() || 'Campanário - CE',
-        dias_culto: novaDiasCulto.trim() || 'Cultos de celebração e doutrina',
-        dirigente_geral: novaDirigente.trim() || 'Dirigente Responsável',
+        subtitulo: novaSubtitulo.trim() || 'Unidade Congregacional',
+        endereco: novaEndereco.trim(),
+        dias_culto: novaDiasCulto.trim(),
+        diasCulto: novaDiasCulto.trim(),
+        dirigente_geral: novaDirigente.trim(),
+        dirigenteGeral: novaDirigente.trim(),
         ordem: listaCongregacoes.length + 1,
-        ativa: true,
+        ativo: true,
       }
 
-      const created = await pb.collection('congregacoes').create(payload)
+      await localDb.create('congregacoes', payload)
+      try {
+        await pb.collection('congregacoes').create({
+          id: payload.id,
+          nome: payload.nome,
+          endereco: payload.endereco,
+          dias_culto: payload.dias_culto,
+          dirigente_geral: payload.dirigente_geral,
+          ordem: payload.ordem,
+          ativo: true,
+        })
+      } catch {
+        // Modo offline
+      }
 
       toast({
         title: 'Congregação cadastrada com sucesso!',
-        description: `A nova congregação "${novaNome}" já está disponível para filiações e cultos.`,
+        description: `A nova congregação "${novaNome}" já está disponível para todo o sistema.`,
       })
 
       setIsNovaCongregacaoModalOpen(false)
+      await reloadCongregacoesHook()
       await fetchData()
-      setSelectedUnidade(created.nome || novaNome.trim())
+      setSelectedUnidade(payload.nome)
     } catch (err: any) {
       console.error('Erro ao cadastrar congregação:', err)
       toast({
@@ -376,74 +389,56 @@ export const Congregacoes: React.FC = () => {
     }
   }
 
-  const CONGREGACOES_OFICIAIS = [
-    'Sede',
-    'Congregação das Casinhas',
-    'Congregação do Alto',
-    'Congregação da Vila dos Pescadores',
-  ]
-
   const handleSolicitarRemoverCongregacao = (cong: CongregacaoInfo) => {
-    const isOficial = CONGREGACOES_OFICIAIS.includes(cong.nome)
     const totalM = membros.filter((m) => m.congregacao === cong.nome).length
     const totalC = congregados.filter((c) => c.congregacao === cong.nome).length
 
-    setConfirmacaoTexto('')
     setDeletingCongregacao({
       congregacao: cong,
       totalMembros: totalM,
       totalCongregados: totalC,
-      isOficial,
     })
   }
 
   const handleConfirmarExclusaoCongregacao = async () => {
     if (!deletingCongregacao) return
 
-    const { congregacao: cong, isOficial } = deletingCongregacao
-
-    // Para congregações oficiais exige digitar o nome exatamente
-    if (isOficial && confirmacaoTexto.trim().toUpperCase() !== 'EXCLUIR') {
-      toast({
-        variant: 'destructive',
-        title: 'Confirmação necessária',
-        description: 'Digite a palavra EXCLUIR para confirmar a remoção da congregação oficial.',
-      })
-      return
-    }
+    const { congregacao: cong } = deletingCongregacao
 
     setIsDeletingCongregacao(true)
     try {
-      // 1. Se tem id na collection congregacoes, remove do banco
       if (cong.id) {
-        await pb.collection('congregacoes').delete(cong.id)
-      } else {
-        // Tentar buscar por nome caso o id não estivesse mapeado
+        await localDb.delete('congregacoes', cong.id)
         try {
-          const rec = await pb
-            .collection('congregacoes')
-            .getFirstListItem(`nome='${cong.nome.replace(/'/g, "\\'")}'`)
-          if (rec) {
-            await pb.collection('congregacoes').delete(rec.id)
-          }
+          await pb.collection('congregacoes').delete(cong.id)
         } catch {
-          /* intentionally ignored */
+          // offline
+        }
+      } else {
+        const localList = await localDb.getFullList<any>('congregacoes')
+        const found = localList.find((c) => c.nome === cong.nome)
+        if (found?.id) {
+          await localDb.delete('congregacoes', found.id)
+          try {
+            await pb.collection('congregacoes').delete(found.id)
+          } catch {
+            // offline
+          }
         }
       }
 
       toast({
         title: 'Congregação removida com sucesso',
-        description: `A congregação "${cong.nome}" foi excluída. O histórico dos membros e congregados foi preservado com segurança no sistema.`,
+        description: `A congregação "${cong.nome}" foi excluída do cadastro local.`,
       })
 
       setDeletingCongregacao(null)
-      setConfirmacaoTexto('')
 
-      // Redireciona a tab ativa para Sede se removeu a congregação atual
       if (selectedUnidade === cong.nome) {
-        setSelectedUnidade('Sede')
+        setSelectedUnidade('')
       }
 
+      await reloadCongregacoesHook()
       await fetchData()
     } catch (err: any) {
       console.error('Erro ao excluir congregação:', err)
@@ -468,133 +463,194 @@ export const Congregacoes: React.FC = () => {
           Congregações & Membresia
         </h1>
         <p className="text-sm sm:text-base text-[#5A5A5A] leading-relaxed">
-          Conheça as quatro frentes litúrgicas da ADTC Campanário e a relação de irmãos em comunhão
-          em cada congregação.
+          Relação de congregações, unidades e membros cadastrados no sistema local da igreja.
         </p>
 
         {isAdmin && (
           <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
             <Button
-              onClick={handleOpenNovaCongregacao}
+              asChild
               className="bg-gradient-to-r from-[#C9A227] to-[#B38E1B] hover:from-[#B38E1B] hover:to-[#9E7C17] text-[#1E3A5F] font-bold text-xs shadow-md border border-[#C9A227]"
             >
-              <Church className="w-4 h-4 mr-1.5 text-[#1E3A5F]" />
-              Adicionar Congregação
+              <Link to="/admin/congregacoes">
+                <Church className="w-4 h-4 mr-1.5 text-[#1E3A5F]" />
+                Gerenciar Congregações
+              </Link>
             </Button>
             <Button
-              onClick={() => handleOpenCreate('membro')}
-              className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold shadow-md"
-            >
-              <Plus className="w-4 h-4 mr-1.5" />
-              Adicionar Membro nesta Unidade
-            </Button>
-            <Button
-              onClick={() => handleOpenCreate('congregado')}
+              onClick={handleOpenNovaCongregacao}
               variant="outline"
-              className="border-[#C9A227] text-[#1E3A5F] hover:bg-amber-50 text-xs font-semibold shadow-sm"
+              className="border-[#1E3A5F] text-[#1E3A5F] hover:bg-slate-50 font-bold text-xs shadow-sm"
             >
               <Plus className="w-4 h-4 mr-1.5 text-[#C9A227]" />
-              Adicionar Congregado
+              Nova Congregação
             </Button>
+            {listaCongregacoes.length > 0 && (
+              <>
+                <Button
+                  onClick={() => handleOpenCreate('membro')}
+                  className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold shadow-md"
+                >
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Adicionar Membro nesta Unidade
+                </Button>
+                <Button
+                  onClick={() => handleOpenCreate('congregado')}
+                  variant="outline"
+                  className="border-[#C9A227] text-[#1E3A5F] hover:bg-amber-50 text-xs font-semibold shadow-sm"
+                >
+                  <Plus className="w-4 h-4 mr-1.5 text-[#C9A227]" />
+                  Adicionar Congregado
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* Tabs por Congregação */}
-      <Tabs
-        value={selectedUnidade}
-        onValueChange={setSelectedUnidade}
-        className="w-full max-w-full space-y-8 overflow-hidden"
-      >
-        <div className="flex justify-center w-full max-w-full overflow-x-auto pb-1">
-          <TabsList className="bg-white border border-[#E6E2D8] p-1.5 rounded-xl shadow-xs flex flex-wrap sm:flex-nowrap justify-center max-w-full h-auto gap-1">
-            {listaCongregacoes.map((item) => {
-              const u = item.nome
-              const isVila = u.includes('Pescadores')
-              const label = isVila ? 'Vila dos Pescadores' : u
-              return (
-                <TabsTrigger
-                  key={item.id || u}
-                  value={u}
-                  className="px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-sm italic font-bold tracking-wide data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-center"
-                >
-                  {label}
-                </TabsTrigger>
-              )
-            })}
-          </TabsList>
+      {loading ? (
+        <div className="p-12 text-center bg-white rounded-2xl border border-[#E6E2D8] flex flex-col items-center justify-center gap-3">
+          <Loader2 className="w-6 h-6 animate-spin text-[#C9A227]" />
+          <span className="text-xs text-slate-500">Carregando congregações do banco local...</span>
         </div>
-
-        {/* Card de Detalhes da Unidade */}
-        <Card className="border border-[#E6E2D8] bg-white shadow-sm overflow-hidden rounded-2xl">
-          <div className="h-2 bg-gradient-to-r from-[#1E3A5F] via-[#C9A227] to-[#1E3A5F]" />
-          <CardContent className="p-6 sm:p-8 space-y-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#E6E2D8] pb-6">
-              <div>
-                <Badge className="bg-[#C9A227] text-[#1E3A5F] font-bold text-[10px] uppercase tracking-wider mb-1.5">
-                  Unidade Eclesiástica
-                </Badge>
-                <h2 className="font-serif text-2xl sm:text-3xl font-bold italic text-[#1E3A5F] tracking-wide drop-shadow-xs">
-                  {currentInfo.titulo}
-                </h2>
-                <p className="text-xs sm:text-sm text-[#5A5A5A] mt-1">{currentInfo.subtitulo}</p>
-                <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-2">
-                  <MapPin className="w-4 h-4 text-[#C9A227] flex-shrink-0" />
-                  {currentInfo.endereco}
-                </p>
-              </div>
-
-              {/* Estatísticas Rápidas & Ações de Administração da Unidade */}
-              <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 self-stretch sm:self-auto justify-end">
-                <div className="flex items-center gap-3">
-                  <div className="px-4 py-2.5 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] text-center">
-                    <div className="font-serif font-bold text-lg text-[#1E3A5F]">
-                      {totalMembrosUnidade}
-                    </div>
-                    <div className="text-[10px] uppercase font-semibold text-[#5A5A5A]">
-                      Membros
-                    </div>
-                  </div>
-                  <div className="px-4 py-2.5 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] text-center">
-                    <div className="font-serif font-bold text-lg text-[#C9A227]">
-                      {totalCongregadosUnidade}
-                    </div>
-                    <div className="text-[10px] uppercase font-semibold text-[#5A5A5A]">
-                      Congregados
-                    </div>
-                  </div>
-                </div>
-
-                {isAdmin && (
-                  <Button
-                    onClick={() => handleSolicitarRemoverCongregacao(currentInfo)}
-                    variant="outline"
-                    size="sm"
-                    className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-xs font-semibold shadow-2xs h-9 px-3"
-                    title={`Remover congregação ${currentInfo.nome}`}
-                  >
-                    <Trash2 className="w-3.5 h-3.5 mr-1.5 text-rose-600" />
-                    Remover Congregação
-                  </Button>
-                )}
-              </div>
+      ) : listaCongregacoes.length === 0 ? (
+        <Card className="border border-[#E6E2D8] bg-white shadow-xs rounded-2xl">
+          <CardContent className="p-10 text-center space-y-4">
+            <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 text-[#C9A227] flex items-center justify-center mx-auto">
+              <Church className="w-7 h-7" />
             </div>
-
-            {/* Informações Litúrgicas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm bg-[#F7F5F0]/60 p-4 rounded-xl border border-[#E6E2D8]/80">
-              <div>
-                <strong className="text-[#1E3A5F] block font-serif mb-1">Dias de Culto:</strong>
-                <span className="text-[#5A5A5A]">{currentInfo.diasCulto}</span>
-              </div>
-              <div>
-                <strong className="text-[#1E3A5F] block font-serif mb-1">
-                  Responsável Ministerial:
-                </strong>
-                <span className="text-[#5A5A5A]">{currentInfo.dirigenteGeral}</span>
-              </div>
+            <div className="space-y-1">
+              <h3 className="font-serif font-bold text-base text-[#1E3A5F]">
+                Nenhuma congregação ou unidade cadastrada
+              </h3>
+              <p className="text-xs text-[#5A5A5A] max-w-md mx-auto">
+                Para começar a registrar membros e organizar as frentes da igreja, cadastre a Sede
+                ou suas filiais no painel de congregações.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+              <Button
+                asChild
+                className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-bold gap-2"
+              >
+                <Link to="/admin/congregacoes">
+                  <Church className="w-4 h-4 text-[#C9A227]" />
+                  Cadastrar Congregações no Painel
+                </Link>
+              </Button>
+              <Button
+                onClick={handleOpenNovaCongregacao}
+                variant="outline"
+                className="border-[#C9A227] text-[#1E3A5F] text-xs font-bold gap-2"
+              >
+                <Plus className="w-4 h-4 text-[#C9A227]" />
+                Adicionar Rápido
+              </Button>
             </div>
           </CardContent>
         </Card>
+      ) : (
+        /* Tabs por Congregação */
+        <Tabs
+          value={selectedUnidade}
+          onValueChange={setSelectedUnidade}
+          className="w-full max-w-full space-y-8 overflow-hidden"
+        >
+          <div className="flex justify-center w-full max-w-full overflow-x-auto pb-1">
+            <TabsList className="bg-white border border-[#E6E2D8] p-1.5 rounded-xl shadow-xs flex flex-wrap sm:flex-nowrap justify-center max-w-full h-auto gap-1">
+              {listaCongregacoes.map((item) => {
+                const u = item.nome
+                return (
+                  <TabsTrigger
+                    key={item.id || u}
+                    value={u}
+                    className="px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg text-[11px] sm:text-sm italic font-bold tracking-wide data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white data-[state=active]:shadow-md transition-all text-center"
+                  >
+                    {u}
+                  </TabsTrigger>
+                )
+              })}
+            </TabsList>
+          </div>
+
+          {/* Card de Detalhes da Unidade */}
+          {currentInfo && (
+            <Card className="border border-[#E6E2D8] bg-white shadow-sm overflow-hidden rounded-2xl">
+              <div className="h-2 bg-gradient-to-r from-[#1E3A5F] via-[#C9A227] to-[#1E3A5F]" />
+              <CardContent className="p-6 sm:p-8 space-y-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#E6E2D8] pb-6">
+                  <div>
+                    <Badge className="bg-[#C9A227] text-[#1E3A5F] font-bold text-[10px] uppercase tracking-wider mb-1.5">
+                      Unidade Eclesiástica
+                    </Badge>
+                    <h2 className="font-serif text-2xl sm:text-3xl font-bold italic text-[#1E3A5F] tracking-wide drop-shadow-xs">
+                      {currentInfo.titulo}
+                    </h2>
+                    {currentInfo.subtitulo && (
+                      <p className="text-xs sm:text-sm text-[#5A5A5A] mt-1">{currentInfo.subtitulo}</p>
+                    )}
+                    {currentInfo.endereco && (
+                      <p className="text-xs text-slate-500 flex items-center gap-1.5 mt-2">
+                        <MapPin className="w-4 h-4 text-[#C9A227] flex-shrink-0" />
+                        {currentInfo.endereco}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Estatísticas Rápidas & Ações de Administração da Unidade */}
+                  <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 self-stretch sm:self-auto justify-end">
+                    <div className="flex items-center gap-3">
+                      <div className="px-4 py-2.5 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] text-center">
+                        <div className="font-serif font-bold text-lg text-[#1E3A5F]">
+                          {totalMembrosUnidade}
+                        </div>
+                        <div className="text-[10px] uppercase font-semibold text-[#5A5A5A]">
+                          Membros
+                        </div>
+                      </div>
+                      <div className="px-4 py-2.5 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] text-center">
+                        <div className="font-serif font-bold text-lg text-[#C9A227]">
+                          {totalCongregadosUnidade}
+                        </div>
+                        <div className="text-[10px] uppercase font-semibold text-[#5A5A5A]">
+                          Congregados
+                        </div>
+                      </div>
+                    </div>
+
+                    {isAdmin && (
+                      <Button
+                        onClick={() => handleSolicitarRemoverCongregacao(currentInfo)}
+                        variant="outline"
+                        size="sm"
+                        className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300 text-xs font-semibold shadow-2xs h-9 px-3"
+                        title={`Remover congregação ${currentInfo.nome}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1.5 text-rose-600" />
+                        Remover
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Informações Litúrgicas */}
+                {(currentInfo.diasCulto || currentInfo.dirigenteGeral) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm bg-[#F7F5F0]/60 p-4 rounded-xl border border-[#E6E2D8]/80">
+                    <div>
+                      <strong className="text-[#1E3A5F] block font-serif mb-1">Dias de Culto:</strong>
+                      <span className="text-[#5A5A5A]">{currentInfo.diasCulto || 'Não informado'}</span>
+                    </div>
+                    <div>
+                      <strong className="text-[#1E3A5F] block font-serif mb-1">
+                        Responsável Ministerial:
+                      </strong>
+                      <span className="text-[#5A5A5A]">{currentInfo.dirigenteGeral || 'Não informado'}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
         {/* Mensagem de Erro com Botão Tentar Novamente */}
         {fetchError && (
@@ -988,8 +1044,8 @@ export const Congregacoes: React.FC = () => {
               Cadastrar Nova Congregação
             </DialogTitle>
             <DialogDescription className="text-center text-xs text-[#5A5A5A]">
-              Adicione uma nova congregação/filial da ADTC Campanário. Ela ficará imediatamente
-              integrada ao sistema para escalas, filiações de membros e congregados.
+              Adicione uma nova congregação/filial da sua igreja. Ela ficará imediatamente
+              integrada ao sistema local para membros, obreiros e escalas.
             </DialogDescription>
           </DialogHeader>
 
@@ -1039,7 +1095,7 @@ export const Congregacoes: React.FC = () => {
               <Input
                 value={novaEndereco}
                 onChange={(e) => setNovaEndereco(e.target.value)}
-                placeholder="Ex: Estrada Principal, s/n, Distrito de Campanário"
+                placeholder="Ex: Estrada Principal, s/n, Centro"
                 className="text-xs sm:text-sm"
               />
             </div>
@@ -1133,7 +1189,6 @@ export const Congregacoes: React.FC = () => {
         onOpenChange={(open) => {
           if (!open) {
             setDeletingCongregacao(null)
-            setConfirmacaoTexto('')
           }
         }}
       >
@@ -1146,71 +1201,27 @@ export const Congregacoes: React.FC = () => {
               Remover Congregação
             </DialogTitle>
             <DialogDescription className="text-center text-xs text-[#5A5A5A] pt-1">
-              Você está prestes a remover{' '}
+              Deseja remover a congregação{' '}
               <strong className="text-slate-900 font-semibold">
                 "{deletingCongregacao?.congregacao.nome}"
               </strong>{' '}
-              do rol de congregações ativas.
+              do sistema local?
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-3.5 py-2 text-xs text-slate-700">
-            {/* Aviso sobre membros e congregados vinculados */}
-            {(deletingCongregacao?.totalMembros || 0) > 0 ||
-            (deletingCongregacao?.totalCongregados || 0) > 0 ? (
-              <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-1.5 text-amber-900">
-                <p className="font-semibold flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-                  Membros e congregados vinculados:
-                </p>
-                <p className="text-[11px] leading-relaxed text-amber-800">
-                  Existem atualmente <strong>
-                    {deletingCongregacao?.totalMembros} membros
-                  </strong> e{' '}
-                  <strong>{deletingCongregacao?.totalCongregados} congregados</strong> listados
-                  nesta unidade.
-                </p>
-                <p className="text-[11px] leading-relaxed text-slate-600 pt-1 border-t border-amber-200/60">
-                  🛡️ <strong>Segurança do cadastro:</strong> Eles{' '}
-                  <span className="underline font-semibold">não</span> serão apagados do sistema;
-                  seus cadastros oficiais permanecerão intactos no banco de dados e no painel admin.
-                </p>
-              </div>
-            ) : (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 text-xs">
-                Esta congregação não possui membros ou congregados diretamente vinculados.
-              </div>
-            )}
-
-            {/* Aviso se congregação for oficial */}
-            {deletingCongregacao?.isOficial && (
-              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-rose-900">
-                <p className="font-bold text-xs flex items-center gap-1.5 text-rose-700">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-                  Atenção: Congregação Histórica Oficial
-                </p>
-                <p className="text-[11px] leading-relaxed text-rose-800">
-                  Esta é uma das quatro congregações originais da ADTC Campanário. Para confirmar a
-                  exclusão definitiva, digite a palavra <strong>EXCLUIR</strong> abaixo:
-                </p>
-                <Input
-                  value={confirmacaoTexto}
-                  onChange={(e) => setConfirmacaoTexto(e.target.value)}
-                  placeholder="Digite EXCLUIR para confirmar"
-                  className="bg-white border-rose-300 text-rose-900 font-mono text-xs uppercase"
-                />
-              </div>
-            )}
+            <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl space-y-1.5 text-amber-900">
+              <p className="text-[11px] leading-relaxed text-slate-600">
+                🛡️ <strong>Segurança do cadastro:</strong> Membros e congregados vinculados a esta unidade não serão apagados; seus cadastros permanecerão intactos no banco local.
+              </p>
+            </div>
           </div>
 
           <DialogFooter className="gap-2 pt-2 border-t border-[#E6E2D8]">
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                setDeletingCongregacao(null)
-                setConfirmacaoTexto('')
-              }}
+              onClick={() => setDeletingCongregacao(null)}
               disabled={isDeletingCongregacao}
               className="flex-1 text-xs"
             >
@@ -1219,20 +1230,16 @@ export const Congregacoes: React.FC = () => {
             <Button
               type="button"
               onClick={handleConfirmarExclusaoCongregacao}
-              disabled={
-                isDeletingCongregacao ||
-                (deletingCongregacao?.isOficial &&
-                  confirmacaoTexto.trim().toUpperCase() !== 'EXCLUIR')
-              }
+              disabled={isDeletingCongregacao}
               className="bg-rose-600 hover:bg-rose-700 text-white font-semibold flex-1 text-xs shadow-md"
             >
               {isDeletingCongregacao ? (
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 justify-center">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Removendo...
                 </span>
               ) : (
-                'Confirmar Exclusão'
+                'Confirmar Remoção'
               )}
             </Button>
           </DialogFooter>

@@ -6,6 +6,7 @@ import {
   UserCheck,
   Award,
   Wallet,
+  Church,
   Building,
   CalendarDays,
   Clock,
@@ -50,6 +51,11 @@ export const AdminLayout: React.FC = () => {
     { to: '/admin/membros', label: config.labelMembros || 'Membros', icon: Users },
     { to: '/admin/congregados', label: config.labelCongregados || 'Congregados', icon: UserCheck },
     { to: '/admin/obreiros', label: config.labelObreiros || 'Obreiros', icon: Award },
+    {
+      to: '/admin/congregacoes',
+      label: config.labelUnidades || 'Congregações / Unidades',
+      icon: Church,
+    },
     {
       to: '/admin/dizimistas',
       label: config.labelDizimistas || 'Dizimistas & Planilha',

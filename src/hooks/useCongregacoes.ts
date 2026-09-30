@@ -15,128 +15,8 @@ export interface CongregacaoItem {
   ativo?: boolean
 }
 
-export const CONGREGACOES_FALLBACK: CongregacaoItem[] = [
-  {
-    id: '1',
-    nome: 'Sede',
-    bairro: 'Centro',
-    cidade: 'Campanário',
-    dirigenteGeral: 'Pr. José Francisco Portela',
-    diasCulto: 'Terça e Domingo',
-    ordem: 1,
-    ativo: true,
-  },
-  {
-    id: '2',
-    nome: 'Sub-Sede',
-    bairro: '',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: 'Quinta e Domingo',
-    ordem: 2,
-    ativo: true,
-  },
-  {
-    id: '3',
-    nome: 'Boa Vista',
-    bairro: 'Zona Rural',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 3,
-    ativo: true,
-  },
-  {
-    id: '4',
-    nome: 'Carnaúba',
-    bairro: 'Zona Rural',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 4,
-    ativo: true,
-  },
-  {
-    id: '5',
-    nome: 'Baliza',
-    bairro: 'Zona Rural',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 5,
-    ativo: true,
-  },
-  {
-    id: '6',
-    nome: 'Sítio dos Fernandes',
-    bairro: 'Zona Rural',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 6,
-    ativo: true,
-  },
-  {
-    id: '7',
-    nome: 'Pau D’Arco',
-    bairro: 'Zona Rural',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 7,
-    ativo: true,
-  },
-  {
-    id: '8',
-    nome: 'Canto dos Coqueiros',
-    bairro: 'Zona Rural',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 8,
-    ativo: true,
-  },
-  {
-    id: '9',
-    nome: 'Candeias',
-    bairro: 'Zona Rural',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 9,
-    ativo: true,
-  },
-  {
-    id: '10',
-    nome: 'Almas',
-    bairro: 'Zona Rural',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 10,
-    ativo: true,
-  },
-  {
-    id: '11',
-    nome: 'Morada Nova',
-    bairro: '',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 11,
-    ativo: true,
-  },
-  {
-    id: '12',
-    nome: 'Curupati',
-    bairro: '',
-    cidade: 'Campanário',
-    dirigenteGeral: '',
-    diasCulto: '',
-    ordem: 12,
-    ativo: true,
-  },
-]
+// Fallback vazio: congregações devem vir 100% do banco local (IndexedDB)
+export const CONGREGACOES_FALLBACK: CongregacaoItem[] = []
 
 export function ordenarCongregacoes(lista: CongregacaoItem[]): CongregacaoItem[] {
   return [...lista].sort((a, b) => {
@@ -178,11 +58,11 @@ export async function fetchCongregacoesFromDb(): Promise<CongregacaoItem[]> {
   } catch (err) {
     console.warn('Erro ao carregar congregacoes do banco local:', err)
   }
-  return ordenarCongregacoes(CONGREGACOES_FALLBACK)
+  return []
 }
 
 export function useCongregacoes() {
-  const [congregacoes, setCongregacoes] = useState<CongregacaoItem[]>(CONGREGACOES_FALLBACK)
+  const [congregacoes, setCongregacoes] = useState<CongregacaoItem[]>([])
   const [loading, setLoading] = useState<boolean>(true)
 
   const reload = useCallback(async () => {

@@ -50,8 +50,6 @@ export const ModoRevendaSection: React.FC = () => {
 
   // Textos
   const [homeHeroSubtitle, setHomeHeroSubtitle] = useState(config.homeHeroSubtitle || '')
-  const [textoRodape, setTextoRodape] = useState(config.textoRodape || '')
-  const [mensagemAniversario, setMensagemAniversario] = useState(config.mensagemAniversario || '')
 
   // Rótulos
   const [labelMembros, setLabelMembros] = useState(config.labelMembros || 'Membros')
@@ -85,8 +83,6 @@ export const ModoRevendaSection: React.FC = () => {
     setCorPrimaria(config.corPrimaria || '#1E3A5F')
     setCorDestaque(config.corDestaque || '#C9A227')
     setHomeHeroSubtitle(config.homeHeroSubtitle || '')
-    setTextoRodape(config.textoRodape || '')
-    setMensagemAniversario(config.mensagemAniversario || '')
     setLabelMembros(config.labelMembros || 'Membros')
     setLabelCongregados(config.labelCongregados || 'Congregados')
     setLabelObreiros(config.labelObreiros || 'Corpo de Obreiros')
@@ -207,8 +203,8 @@ export const ModoRevendaSection: React.FC = () => {
         tema_cor_destaque: corDestaque.trim(),
 
         home_hero_subtitle: homeHeroSubtitle.trim(),
-        igreja_rodape: textoRodape.trim(),
-        mensagem_aniversario: mensagemAniversario.trim(),
+        igreja_rodape: '',
+        mensagem_aniversario: '',
 
         rotulo_membros: labelMembros.trim(),
         rotulo_congregados: labelCongregados.trim(),
@@ -541,13 +537,13 @@ export const ModoRevendaSection: React.FC = () => {
           <div className="p-4 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-4">
             <h3 className="font-serif text-sm font-bold text-[#1E3A5F] flex items-center gap-2">
               <FileText className="w-4 h-4 text-[#C9A227]" />
-              Textos Institucionais e Mensagens
+              Mensagem de Boas-vindas
             </h3>
 
             <div className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs font-bold text-[#1E3A5F]">
-                  Subtítulo / Mensagem de Boas-vindas da Home
+                  Subtítulo / Mensagem de Boas-vindas do Painel
                 </label>
                 <textarea
                   value={homeHeroSubtitle}
@@ -555,39 +551,8 @@ export const ModoRevendaSection: React.FC = () => {
                   onChange={(e) => setHomeHeroSubtitle(e.target.value)}
                   rows={2}
                   className="w-full text-xs sm:text-sm bg-white border border-[#E6E2D8] rounded-md p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#C9A227]"
-                  placeholder="Um lugar de adoração, comunhão fraternal e proclamação..."
+                  placeholder="Mensagem institucional de boas-vindas..."
                 />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#1E3A5F]">
-                  Texto de Apresentação no Rodapé
-                </label>
-                <textarea
-                  value={textoRodape}
-                  disabled={!isTesoureiro}
-                  onChange={(e) => setTextoRodape(e.target.value)}
-                  rows={2}
-                  className="w-full text-xs sm:text-sm bg-white border border-[#E6E2D8] rounded-md p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#C9A227]"
-                  placeholder="Igreja acolhedora, comprometida com a pregação bíblica..."
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#1E3A5F]">
-                  Mensagem Automática de Felicitação aos Aniversariantes
-                </label>
-                <textarea
-                  value={mensagemAniversario}
-                  disabled={!isTesoureiro}
-                  onChange={(e) => setMensagemAniversario(e.target.value)}
-                  rows={2}
-                  className="w-full text-xs sm:text-sm bg-white border border-[#E6E2D8] rounded-md p-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#C9A227]"
-                  placeholder="A paz do Senhor, {nome}! A nossa igreja deseja muitas felicidades..."
-                />
-                <span className="text-[10px] text-slate-500">
-                  Use {'{nome}'} onde o nome da pessoa aniversariante deve ser preenchido.
-                </span>
               </div>
             </div>
           </div>

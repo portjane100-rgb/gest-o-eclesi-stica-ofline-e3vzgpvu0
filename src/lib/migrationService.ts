@@ -5,7 +5,6 @@
 
 import pb from '@/lib/pocketbase/client'
 import { localDb, hashPassword, type LocalCollectionName } from './localDb'
-import { CONGREGACOES_FALLBACK } from '@/hooks/useCongregacoes'
 import { CHURCH_CONFIG_DEFAULTS } from '@/contexts/ChurchConfigContext'
 
 export interface MigrationProgress {
@@ -168,27 +167,9 @@ export async function runPocketBaseMigration(
           await localDb.create('congregacoes', c)
           totalRecords++
         }
-      } else {
-        for (const fb of CONGREGACOES_FALLBACK) {
-          await localDb.create('congregacoes', {
-            id: localDb.generateId(),
-            ...fb,
-            dias_culto: fb.diasCulto,
-            dirigente_geral: fb.dirigenteGeral,
-          })
-          totalRecords++
-        }
       }
-    } catch {
-      for (const fb of CONGREGACOES_FALLBACK) {
-        await localDb.create('congregacoes', {
-          id: localDb.generateId(),
-          ...fb,
-          dias_culto: fb.diasCulto,
-          dirigente_geral: fb.dirigenteGeral,
-        })
-        totalRecords++
-      }
+    } catch (err) {
+      console.warn('Migração PocketBase: congregações vazias ou indisponíveis:', err)
     }
     report('congregacoes', 1, 1, 'completed')
 

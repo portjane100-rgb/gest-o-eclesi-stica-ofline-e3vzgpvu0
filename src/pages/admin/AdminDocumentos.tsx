@@ -261,12 +261,7 @@ export const AdminDocumentos: React.FC = () => {
   const [novaDataRecebimento, setNovaDataRecebimento] = useState(
     new Date().toISOString().slice(0, 10),
   )
-  const [novaCongregacaoDestino, setNovaCongregacaoDestino] = useState<
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
-  >('Sede')
+  const [novaCongregacaoDestino, setNovaCongregacaoDestino] = useState<string>('')
   const [novoArquivo, setNovoArquivo] = useState<File | null>(null)
   const [novasObservacoes, setNovasObservacoes] = useState('')
 
@@ -2725,23 +2720,15 @@ export const AdminDocumentos: React.FC = () => {
                 </label>
                 <select
                   value={novaCongregacaoDestino}
-                  onChange={(e) =>
-                    setNovaCongregacaoDestino(
-                      e.target.value as
-                        | 'Sede'
-                        | 'Congregação das Casinhas'
-                        | 'Congregação do Alto'
-                        | 'Congregação da Vila dos Pescadores',
-                    )
-                  }
+                  onChange={(e) => setNovaCongregacaoDestino(e.target.value)}
                   className="w-full h-10 px-3 rounded-md border border-[#E6E2D8] bg-white text-xs sm:text-sm focus:ring-2 focus:ring-[#C9A227]"
                 >
-                  <option value="Sede">Sede</option>
-                  <option value="Congregação das Casinhas">Congregação das Casinhas</option>
-                  <option value="Congregação do Alto">Congregação do Alto</option>
-                  <option value="Congregação da Vila dos Pescadores">
-                    Congregação da Vila dos Pescadores
-                  </option>
+                  <option value="">Selecione a congregação destino...</option>
+                  {congregacoes.map((c) => (
+                    <option key={c.id || c.nome} value={c.nome}>
+                      {c.nome}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

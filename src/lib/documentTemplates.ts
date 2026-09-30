@@ -1010,12 +1010,8 @@ export function buildFichaMembroBrancoHtml(data: DocFichaMembroBrancoData): stri
   const subtitulo = id.subtituloIgreja?.trim() || (nomeIgreja ? `Templo Sede — ${nomeIgreja}` : '')
   const endereco = id.enderecoIgreja?.trim() || ''
 
-  const unidades = data.unidades || [
-    'Sede',
-    'Congregação das Casinhas',
-    'Congregação do Alto',
-    'Congregação da Vila dos Pescadores',
-  ]
+  const unidades =
+    data.unidades && data.unidades.length > 0 ? data.unidades : ['Sede', 'Filial 1', 'Filial 2']
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">

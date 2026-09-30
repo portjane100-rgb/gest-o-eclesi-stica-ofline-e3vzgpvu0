@@ -24,11 +24,7 @@ export interface Membro extends RecordModel {
   data_conversao_texto?: string
   data_batismo?: string
   data_batismo_texto?: string
-  congregacao:
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
+  congregacao: string
   foto?: string
   status: SituacaoEclesiastica | string
   numero_registro?: string
@@ -40,11 +36,7 @@ export interface Congregado extends RecordModel {
   telefone?: string
   whatsapp?: string
   data_nascimento?: string
-  congregacao:
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
+  congregacao: string
   status?: SituacaoEclesiastica | string
 }
 
@@ -56,11 +48,7 @@ export interface SolicitacaoCadastro extends RecordModel {
   whatsapp?: string
   data_nascimento?: string
   data_nascimento_texto?: string
-  congregacao:
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
+  congregacao: string
   filiacao?: string
   naturalidade?: string
   estado_civil?: string
@@ -80,11 +68,7 @@ export interface Obreiro extends RecordModel {
   cargo: 'Pastor Presidente' | 'Evangelista' | 'Presbítero' | 'Diácono' | 'Auxiliar'
   foto?: string
   telefone?: string
-  congregacao:
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
+  congregacao: string
   status: 'Ativo' | 'Inativo'
   ordem?: number
   mensagem_pastoral?: string
@@ -93,11 +77,7 @@ export interface Obreiro extends RecordModel {
 export interface Dizimista extends RecordModel {
   nome: string
   mes_referencia?: string
-  congregacao:
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
+  congregacao: string
   membro?: string
   ativo?: boolean
   expand?: {
@@ -117,11 +97,7 @@ export interface Patrimonio extends RecordModel {
 export interface EscalaItem extends RecordModel {
   data: string
   culto_horario?: string
-  local:
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
+  local: string
   dirigente?: string
   pregador?: string
   portaria_recepcao?: string
@@ -170,11 +146,7 @@ export interface CongregacaoRegistro extends RecordModel {
 }
 
 export interface AgendaSemanalItem extends RecordModel {
-  unidade:
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
+  unidade: string
   dia_semana: 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo'
   horario?: string
   evento: string
@@ -219,11 +191,7 @@ export interface CartaRecebida extends RecordModel {
   igreja_origem: string
   cidade_origem?: string
   data_recebimento: string
-  congregacao_destino?:
-    | 'Sede'
-    | 'Congregação das Casinhas'
-    | 'Congregação do Alto'
-    | 'Congregação da Vila dos Pescadores'
+  congregacao_destino?: string
   arquivo_pdf?: string
   observacoes?: string
 }
@@ -301,12 +269,8 @@ export interface PlanilhaMensalRecord extends RecordModel {
   }
 }
 
-export const UNIDADES = [
-  'Sede',
-  'Congregação das Casinhas',
-  'Congregação do Alto',
-  'Congregação da Vila dos Pescadores',
-] as const
+// Lista dinâmica: mantida como array aberto de string para seletores que precisam de fallback
+export const UNIDADES: string[] = []
 
 export const DIAS_SEMANA = [
   'Segunda',
