@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { localDb } from '@/lib/localDb'
 import type { Configuracao } from '@/types/adtc'
 import logoOficial from '@/assets/design-sem-nome-3-82164.png'
 
@@ -10,19 +10,19 @@ export interface ChurchConfig {
   denominacao: string
   siglaIgreja: string
   enderecoSede: string
-  enderecoIgreja: string // alias para compatibilidade com DocChurchIdentity
+  enderecoIgreja: string
   cidadeEstado: string
-  cidadeUf: string // alias para compatibilidade com DocChurchIdentity
+  cidadeUf: string
   telefoneContato: string
   emailContato: string
   instagramUrl: string
-  logoUrl: string // Custom uploaded logo or default fallback
+  logoUrl: string
   logoRecordId?: string
-  nomePastor?: string // pastor presidente vindo de configuracoes
+  nomePastor?: string
 
   // Cores do Tema (hex)
-  corPrimaria: string // Default #1E3A5F (Deep Blue)
-  corDestaque: string // Default #C9A227 (Gold)
+  corPrimaria: string
+  corDestaque: string
 
   // Textos Institucionais
   homeHeroBadge: string
@@ -40,7 +40,6 @@ export interface ChurchConfig {
   labelUnidades: string
   labelEscala: string
   labelCalendario: string
-  labelSalmos: string
   labelMuralFotos: string
 
   // Financeiro / PIX
@@ -50,6 +49,11 @@ export interface ChurchConfig {
   pixCnpj: string
   pixMensagem: string
   pixVersiculo: string
+
+  // Modelos de Documentos PDF
+  modeloCartaRecomendacao?: string
+  modeloCartaMudanca?: string
+  modeloCertificadoApresentacao?: string
 }
 
 export const CHURCH_CONFIG_DEFAULTS: ChurchConfig = {
@@ -87,7 +91,6 @@ export const CHURCH_CONFIG_DEFAULTS: ChurchConfig = {
   labelUnidades: 'Congregações',
   labelEscala: 'Escala de Trabalho',
   labelCalendario: 'Calendário de Festas',
-  labelSalmos: 'Salmos Musicados',
   labelMuralFotos: 'Mural de Fotos',
 
   pixChave: '14.037.658/0001-82',
@@ -97,6 +100,13 @@ export const CHURCH_CONFIG_DEFAULTS: ChurchConfig = {
   pixMensagem:
     'Cada um dê conforme determinou em seu coração, não com tristeza ou por obrigação, pois Deus ama quem dá com alegria.',
   pixVersiculo: '2 Coríntios 9:7',
+
+  modeloCartaRecomendacao:
+    'Temos a grata satisfação de vos enviar o nosso amado irmão, em plena comunhão nesta igreja, para que o recebais no Senhor como convém aos santos.',
+  modeloCartaMudanca:
+    'Pela presente, transferimos a membresia e o registro do nosso irmão, recomendando-o à vossa comunhão e aos santos cuidados pastorais.',
+  modeloCertificadoApresentacao:
+    'Certificamos que esta criança foi solenemente apresentada ao Senhor no templo, em cumprimento aos preceitos da Palavra de Deus.',
 }
 
 interface ChurchConfigContextType {
@@ -108,10 +118,6 @@ interface ChurchConfigContextType {
 
 const ChurchConfigContext = createContext<ChurchConfigContextType | undefined>(undefined)
 
-/**
- * Converte cor Hex (#1E3A5F) para HSL string no formato aceito pelo Tailwind CSS variables:
- * Ex: "215 52% 25%"
- */
 export function hexToHslString(hex: string): string | null {
   const clean = hex.replace('#', '').trim()
   if (clean.length !== 6 && clean.length !== 3) return null
@@ -159,9 +165,6 @@ export function hexToHslString(hex: string): string | null {
   return `${hDeg} ${sPct}% ${lPct}%`
 }
 
-/**
- * Aplica as cores dinâmicas no elemento :root
- */
 export function applyThemeColors(corPrimaria?: string, corDestaque?: string) {
   if (typeof document === 'undefined') return
   const root = document.documentElement
@@ -192,7 +195,7 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const reloadConfig = useCallback(async () => {
     setLoading(true)
     try {
-      const records = await pb.collection('configuracoes').getFullList<Configuracao>()
+      const records = await localDb.getFullList<Configuracao>('configuracoes')
       const map: Record<
         string,
         { valor?: string; arquivo?: string; id: string; record: Configuracao }
@@ -228,9 +231,10 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
         nomePastor:
           map['lideranca_nome_pastor']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.nomePastor,
 
-        logoUrl: map['igreja_logo']?.arquivo
-          ? pb.files.getURL(map['igreja_logo'].record, map['igreja_logo'].arquivo)
-          : map['igreja_logo']?.valor || CHURCH_CONFIG_DEFAULTS.logoUrl,
+        logoUrl:
+          map['igreja_logo']?.arquivo ||
+          map['igreja_logo']?.valor ||
+          CHURCH_CONFIG_DEFAULTS.logoUrl,
         logoRecordId: map['igreja_logo']?.id,
 
         corPrimaria: map['tema_cor_primaria']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.corPrimaria,
@@ -264,7 +268,6 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
         labelEscala: map['rotulo_escala']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelEscala,
         labelCalendario:
           map['rotulo_calendario']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelCalendario,
-        labelSalmos: map['rotulo_salmos']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelSalmos,
         labelMuralFotos:
           map['rotulo_mural_fotos']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelMuralFotos,
 
@@ -274,12 +277,21 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
         pixCnpj: map['pix_cnpj']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixCnpj,
         pixMensagem: map['pix_mensagem']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixMensagem,
         pixVersiculo: map['pix_versiculo']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixVersiculo,
+
+        modeloCartaRecomendacao:
+          map['modelo_carta_recomendacao']?.valor?.trim() ||
+          CHURCH_CONFIG_DEFAULTS.modeloCartaRecomendacao,
+        modeloCartaMudanca:
+          map['modelo_carta_mudanca']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.modeloCartaMudanca,
+        modeloCertificadoApresentacao:
+          map['modelo_certificado_apresentacao']?.valor?.trim() ||
+          CHURCH_CONFIG_DEFAULTS.modeloCertificadoApresentacao,
       }
 
       setConfig(merged)
       applyThemeColors(merged.corPrimaria, merged.corDestaque)
     } catch (err) {
-      console.warn('Erro ao carregar configurações da igreja do PocketBase:', err)
+      console.warn('Erro ao carregar configurações do banco local:', err)
     } finally {
       setLoading(false)
     }
@@ -287,33 +299,19 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const updateConfigKeys = useCallback(
     async (keys: Record<string, string>) => {
-      // 1. Carrega todos os registros atuais de uma vez para mapear os IDs existentes com segurança
-      const currentList = await pb.collection('configuracoes').getFullList<Configuracao>()
+      const currentList = await localDb.getFullList<Configuracao>('configuracoes')
       const existingMap = new Map<string, string>()
       for (const item of currentList) {
         existingMap.set(item.chave, item.id)
       }
 
-      // 2. Atualiza os existentes por ID direto ou cria apenas se realmente novo
       for (const [chave, valor] of Object.entries(keys)) {
         const existingId = existingMap.get(chave)
         if (existingId) {
-          await pb.collection('configuracoes').update(existingId, { valor })
+          await localDb.update('configuracoes', existingId, { valor })
         } else {
-          try {
-            const created = await pb.collection('configuracoes').create({ chave, valor })
-            existingMap.set(chave, created.id)
-          } catch (createErr) {
-            // Em caso de condição de corrida (já existente), busca e atualiza
-            try {
-              const fallback = await pb
-                .collection('configuracoes')
-                .getFirstListItem<Configuracao>(`chave='${chave}'`)
-              await pb.collection('configuracoes').update(fallback.id, { valor })
-            } catch {
-              console.warn(`Não foi possível salvar a chave ${chave}:`, createErr)
-            }
-          }
+          const created = await localDb.create('configuracoes', { chave, valor })
+          existingMap.set(chave, created.id)
         }
       }
       await reloadConfig()
@@ -324,28 +322,23 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     reloadConfig()
 
-    let unsub: (() => void) | undefined
-    pb.collection('configuracoes')
-      .subscribe('*', () => {
+    const unsub = localDb.subscribe((collection) => {
+      if (collection === 'configuracoes') {
         reloadConfig()
-      })
-      .then((fn) => {
-        unsub = fn
-      })
-      .catch(() => {})
+      }
+    })
 
-    return () => {
-      if (unsub) unsub()
-    }
+    return () => unsub()
   }, [reloadConfig])
 
-  // Sincroniza dinamicamente o título da aba do navegador (document.title) com o nome da igreja configurada
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const nome = config.nomeIgreja?.trim() || 'Gestão Eclesiástica'
       const sigla = config.siglaIgreja?.trim()
       const title =
-        sigla && !nome.includes(sigla) ? `${sigla} — ${nome}` : `${nome} — Gestão Eclesiástica`
+        sigla && !nome.includes(sigla)
+          ? `${sigla} — ${nome} (Versão Local)`
+          : `${nome} — Versão Local`
       document.title = title
     }
   }, [config.nomeIgreja, config.siglaIgreja])

@@ -1,0 +1,23 @@
+{
+  "short_name": "ADTC Desktop",
+  "name": "Gestão Eclesiástica ADTC - Versão Local",
+  "description": "Sistema de gestão eclesiástica para computador da igreja. 100% offline após instalação.",
+  "icons": [
+    {
+      "src": "/logo-oficial.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/logo-oficial.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#1E3A5F",
+  "theme_color": "#1E3A5F",
+  "display": "standalone",
+  "orientation": "any",
+  "scope": "/"
+}

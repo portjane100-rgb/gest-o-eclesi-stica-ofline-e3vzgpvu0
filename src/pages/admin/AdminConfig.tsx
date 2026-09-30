@@ -40,6 +40,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { ModoRevendaSection } from '@/components/ModoRevendaSection'
 import { KitImplantacaoSection } from '@/components/KitImplantacaoSection'
+import { BackupRestoreSection } from '@/components/BackupRestoreSection'
+import { ModelosDocumentosSection } from '@/components/ModelosDocumentosSection'
+import { hashPassword, localDb } from '@/lib/localDb'
 
 interface PerfilUserRecord {
   id: string
@@ -146,32 +149,41 @@ export const AdminConfig: React.FC = () => {
 
     setIsZerandoDados(true)
     try {
-      const baseUrl = import.meta.env.VITE_POCKETBASE_URL
-      const res = await fetch(`${baseUrl}/backend/v1/admin/zerar-dados-sistema`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: pb.authStore.token || '',
-        },
-        body: JSON.stringify({
-          confirmacao: 'ZERAR',
-        }),
-      })
+      const collectionsToClear = [
+        'membros',
+        'congregados',
+        'obreiros',
+        'dizimistas',
+        'patrimonio',
+        'escala',
+        'escala_semana',
+        'calendario',
+        'agenda_semanal',
+        'albuns_fotos',
+        'fotos',
+        'cartas_recebidas',
+        'solicitacoes_cadastro',
+        'planilhas_mensais',
+      ]
 
-      const data = await res.json().catch(() => ({}))
+      const counts: Record<string, number> = {}
+      let totalDeleted = 0
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Erro ao processar zeramento no servidor.')
+      for (const col of collectionsToClear) {
+        const c = await localDb.count(col)
+        counts[col] = c
+        totalDeleted += c
+        await localDb.clearCollection(col)
       }
 
       setResultadoZerar({
-        counts: data.counts || {},
-        totalDeleted: data.totalDeleted || 0,
+        counts,
+        totalDeleted,
       })
 
       toast({
         title: 'Dados operacionais zerados com sucesso!',
-        description: `${data.totalDeleted || 0} registros operacionais foram apagados. Logins, congregações e configurações foram preservados.`,
+        description: `${totalDeleted} registros operacionais foram apagados do computador. Logins, congregações e configurações foram preservados.`,
       })
     } catch (err: any) {
       toast({
@@ -682,37 +694,21 @@ export const AdminConfig: React.FC = () => {
 
     setIsSavingUser(true)
     try {
-      const baseUrl = import.meta.env.VITE_POCKETBASE_URL
-      const payload: Record<string, any> = {
-        userId: u.id,
+      const updateData: Record<string, any> = {
         email: editEmail.trim().toLowerCase(),
         name: editName.trim(),
         perfil: editPerfil,
         ativo: editAtivo,
       }
       if (editPassword.trim()) {
-        payload.password = editPassword.trim()
-        payload.passwordConfirm = editPasswordConfirm.trim()
+        updateData.passwordHash = await hashPassword(editPassword.trim())
       }
 
-      // Endpoint de gestão no backend
-      const res = await fetch(`${baseUrl}/backend/v1/admin/manage-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: pb.authStore.token || '',
-        },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(data.error || 'Erro ao atualizar dados do usuário.')
-      }
+      await localDb.update('users', u.id, updateData)
 
       toast({
         title: 'Login salvo com sucesso!',
-        description: `As alterações para ${editName || editEmail} foram gravadas com sucesso.`,
+        description: `As alterações para ${editName || editEmail} foram gravadas localmente. A nova senha já está ativa.`,
       })
 
       setEditingUserId(null)
@@ -766,29 +762,12 @@ export const AdminConfig: React.FC = () => {
 
     const novoStatus = !u.ativo
     try {
-      const baseUrl = import.meta.env.VITE_POCKETBASE_URL
-      const res = await fetch(`${baseUrl}/backend/v1/admin/manage-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: pb.authStore.token || '',
-        },
-        body: JSON.stringify({
-          userId: u.id,
-          email: u.email,
-          ativo: novoStatus,
-        }),
-      })
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Erro ao alterar status da conta.')
-      }
+      await localDb.update('users', u.id, { ativo: novoStatus })
 
       toast({
         title: novoStatus ? 'Login ativado' : 'Login desativado',
         description: novoStatus
-          ? 'O usuário agora pode efetuar login no painel.'
+          ? 'O usuário agora pode efetuar login no painel local.'
           : 'O acesso deste usuário foi temporariamente bloqueado sem apagar nenhum dado.',
       })
 
@@ -834,33 +813,21 @@ export const AdminConfig: React.FC = () => {
 
     setIsCreatingUser(true)
     try {
-      const baseUrl = import.meta.env.VITE_POCKETBASE_URL
-      const res = await fetch(`${baseUrl}/backend/v1/admin/manage-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: pb.authStore.token || '',
-        },
-        body: JSON.stringify({
-          email: newUserEmail.trim().toLowerCase(),
-          name:
-            newUserName.trim() ||
-            (newUserPerfil === 'secretario1' ? '1º Secretário' : '2º Secretário'),
-          perfil: newUserPerfil,
-          password: newUserPassword.trim(),
-          passwordConfirm: newUserPasswordConfirm.trim(),
-          ativo: true,
-        }),
+      const passHash = await hashPassword(newUserPassword.trim())
+      await localDb.create('users', {
+        id: localDb.generateId(),
+        email: newUserEmail.trim().toLowerCase(),
+        name:
+          newUserName.trim() ||
+          (newUserPerfil === 'secretario1' ? '1º Secretário' : '2º Secretário'),
+        perfil: newUserPerfil,
+        passwordHash: passHash,
+        ativo: true,
       })
-
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        throw new Error(data.error || 'Erro ao cadastrar novo login.')
-      }
 
       toast({
         title: 'Login criado com sucesso!',
-        description: `O e-mail ${newUserEmail} agora tem acesso autorizado. Forneça a senha criada ao secretário.`,
+        description: `O e-mail ${newUserEmail} agora tem acesso local autorizado. Forneça a senha criada ao secretário.`,
       })
 
       setIsNewUserModalOpen(false)
@@ -903,50 +870,12 @@ export const AdminConfig: React.FC = () => {
 
     setIsChangingOwnPass(true)
     try {
-      const baseUrl = import.meta.env.VITE_POCKETBASE_URL
-      // Tentativa 1: Endpoint dedicado do backend
-      const res = await fetch(`${baseUrl}/backend/v1/admin/change-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: pb.authStore.token || '',
-        },
-        body: JSON.stringify({
-          oldPassword: ownOldPassword.trim(),
-          newPassword: ownNewPassword.trim(),
-          confirmPassword: ownConfirmPassword.trim(),
-        }),
+      if (!currentAuthUser?.id) throw new Error('Usuário não identificado na sessão.')
+
+      const newHash = await hashPassword(ownNewPassword.trim())
+      await localDb.update('users', currentAuthUser.id, {
+        passwordHash: newHash,
       })
-
-      if (res.ok) {
-        toast({
-          title: 'Sua senha foi alterada com sucesso!',
-          description: 'A nova senha já está valendo para os seus próximos acessos.',
-        })
-        setOwnOldPassword('')
-        setOwnNewPassword('')
-        setOwnConfirmPassword('')
-        return
-      }
-
-      const data = await res.json().catch(() => ({}))
-      if (data.error && res.status === 400) {
-        throw new Error(data.error)
-      }
-
-      // Fallback: via SDK padrão do PocketBase garantindo passwordConfirm
-      const user = pb.authStore.record
-      if (!user) throw new Error('Usuário não identificado na sessão.')
-
-      const updatePayload: Record<string, any> = {
-        password: ownNewPassword.trim(),
-        passwordConfirm: ownConfirmPassword.trim(),
-      }
-      if (ownOldPassword.trim()) {
-        updatePayload.oldPassword = ownOldPassword.trim()
-      }
-
-      await pb.collection('users').update(user.id, updatePayload)
 
       toast({
         title: 'Sua senha foi alterada com sucesso!',
@@ -975,6 +904,12 @@ export const AdminConfig: React.FC = () => {
           senha e dados institucionais.
         </p>
       </div>
+
+      {/* BACKUP & RESTAURAÇÃO LOCAL (OFFLINE / PENDRIVE / PASTA) */}
+      <BackupRestoreSection />
+
+      {/* MODELOS DE TEXTO DOS DOCUMENTOS PDF */}
+      <ModelosDocumentosSection />
 
       {/* KIT DE IMPLANTAÇÃO (EXCLUSIVO DO TESOUREIRO PARA ENTREGA A NOVOS CLIENTES) */}
       {isTesoureiro && <KitImplantacaoSection />}

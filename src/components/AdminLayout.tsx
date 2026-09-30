@@ -227,13 +227,10 @@ export const AdminLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              to="/"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1E3A5F] hover:text-[#C9A227] transition px-3 py-1.5 rounded-lg hover:bg-slate-50 border border-[#E6E2D8]"
-            >
-              <span>Voltar ao site</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
+            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-medium">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Offline • Versão Local</span>
+            </div>
 
             <Button
               onClick={handleLogout}

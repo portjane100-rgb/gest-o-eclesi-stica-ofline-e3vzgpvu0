@@ -22,7 +22,7 @@ export const NotFound: React.FC = () => {
       <Button asChild className="bg-[#1E3A5F] hover:bg-[#16304F] text-white">
         <Link to="/" className="flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" />
-          Voltar ao Início
+          Ir para o Login do Sistema
         </Link>
       </Button>
     </div>

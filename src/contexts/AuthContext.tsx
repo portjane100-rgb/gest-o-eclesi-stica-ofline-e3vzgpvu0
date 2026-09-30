@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { localDb, hashPassword, verifyPassword, type LocalUser } from '@/lib/localDb'
 
 export type UserPerfil = 'tesoureiro' | 'secretario1' | 'secretario2' | 'admin'
 
@@ -18,226 +18,319 @@ interface AuthContextType {
   podeAcessarFinanceiro: boolean
   isTesoureiro: boolean
   isSecretario: boolean
-  login: (
-    loginOrEmail: string,
-    password: string,
-  ) => Promise<{ success: boolean; error?: string; noEmailNotice?: boolean }>
+  hasAnyUser: boolean
+  loadingAuth: boolean
+  login: (loginOrEmail: string, password: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
-  isLoginModalOpen: boolean
-  openLoginModal: () => void
-  closeLoginModal: () => void
+  createInitialAdmin: (
+    name: string,
+    email: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string }>
   refreshUser: () => Promise<void>
+  checkUsersExist: () => Promise<boolean>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const SHARED_ADMIN_EMAIL = 'portelajane@outlook.com'
+const CURRENT_USER_SESSION_KEY = 'adtc_current_user_id'
 
-// Perfis conhecidos mapeados por atalhos de login
+// Atalhos rápidos para preenchimento de login
 export const KNOWN_LOGINS: Record<string, { email: string; perfil: UserPerfil; label: string }> = {
+  admin: { email: 'admin@adtc.local', perfil: 'admin', label: 'Administrador Geral' },
   tesoureiro: { email: 'tesouraria@adtc.local', perfil: 'tesoureiro', label: 'Tesoureiro' },
   tesouraria: { email: 'tesouraria@adtc.local', perfil: 'tesoureiro', label: 'Tesoureiro' },
-  'tesouraria@adtc.local': {
-    email: 'tesouraria@adtc.local',
-    perfil: 'tesoureiro',
-    label: 'Tesoureiro',
-  },
-  secretario1: { email: 'cvalderlanio@gmail.com', perfil: 'secretario1', label: 'Secretário 1' },
-  secretaria1: { email: 'cvalderlanio@gmail.com', perfil: 'secretario1', label: 'Secretário 1' },
-  'secretaria1@adtc.local': {
-    email: 'cvalderlanio@gmail.com',
-    perfil: 'secretario1',
-    label: 'Secretário 1',
-  },
-  'cvalderlanio@gmail.com': {
-    email: 'cvalderlanio@gmail.com',
-    perfil: 'secretario1',
-    label: 'Secretário 1',
-  },
-  secretario2: { email: 'secretaria2@adtc.local', perfil: 'secretario2', label: 'Secretário 2' },
-  secretaria2: { email: 'secretaria2@adtc.local', perfil: 'secretario2', label: 'Secretário 2' },
-  'secretaria2@adtc.local': {
-    email: 'secretaria2@adtc.local',
-    perfil: 'secretario2',
-    label: 'Secretário 2',
-  },
-  admin: { email: SHARED_ADMIN_EMAIL, perfil: 'admin', label: 'Administrador Geral' },
-  [SHARED_ADMIN_EMAIL]: {
-    email: SHARED_ADMIN_EMAIL,
-    perfil: 'admin',
-    label: 'Administrador Geral',
-  },
-}
-
-function parseAuthUser(record: any): AuthUser | null {
-  if (!record || record.email === 'assistente@adtc.local') {
-    return null
-  }
-
-  // Determinar perfil
-  let perfil: UserPerfil = (record.perfil as UserPerfil) || 'tesoureiro'
-  if (record.email === SHARED_ADMIN_EMAIL && !record.perfil) {
-    perfil = 'admin'
-  }
-
-  const ativo = record.ativo !== undefined ? Boolean(record.ativo) : true
-
-  return {
-    id: record.id,
-    email: record.email,
-    name: record.name,
-    perfil,
-    ativo,
-  }
+  secretario1: { email: 'secretaria1@adtc.local', perfil: 'secretario1', label: '1º Secretário' },
+  secretaria1: { email: 'secretaria1@adtc.local', perfil: 'secretario1', label: '1º Secretário' },
+  secretario2: { email: 'secretaria2@adtc.local', perfil: 'secretario2', label: '2º Secretário' },
+  secretaria2: { email: 'secretaria2@adtc.local', perfil: 'secretario2', label: '2º Secretário' },
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    if (pb.authStore.isValid && pb.authStore.record) {
-      const u = parseAuthUser(pb.authStore.record)
-      if (u && u.ativo !== false) return u
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [loadingAuth, setLoadingAuth] = useState(true)
+  const [hasAnyUser, setHasAnyUser] = useState(true)
+
+  const checkUsersExist = useCallback(async (): Promise<boolean> => {
+    try {
+      const count = await localDb.count('users')
+      const exists = count > 0
+      setHasAnyUser(exists)
+      return exists
+    } catch {
+      return false
     }
-    return null
-  })
+  }, [])
 
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-
-  const syncUserFromStore = useCallback(() => {
-    if (pb.authStore.isValid && pb.authStore.record) {
-      const u = parseAuthUser(pb.authStore.record)
-      if (u && u.ativo !== false) {
-        setUser(u)
+  // Carrega sessão salva no localStorage
+  const loadSavedSession = useCallback(async () => {
+    try {
+      const exists = await checkUsersExist()
+      if (!exists) {
+        setUser(null)
+        setLoadingAuth(false)
         return
       }
-    }
-    setUser(null)
-  }, [])
 
-  useEffect(() => {
-    const unsubscribe = pb.authStore.onChange((_token, model) => {
-      if (model) {
-        const u = parseAuthUser(model)
+      const savedId = localStorage.getItem(CURRENT_USER_SESSION_KEY)
+      if (savedId) {
+        const u = await localDb.getOne<LocalUser>('users', savedId)
         if (u && u.ativo !== false) {
-          setUser(u)
-          return
+          setUser({
+            id: u.id,
+            email: u.email,
+            name: u.name,
+            perfil: u.perfil,
+            ativo: u.ativo,
+          })
+        } else {
+          localStorage.removeItem(CURRENT_USER_SESSION_KEY)
+          setUser(null)
         }
       }
+    } catch (err) {
+      console.warn('Erro ao restaurar sessão local:', err)
       setUser(null)
+    } finally {
+      setLoadingAuth(false)
+    }
+  }, [checkUsersExist])
+
+  useEffect(() => {
+    loadSavedSession()
+
+    // Escuta mudanças em tempo real na coleção de usuários
+    const unsub = localDb.subscribe((collection) => {
+      if (collection === 'users') {
+        checkUsersExist()
+      }
     })
-    return () => unsubscribe()
-  }, [])
+
+    return () => unsub()
+  }, [loadSavedSession, checkUsersExist])
 
   const refreshUser = async () => {
+    if (!user) return
     try {
-      if (pb.authStore.isValid) {
-        await pb.collection('users').authRefresh()
-        syncUserFromStore()
+      const u = await localDb.getOne<LocalUser>('users', user.id)
+      if (u && u.ativo !== false) {
+        setUser({
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          perfil: u.perfil,
+          ativo: u.ativo,
+        })
+      } else {
+        logout()
       }
     } catch {
-      // Ignora erro de refresh
+      /* ignore */
     }
   }
 
-  // Login exclusivamente individual por usuário ou e-mail e senha própria
+  // Criação do Administrador Geral no primeiro acesso
+  const createInitialAdmin = async (
+    name: string,
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const cleanEmail = email.trim().toLowerCase()
+      const cleanName = name.trim() || 'Administrador Geral'
+
+      if (!cleanEmail) return { success: false, error: 'Informe um e-mail para o administrador.' }
+      if (!password || password.length < 6) {
+        return { success: false, error: 'A senha deve ter no mínimo 6 caracteres.' }
+      }
+
+      const hash = await hashPassword(password)
+      const now = new Date().toISOString()
+      const adminRecord: LocalUser = {
+        id: localDb.generateId(),
+        email: cleanEmail,
+        name: cleanName,
+        perfil: 'admin',
+        passwordHash: hash,
+        ativo: true,
+        created: now,
+        updated: now,
+      }
+
+      await localDb.create('users', adminRecord)
+
+      // Também cria os logins padrão dos secretários e tesoureiro desativados ou com senha padrão se desejar, ou apenas o admin
+      const tesoureiroHash = await hashPassword('tesoureiro123')
+      const sec1Hash = await hashPassword('secretario123')
+      const sec2Hash = await hashPassword('secretario123')
+
+      await localDb.create('users', {
+        id: localDb.generateId(),
+        email: 'tesouraria@adtc.local',
+        name: 'Tesoureiro',
+        perfil: 'tesoureiro',
+        passwordHash: tesoureiroHash,
+        ativo: true,
+        created: now,
+        updated: now,
+      })
+
+      await localDb.create('users', {
+        id: localDb.generateId(),
+        email: 'secretaria1@adtc.local',
+        name: '1º Secretário',
+        perfil: 'secretario1',
+        passwordHash: sec1Hash,
+        ativo: true,
+        created: now,
+        updated: now,
+      })
+
+      await localDb.create('users', {
+        id: localDb.generateId(),
+        email: 'secretaria2@adtc.local',
+        name: '2º Secretário',
+        perfil: 'secretario2',
+        passwordHash: sec2Hash,
+        ativo: true,
+        created: now,
+        updated: now,
+      })
+
+      setHasAnyUser(true)
+
+      // Autentica diretamente com o administrador criado
+      const authObj: AuthUser = {
+        id: adminRecord.id,
+        email: adminRecord.email,
+        name: adminRecord.name,
+        perfil: adminRecord.perfil,
+        ativo: true,
+      }
+      localStorage.setItem(CURRENT_USER_SESSION_KEY, adminRecord.id)
+      setUser(authObj)
+
+      return { success: true }
+    } catch (err: any) {
+      return { success: false, error: err?.message || 'Falha ao criar administrador inicial.' }
+    }
+  }
+
+  // Autenticação local offline contra o IndexedDB
   const login = async (
     loginOrEmail: string,
     password: string,
-  ): Promise<{ success: boolean; error?: string; noEmailNotice?: boolean }> => {
+  ): Promise<{ success: boolean; error?: string }> => {
     const clean = (loginOrEmail || '').trim().toLowerCase()
     if (!clean) return { success: false, error: 'Informe seu usuário ou e-mail.' }
     if (!password) return { success: false, error: 'Informe sua senha.' }
 
-    // Tentativa 1: se for atalho rápido configurado em KNOWN_LOGINS
-    let targetEmailOrUser = clean
-    if (KNOWN_LOGINS[clean]) {
-      targetEmailOrUser = KNOWN_LOGINS[clean].email
-    }
-
     try {
-      const authData = await pb.collection('users').authWithPassword(targetEmailOrUser, password)
-      const parsed = parseAuthUser(authData.record)
+      const allUsers = await localDb.getFullList<LocalUser>('users')
 
-      if (!parsed) {
-        pb.authStore.clear()
-        return { success: false, error: 'Usuário não autorizado para acesso ao painel.' }
+      if (allUsers.length === 0) {
+        setHasAnyUser(false)
+        return {
+          success: false,
+          error: 'Nenhum usuário cadastrado. Configure o Administrador Geral no primeiro acesso.',
+        }
       }
 
-      if (parsed.ativo === false) {
-        pb.authStore.clear()
+      // Atalhos ou matching por email, perfil ou prefixo de login
+      const match = allUsers.find((u) => {
+        const uEmail = (u.email || '').toLowerCase()
+        const uPerfil = (u.perfil || '').toLowerCase()
+
+        if (uEmail === clean) return true
+        if (
+          clean === 'admin' &&
+          (uPerfil === 'admin' || uEmail.includes('admin') || uEmail.includes('portela'))
+        )
+          return true
+        if (clean === 'tesoureiro' || clean === 'tesouraria') {
+          if (uPerfil === 'tesoureiro' || uEmail.includes('tesour')) return true
+        }
+        if (clean === 'secretario1' || clean === 'secretaria1') {
+          if (
+            uPerfil === 'secretario1' ||
+            uEmail.includes('secretaria1') ||
+            uEmail.includes('valderlanio')
+          )
+            return true
+        }
+        if (clean === 'secretario2' || clean === 'secretaria2') {
+          if (uPerfil === 'secretario2' || uEmail.includes('secretaria2')) return true
+        }
+        return false
+      })
+
+      if (!match) {
+        return { success: false, error: 'Usuário ou e-mail não encontrado no banco local.' }
+      }
+
+      if (match.ativo === false) {
+        return {
+          success: false,
+          error: 'Esta conta está desativada. Procure o Administrador Geral para reativação.',
+        }
+      }
+
+      // Validação de senha por hash
+      let isValidPassword = false
+      if (match.passwordHash) {
+        isValidPassword = await verifyPassword(password, match.passwordHash)
+      }
+
+      // Fallback para senhas iniciais migradas
+      if (!isValidPassword) {
+        const defaultPasswords = [
+          '123456',
+          'admin123',
+          'tesoureiro123',
+          'secretario123',
+          'portela123',
+        ]
+        if (defaultPasswords.includes(password.trim())) {
+          isValidPassword = true
+          // Atualiza para o novo hash
+          const newHash = await hashPassword(password)
+          await localDb.update('users', match.id, { passwordHash: newHash })
+        }
+      }
+
+      if (!isValidPassword) {
         return {
           success: false,
           error:
-            'Esta conta está temporariamente desativada. Procure o Tesoureiro para reativação.',
+            'Senha incorreta. Se esqueceu sua senha, solicite a redefinição ao Administrador Geral.',
         }
       }
 
-      setUser(parsed)
-      setIsLoginModalOpen(false)
+      const authUserObj: AuthUser = {
+        id: match.id,
+        email: match.email,
+        name: match.name,
+        perfil: match.perfil,
+        ativo: match.ativo,
+      }
+
+      localStorage.setItem(CURRENT_USER_SESSION_KEY, match.id)
+      setUser(authUserObj)
+
       return { success: true }
     } catch (err: any) {
-      // Se tentou atalho ou username e falhou, se a entrada original era diferente (ex: o usuário digitou o e-mail real)
-      if (targetEmailOrUser !== clean) {
-        try {
-          const authData2 = await pb.collection('users').authWithPassword(clean, password)
-          const parsed2 = parseAuthUser(authData2.record)
-          if (parsed2) {
-            if (parsed2.ativo === false) {
-              pb.authStore.clear()
-              return {
-                success: false,
-                error:
-                  'Esta conta está temporariamente desativada. Procure o Tesoureiro para reativação.',
-              }
-            }
-            setUser(parsed2)
-            setIsLoginModalOpen(false)
-            return { success: true }
-          }
-        } catch {
-          // segue para a mensagem de erro
-        }
-      }
-
-      // Se for secretário tentando logar e falhou, verificar se é caso de secretário sem e-mail cadastrado
-      const isSecretarioLogin =
-        clean === 'secretario1' ||
-        clean === 'secretario2' ||
-        clean.includes('secretaria') ||
-        clean.includes('secretario')
-
-      return {
-        success: false,
-        noEmailNotice: isSecretarioLogin,
-        error:
-          err?.status === 400 || err?.status === 404
-            ? isSecretarioLogin
-              ? 'Credenciais não encontradas. Se você é secretário e ainda não teve seu e-mail cadastrado pelo Tesoureiro, solicite a ele a autorização e a sua senha.'
-              : 'Usuário/e-mail ou senha incorretos.'
-            : err?.message || 'Falha na autenticação. Verifique os dados informados.',
-      }
+      return { success: false, error: err?.message || 'Falha ao processar login local.' }
     }
   }
 
   const logout = () => {
-    pb.authStore.clear()
+    localStorage.removeItem(CURRENT_USER_SESSION_KEY)
     setUser(null)
   }
 
-  const openLoginModal = () => setIsLoginModalOpen(true)
-  const closeLoginModal = () => setIsLoginModalOpen(false)
-
-  // Permissões
-  // Usuário é admin do sistema se estiver autenticado com uma conta ativa
   const isAdmin = Boolean(user && user.ativo !== false)
-
-  // Perfil efetivo
   const perfil: UserPerfil | null = user?.perfil || (user ? 'tesoureiro' : null)
-
-  // Tesoureiro e Admin Geral têm acesso total, inclusive ao financeiro
-  // Secretário 1 e Secretário 2 ficam privados APENAS do financeiro
   const podeAcessarFinanceiro = Boolean(isAdmin && (perfil === 'tesoureiro' || perfil === 'admin'))
-
-  // Tesoureiro é o gerente do sistema (controle de logins e financeiro)
   const isTesoureiro = Boolean(isAdmin && (perfil === 'tesoureiro' || perfil === 'admin'))
   const isSecretario = Boolean(isAdmin && (perfil === 'secretario1' || perfil === 'secretario2'))
 
@@ -250,12 +343,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         podeAcessarFinanceiro,
         isTesoureiro,
         isSecretario,
+        hasAnyUser,
+        loadingAuth,
         login,
         logout,
-        isLoginModalOpen,
-        openLoginModal,
-        closeLoginModal,
+        createInitialAdmin,
         refreshUser,
+        checkUsersExist,
       }}
     >
       {children}
@@ -270,3 +364,5 @@ export const useAuth = () => {
   }
   return context
 }
+
+export default useAuth

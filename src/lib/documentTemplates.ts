@@ -335,7 +335,7 @@ export interface DocRecomendacaoData {
   assinaturaPastorDataUri?: string | null
   assinatura1SecDataUri?: string | null
   assinatura2SecDataUri?: string | null
-  churchIdentity?: DocChurchIdentity
+  churchIdentity?: DocChurchIdentity & { modeloCartaRecomendacao?: string }
 }
 
 export function buildCartaRecomendacaoHtml(data: DocRecomendacaoData): string {
@@ -389,6 +389,7 @@ export function buildCartaRecomendacaoHtml(data: DocRecomendacaoData): string {
       </div>
 
       <div class="body-text">
+        ${data.churchIdentity?.modeloCartaRecomendacao ? `<p style="margin-bottom: 12px; font-style: italic; color: #1E3A5F; font-weight: 500;">${data.churchIdentity.modeloCartaRecomendacao}</p>` : ''}
         ${data.corpoHtml}
       </div>
 
@@ -458,7 +459,7 @@ export interface DocMudancaData {
   assinaturaPastorDataUri?: string | null
   assinatura1SecDataUri?: string | null
   assinatura2SecDataUri?: string | null
-  churchIdentity?: DocChurchIdentity
+  churchIdentity?: DocChurchIdentity & { modeloCartaMudanca?: string }
 }
 
 export function buildCartaMudancaHtml(data: DocMudancaData): string {
@@ -557,6 +558,7 @@ export function buildCartaMudancaHtml(data: DocMudancaData): string {
       </div>
 
       <div class="body-text">
+        ${data.churchIdentity?.modeloCartaMudanca ? `<p style="margin-bottom: 12px; font-style: italic; color: #1E3A5F; font-weight: 500;">${data.churchIdentity.modeloCartaMudanca}</p>` : ''}
         ${data.corpoHtml}
       </div>
 

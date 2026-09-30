@@ -1,187 +1,210 @@
 import { useEffect, useState, useCallback } from 'react'
-import pb from '@/lib/pocketbase/client'
-import type { CongregacaoRegistro } from '@/types/adtc'
-import { UNIDADES } from '@/types/adtc'
+import { localDb } from '@/lib/localDb'
 
 export interface CongregacaoItem {
-  id?: string
+  id: string
   nome: string
-  titulo: string
-  subtitulo: string
-  endereco: string
-  diasCulto: string
-  dirigenteGeral: string
+  bairro?: string
+  cidade?: string
+  endereco?: string
+  dirigenteGeral?: string
+  dirigente_geral?: string
+  diasCulto?: string
+  dias_culto?: string
   ordem?: number
-  ativa?: boolean
+  ativo?: boolean
 }
 
 export const CONGREGACOES_FALLBACK: CongregacaoItem[] = [
   {
+    id: '1',
     nome: 'Sede',
-    titulo: 'Templo Sede ADTC',
-    subtitulo: 'Centro de Adoração e Sede Administrativa',
-    endereco: 'Rua Alberto Batista Fontenele, nº 141, Campanário',
-    diasCulto: 'Quinta-feira e Domingo (19h00) • Escola Bíblica aos Domingos (09h00)',
-    dirigenteGeral: 'Liderança Geral do Pastor Presidente',
+    bairro: 'Centro',
+    cidade: 'Campanário',
+    dirigenteGeral: 'Pr. José Francisco Portela',
+    diasCulto: 'Terça e Domingo',
     ordem: 1,
-    ativa: true,
+    ativo: true,
   },
   {
-    nome: 'Congregação das Casinhas',
-    titulo: 'Congregação das Casinhas',
-    subtitulo: 'Filial 1 • Bairro Novo Campanário',
-    endereco: 'Conjunto Habitacional Novo Campanário (Casinhas)',
-    diasCulto: 'Segunda, Quarta, Sexta e Domingo',
-    dirigenteGeral: 'Presbítero Responsável',
+    id: '2',
+    nome: 'Sub-Sede',
+    bairro: '',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: 'Quinta e Domingo',
     ordem: 2,
-    ativa: true,
+    ativo: true,
   },
   {
-    nome: 'Congregação do Alto',
-    titulo: 'Congregação do Alto',
-    subtitulo: 'Filial 2 • Comunidade do Alto',
-    endereco: 'Bairro do Alto, Campanário',
-    diasCulto: 'Sexta (19h00) e Domingo (09h00 e 19h00)',
-    dirigenteGeral: 'Presbítero Responsável',
+    id: '3',
+    nome: 'Boa Vista',
+    bairro: 'Zona Rural',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
     ordem: 3,
-    ativa: true,
+    ativo: true,
   },
   {
-    nome: 'Congregação da Vila dos Pescadores',
-    titulo: 'Vila dos Pescadores',
-    subtitulo: 'Filial 3 • Comunidade Pesqueira',
-    endereco: 'Comunidade da Vila dos Pescadores',
-    diasCulto: 'Segunda (19h00) e Sexta (18h30)',
-    dirigenteGeral: 'Evangelista Responsável',
+    id: '4',
+    nome: 'Carnaúba',
+    bairro: 'Zona Rural',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
     ordem: 4,
-    ativa: true,
+    ativo: true,
+  },
+  {
+    id: '5',
+    nome: 'Baliza',
+    bairro: 'Zona Rural',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
+    ordem: 5,
+    ativo: true,
+  },
+  {
+    id: '6',
+    nome: 'Sítio dos Fernandes',
+    bairro: 'Zona Rural',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
+    ordem: 6,
+    ativo: true,
+  },
+  {
+    id: '7',
+    nome: 'Pau D’Arco',
+    bairro: 'Zona Rural',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
+    ordem: 7,
+    ativo: true,
+  },
+  {
+    id: '8',
+    nome: 'Canto dos Coqueiros',
+    bairro: 'Zona Rural',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
+    ordem: 8,
+    ativo: true,
+  },
+  {
+    id: '9',
+    nome: 'Candeias',
+    bairro: 'Zona Rural',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
+    ordem: 9,
+    ativo: true,
+  },
+  {
+    id: '10',
+    nome: 'Almas',
+    bairro: 'Zona Rural',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
+    ordem: 10,
+    ativo: true,
+  },
+  {
+    id: '11',
+    nome: 'Morada Nova',
+    bairro: '',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
+    ordem: 11,
+    ativo: true,
+  },
+  {
+    id: '12',
+    nome: 'Curupati',
+    bairro: '',
+    cidade: 'Campanário',
+    dirigenteGeral: '',
+    diasCulto: '',
+    ordem: 12,
+    ativo: true,
   },
 ]
 
-/**
- * Ordena lista de congregações garantindo que a "Sede" seja sempre a primeira,
- * seguida pela ordem numérica e data de criação.
- */
-export function ordenarCongregacoes<T extends { nome: string; ordem?: number }>(lista: T[]): T[] {
+export function ordenarCongregacoes(lista: CongregacaoItem[]): CongregacaoItem[] {
   return [...lista].sort((a, b) => {
-    const isASede = a.nome.trim().toLowerCase() === 'sede'
-    const isBSede = b.nome.trim().toLowerCase() === 'sede'
-    if (isASede && !isBSede) return -1
-    if (!isASede && isBSede) return 1
+    const isSedeA = a.nome.trim().toLowerCase() === 'sede'
+    const isSedeB = b.nome.trim().toLowerCase() === 'sede'
+    if (isSedeA && !isSedeB) return -1
+    if (!isSedeA && isSedeB) return 1
 
-    const ordemA = typeof a.ordem === 'number' ? a.ordem : 999
-    const ordemB = typeof b.ordem === 'number' ? b.ordem : 999
-    if (ordemA !== ordemB) return ordemA - ordemB
+    const isSubA = a.nome.trim().toLowerCase().startsWith('sub')
+    const isSubB = b.nome.trim().toLowerCase().startsWith('sub')
+    if (isSubA && !isSubB) return -1
+    if (!isSubA && isSubB) return 1
+
+    const ordA = a.ordem ?? 999
+    const ordB = b.ordem ?? 999
+    if (ordA !== ordB) return ordA - ordB
 
     return a.nome.localeCompare(b.nome, 'pt-BR')
   })
 }
 
-// Cache em memória para renderização imediata sem flicker em trocas de rota
-let cachedCongregacoes: CongregacaoItem[] = CONGREGACOES_FALLBACK
-let listeners: Array<() => void> = []
-
-function notifyListeners() {
-  listeners.forEach((listener) => {
-    try {
-      listener()
-    } catch {
-      /* ignore */
-    }
-  })
-}
-
 export async function fetchCongregacoesFromDb(): Promise<CongregacaoItem[]> {
   try {
-    const records = await pb.collection('congregacoes').getFullList<CongregacaoRegistro>({
-      sort: 'ordem,created',
-    })
-
-    if (records && records.length > 0) {
-      // Filtrar ativas se o campo existir, ou considerar true se indefinido/null
-      const ativas = records.filter((r) => r.ativa !== false)
-      const mapped: CongregacaoItem[] = ativas.map((c) => ({
-        id: c.id,
-        nome: c.nome,
-        titulo: c.titulo || c.nome,
-        subtitulo: c.subtitulo || `Congregação ADTC`,
-        endereco: c.endereco || 'Endereço a definir',
-        diasCulto: c.dias_culto || 'Cultos regulares',
-        dirigenteGeral: c.dirigente_geral || 'Liderança local responsável',
-        ordem: c.ordem,
-        ativa: c.ativa !== false,
+    const records = await localDb.getFullList<any>('congregacoes')
+    if (records.length > 0) {
+      const mapeadas: CongregacaoItem[] = records.map((r) => ({
+        id: r.id,
+        nome: r.nome,
+        bairro: r.bairro || '',
+        cidade: r.cidade || '',
+        endereco: r.endereco || '',
+        dirigenteGeral: r.dirigente_geral || r.dirigenteGeral || '',
+        diasCulto: r.dias_culto || r.diasCulto || '',
+        ordem: typeof r.ordem === 'number' ? r.ordem : 999,
+        ativo: r.ativo !== false,
       }))
-
-      const ordenadas = ordenarCongregacoes(mapped)
-      cachedCongregacoes = ordenadas
-      notifyListeners()
-      return ordenadas
+      return ordenarCongregacoes(mapeadas.filter((c) => c.ativo !== false))
     }
   } catch (err) {
-    console.warn('Erro ao carregar congregações do banco, usando fallback:', err)
+    console.warn('Erro ao carregar congregacoes do banco local:', err)
   }
-
-  return cachedCongregacoes
+  return ordenarCongregacoes(CONGREGACOES_FALLBACK)
 }
 
-/**
- * Hook central para congregações da ADTC.
- * Consulta o banco, aplica cache em memória, escuta eventos em tempo real
- * e expõe a lista de congregações ativas ordenadas (Sede primeiro).
- */
 export function useCongregacoes() {
-  const [congregacoes, setCongregacoes] = useState<CongregacaoItem[]>(cachedCongregacoes)
-  const [loading, setLoading] = useState(false)
+  const [congregacoes, setCongregacoes] = useState<CongregacaoItem[]>(CONGREGACOES_FALLBACK)
+  const [loading, setLoading] = useState<boolean>(true)
 
   const reload = useCallback(async () => {
     setLoading(true)
-    try {
-      const data = await fetchCongregacoesFromDb()
-      setCongregacoes(data)
-    } finally {
-      setLoading(false)
-    }
+    const list = await fetchCongregacoesFromDb()
+    setCongregacoes(list)
+    setLoading(false)
   }, [])
 
   useEffect(() => {
-    const handleUpdate = () => {
-      setCongregacoes([...cachedCongregacoes])
-    }
-
-    listeners.push(handleUpdate)
-
-    // Disparar carga do banco
     reload()
 
-    // Subscrição em tempo real na coleção congregacoes
-    let unsub: (() => void) | undefined
-    pb.collection('congregacoes')
-      .subscribe('*', () => {
+    const unsub = localDb.subscribe((collection) => {
+      if (collection === 'congregacoes') {
         reload()
-      })
-      .then((fn) => {
-        unsub = fn
-      })
-      .catch(() => {})
+      }
+    })
 
-    return () => {
-      listeners = listeners.filter((l) => l !== handleUpdate)
-      if (unsub) unsub()
-    }
+    return () => unsub()
   }, [reload])
 
-  const nomes = congregacoes.map((c) => c.nome)
-  const total = congregacoes.length
-  const textoTotalUnidades = `${total} ${total === 1 ? 'Unidade' : 'Unidades'}`
-
-  return {
-    congregacoes,
-    nomes: nomes.length > 0 ? nomes : (UNIDADES as unknown as string[]),
-    total,
-    textoTotalUnidades,
-    loading,
-    reload,
-  }
+  return { congregacoes, loading, reload }
 }
 
 export default useCongregacoes
