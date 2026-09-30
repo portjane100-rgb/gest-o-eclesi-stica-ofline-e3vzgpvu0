@@ -12,7 +12,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { processSignatureImage } from '@/lib/signatureProcessor'
+
 import {
   KeyRound,
   QrCode,
@@ -73,27 +73,6 @@ export const AdminConfig: React.FC = () => {
   const [nome2Secretario, setNome2Secretario] = useState('Antonio de Vasconcelos')
   const [cargo2Secretario, setCargo2Secretario] = useState('2ºSecretário')
   const [isSavingLideranca, setIsSavingLideranca] = useState(false)
-
-  // Imagens das Assinaturas Manuscritas
-  const [sigPastorUrl, setSigPastorUrl] = useState<string | null>(null)
-  const [sigPastorRecordId, setSigPastorRecordId] = useState<string | null>(null)
-  const [sig1SecUrl, setSig1SecUrl] = useState<string | null>(null)
-  const [sig1SecRecordId, setSig1SecRecordId] = useState<string | null>(null)
-  const [sig2SecUrl, setSig2SecUrl] = useState<string | null>(null)
-  const [sig2SecRecordId, setSig2SecRecordId] = useState<string | null>(null)
-  const [uploadingSigKey, setUploadingSigKey] = useState<string | null>(null)
-
-  // Pré-visualização de assinatura processada antes de confirmar gravação
-  const [pendingSig, setPendingSig] = useState<{
-    chave: 'assinatura_pastor' | 'assinatura_secretario1' | 'assinatura_secretario2'
-    file: File
-    previewUrl: string
-    title: string
-    width: number
-    height: number
-    processed: boolean
-  } | null>(null)
-  const [isProcessingSig, setIsProcessingSig] = useState(false)
 
   // Gestão dos Logins (Tesoureiro como gerente do sistema)
   const [perfisUsers, setPerfisUsers] = useState<PerfilUserRecord[]>([])
@@ -258,30 +237,6 @@ export const AdminConfig: React.FC = () => {
             setCargo2Secretario(conf.valor)
 
           // Assinaturas em arquivo ou base64
-          if (conf.chave === 'assinatura_pastor') {
-            setSigPastorRecordId(conf.id)
-            if (conf.arquivo) {
-              setSigPastorUrl(pb.files.getURL(conf, conf.arquivo))
-            } else if (conf.valor && conf.valor.startsWith('data:image')) {
-              setSigPastorUrl(conf.valor)
-            }
-          }
-          if (conf.chave === 'assinatura_secretario1') {
-            setSig1SecRecordId(conf.id)
-            if (conf.arquivo) {
-              setSig1SecUrl(pb.files.getURL(conf, conf.arquivo))
-            } else if (conf.valor && conf.valor.startsWith('data:image')) {
-              setSig1SecUrl(conf.valor)
-            }
-          }
-          if (conf.chave === 'assinatura_secretario2') {
-            setSig2SecRecordId(conf.id)
-            if (conf.arquivo) {
-              setSig2SecUrl(pb.files.getURL(conf, conf.arquivo))
-            } else if (conf.valor && conf.valor.startsWith('data:image')) {
-              setSig2SecUrl(conf.valor)
-            }
-          }
         })
       } catch {
         /* intentionally ignored */
@@ -289,166 +244,6 @@ export const AdminConfig: React.FC = () => {
     }
     fetchPix()
   }, [])
-
-  // Seleciona e pré-processa a imagem da assinatura via Canvas API
-  const handleSelectAssinatura = async (
-    chave: 'assinatura_pastor' | 'assinatura_secretario1' | 'assinatura_secretario2',
-    file: File,
-  ) => {
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        variant: 'destructive',
-        title: 'Arquivo muito grande',
-        description: 'A imagem deve ter no máximo 5MB.',
-      })
-      return
-    }
-
-    setIsProcessingSig(true)
-    const titles: Record<string, string> = {
-      assinatura_pastor: 'Assinatura do Pastor Presidente',
-      assinatura_secretario1: 'Assinatura do 1º Secretário',
-      assinatura_secretario2: 'Assinatura do 2º Secretário',
-    }
-
-    try {
-      const result = await processSignatureImage(file)
-      setPendingSig({
-        chave,
-        file: result.file,
-        previewUrl: result.previewUrl,
-        title: titles[chave] || 'Assinatura',
-        width: result.width,
-        height: result.height,
-        processed: result.processed,
-      })
-    } catch (err: any) {
-      console.error('Erro ao processar assinatura:', err)
-      setPendingSig({
-        chave,
-        file,
-        previewUrl: URL.createObjectURL(file),
-        title: titles[chave] || 'Assinatura',
-        width: 0,
-        height: 0,
-        processed: false,
-      })
-    } finally {
-      setIsProcessingSig(false)
-    }
-  }
-
-  // Grava definitivamente a assinatura confirmada no banco
-  const handleConfirmarAssinatura = async () => {
-    if (!pendingSig) return
-    const { chave, file } = pendingSig
-    setUploadingSigKey(chave)
-    try {
-      const formData = new FormData()
-      formData.append('arquivo', file)
-      formData.append(
-        'valor',
-        `Assinatura manuscrita tratada salva em ${new Date().toLocaleDateString('pt-BR')}`,
-      )
-
-      let recId =
-        chave === 'assinatura_pastor'
-          ? sigPastorRecordId
-          : chave === 'assinatura_secretario1'
-            ? sig1SecRecordId
-            : sig2SecRecordId
-
-      if (!recId) {
-        try {
-          const existing = await pb
-            .collection('configuracoes')
-            .getFirstListItem<Configuracao>(`chave='${chave}'`)
-          recId = existing.id
-        } catch {
-          /* intentionally ignored */
-        }
-      }
-
-      let updatedRec: Configuracao
-      if (recId) {
-        updatedRec = await pb.collection('configuracoes').update<Configuracao>(recId, formData)
-      } else {
-        formData.append('chave', chave)
-        updatedRec = await pb.collection('configuracoes').create<Configuracao>(formData)
-      }
-
-      const fileUrl = updatedRec.arquivo ? pb.files.getURL(updatedRec, updatedRec.arquivo) : null
-
-      if (chave === 'assinatura_pastor') {
-        setSigPastorRecordId(updatedRec.id)
-        setSigPastorUrl(fileUrl)
-      } else if (chave === 'assinatura_secretario1') {
-        setSig1SecRecordId(updatedRec.id)
-        setSig1SecUrl(fileUrl)
-      } else {
-        setSig2SecRecordId(updatedRec.id)
-        setSig2SecUrl(fileUrl)
-      }
-
-      toast({
-        title: 'Assinatura salva com sucesso!',
-        description:
-          'A imagem foi recortada, com fundo transparente e contraste otimizado para documentos e carteirinhas.',
-      })
-      setPendingSig(null)
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao enviar assinatura',
-        description: err?.message || 'Tente novamente.',
-      })
-    } finally {
-      setUploadingSigKey(null)
-    }
-  }
-
-  const handleRemoverAssinatura = async (
-    chave: 'assinatura_pastor' | 'assinatura_secretario1' | 'assinatura_secretario2',
-  ) => {
-    const recId =
-      chave === 'assinatura_pastor'
-        ? sigPastorRecordId
-        : chave === 'assinatura_secretario1'
-          ? sig1SecRecordId
-          : sig2SecRecordId
-
-    if (!recId) return
-    if (
-      !confirm(
-        'Deseja realmente remover esta assinatura? Os documentos voltarão a ter espaço para assinatura manual.',
-      )
-    )
-      return
-
-    setUploadingSigKey(chave)
-    try {
-      await pb.collection('configuracoes').update(recId, {
-        arquivo: null,
-        valor: '',
-      })
-      if (chave === 'assinatura_pastor') setSigPastorUrl(null)
-      if (chave === 'assinatura_secretario1') setSig1SecUrl(null)
-      if (chave === 'assinatura_secretario2') setSig2SecUrl(null)
-
-      toast({
-        title: 'Assinatura removida',
-        description: 'Os documentos agora terão linha para assinatura manual.',
-      })
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao remover',
-        description: err?.message,
-      })
-    } finally {
-      setUploadingSigKey(null)
-    }
-  }
 
   const saveConfigChave = async (chave: string, valor: string) => {
     try {
@@ -486,126 +281,6 @@ export const AdminConfig: React.FC = () => {
       })
     } finally {
       setIsSavingLideranca(false)
-    }
-  }
-
-  const handleSavePix = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSavingPix(true)
-    try {
-      if (pixRecordId) {
-        await pb.collection('configuracoes').update(pixRecordId, {
-          valor: chavePix.trim(),
-        })
-      } else {
-        const created = await pb.collection('configuracoes').create({
-          chave: 'pix_chave_copia_e_cola',
-          valor: chavePix.trim(),
-        })
-        setPixRecordId(created.id)
-      }
-      toast({
-        title: 'Chave PIX atualizada!',
-        description: 'A nova chave já está visível na página pública de doações.',
-      })
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao salvar chave PIX',
-        description: err?.message,
-      })
-    } finally {
-      setIsSavingPix(false)
-    }
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          variant: 'destructive',
-          title: 'Arquivo muito grande',
-          description: 'A imagem deve ter no máximo 5MB.',
-        })
-        return
-      }
-      setSelectedFile(file)
-      setPreviewUrl(URL.createObjectURL(file))
-    }
-  }
-
-  const handleUploadQrCode = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedFile) return
-    setIsUploadingQr(true)
-    try {
-      const formData = new FormData()
-      formData.append('arquivo', selectedFile)
-
-      if (qrRecordId) {
-        const updated = await pb
-          .collection('configuracoes')
-          .update<Configuracao>(qrRecordId, formData)
-        if (updated.arquivo) {
-          setQrCodeImage(pb.files.getURL(updated, updated.arquivo))
-        }
-      } else {
-        formData.append('chave', 'pix_qr_code_imagem')
-        formData.append('valor', 'Imagem personalizada do QR Code')
-        const created = await pb.collection('configuracoes').create<Configuracao>(formData)
-        setQrRecordId(created.id)
-        if (created.arquivo) {
-          setQrCodeImage(pb.files.getURL(created, created.arquivo))
-        }
-      }
-
-      setSelectedFile(null)
-      setPreviewUrl(null)
-      toast({
-        title: 'Imagem do QR Code atualizada!',
-        description: 'A nova imagem do QR Code já está disponível na página pública de doações.',
-      })
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao enviar imagem do QR Code',
-        description: err?.message || 'Tente novamente.',
-      })
-    } finally {
-      setIsUploadingQr(false)
-    }
-  }
-
-  const handleRemoveQrCode = async () => {
-    if (!qrRecordId) return
-    if (
-      !confirm(
-        'Deseja realmente remover a imagem personalizada do QR Code? O sistema voltará a gerar o código dinâmico a partir da chave PIX.',
-      )
-    )
-      return
-
-    setIsUploadingQr(true)
-    try {
-      await pb.collection('configuracoes').update(qrRecordId, {
-        arquivo: null,
-      })
-      setQrCodeImage(null)
-      setSelectedFile(null)
-      setPreviewUrl(null)
-      toast({
-        title: 'Imagem removida com sucesso!',
-        description: 'O QR Code voltará a ser gerado automaticamente pela chave.',
-      })
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao remover imagem',
-        description: err?.message,
-      })
-    } finally {
-      setIsUploadingQr(false)
     }
   }
 
@@ -926,7 +601,7 @@ export const AdminConfig: React.FC = () => {
                   Zona de Risco • Revenda & Limpeza
                 </div>
                 <CardTitle className="font-serif text-xl font-bold text-rose-950 flex items-center gap-2">
-                  Zerar Dados Operacionais do Sistema
+                  Preparar para Novo Cliente
                 </CardTitle>
                 <CardDescription className="text-xs sm:text-sm text-rose-900/80">
                   Apaga todos os registros operacionais (membros, congregados, obreiros, dízimos,
@@ -946,7 +621,7 @@ export const AdminConfig: React.FC = () => {
                 className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs sm:text-sm shadow-xs self-start sm:self-auto gap-1.5 shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
-                Zerar dados do sistema
+                Preparar para Novo Cliente
               </Button>
             </div>
           </CardHeader>
@@ -1000,46 +675,35 @@ export const AdminConfig: React.FC = () => {
 
           <CardContent className="p-5 sm:p-6 pt-0 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Cards dos 3 perfis mapeados vinculados estritamente por perfil */}
+              {/* Logins: 1 Administrador Geral + 1 Segundo Login Opcional (Secretário/Auxiliar) */}
               {[
                 {
                   perfilKey: 'tesoureiro' as const,
-                  titulo: 'Tesoureiro (Gerente)',
-                  loginSug: 'tesoureiro',
-                  emailPadrao: 'tesouraria@adtc.local',
+                  titulo: 'Administrador Geral',
+                  loginSug: 'admin',
+                  emailPadrao: 'admin@adtc.local',
                   descricao:
-                    'Gerente geral: Acesso total a logins, dízimos, ofertas, relatórios e SEDE.',
+                    'Acesso total e irrestrito: gestão de membros, finanças, configurações e logins.',
                   badgeCor: 'bg-amber-100 text-amber-900 border-amber-300',
                   icone: Coins,
                 },
                 {
                   perfilKey: 'secretario1' as const,
-                  titulo: '1º Secretário',
+                  titulo: 'Secretário / Auxiliar (Opcional)',
                   loginSug: 'secretario1',
                   emailPadrao: 'secretaria1@adtc.local',
                   descricao:
-                    'Membros, congregados, obreiros, atas, documentos e escalas. Sem módulo financeiro.',
+                    'Login secundário para apoio: membros, congregações, documentos e escalas (sem finanças).',
                   badgeCor: 'bg-blue-100 text-blue-900 border-blue-300',
                   icone: FileText,
                 },
-                {
-                  perfilKey: 'secretario2' as const,
-                  titulo: '2º Secretário',
-                  loginSug: 'secretario2',
-                  emailPadrao: 'secretaria2@adtc.local',
-                  descricao:
-                    'Membros, congregações, documentos oficiais e patrimônio. Sem módulo financeiro.',
-                  badgeCor: 'bg-indigo-100 text-indigo-900 border-indigo-300',
-                  icone: FileText,
-                },
               ].map((p) => {
-                // Vinculação estrita por PERFIL (nunca por e-mail vazio ou fallback genérico)
                 const userRec =
-                  perfisUsers.find((u) => u.perfil === p.perfilKey) ||
-                  (p.perfilKey === 'tesoureiro'
-                    ? perfisUsers.find((u) => u.perfil === 'admin')
-                    : null) ||
-                  null
+                  p.perfilKey === 'tesoureiro'
+                    ? perfisUsers.find((u) => u.perfil === 'admin' || u.perfil === 'tesoureiro')
+                    : perfisUsers.find(
+                        (u) => u.perfil === 'secretario1' || u.perfil === 'secretario2',
+                      ) || null
 
                 const isEditing = Boolean(userRec && editingUserId === userRec.id)
                 const Icon = p.icone
@@ -1095,20 +759,12 @@ export const AdminConfig: React.FC = () => {
                               onChange={(e) => setEditPerfil(e.target.value as any)}
                               className="w-full h-8 text-xs bg-white border border-[#E6E2D8] rounded-md px-2 text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#C9A227]"
                             >
-                              <option value="tesoureiro">
-                                Tesoureiro (Gerente - Acesso total)
-                              </option>
+                              <option value="admin">Administrador Geral (Acesso total)</option>
+                              <option value="tesoureiro">Administrador Geral (Tesoureiro)</option>
                               <option value="secretario1">
-                                1º Secretário (Tudo exceto financeiro)
-                              </option>
-                              <option value="secretario2">
-                                2º Secretário (Tudo exceto financeiro)
+                                Secretário / Auxiliar (Sem financeiro)
                               </option>
                             </select>
-                            <p className="text-[9px] text-amber-700">
-                              Use para sucessão pastoral ou administrativa (deve haver sempre ao
-                              menos 1 Tesoureiro ativo).
-                            </p>
                           </div>
 
                           <div className="space-y-1">
@@ -1252,10 +908,8 @@ export const AdminConfig: React.FC = () => {
                               </span>
                               <span className="text-[11px] text-slate-700 font-medium">
                                 {userRec.perfil === 'tesoureiro' || userRec.perfil === 'admin'
-                                  ? 'Tesoureiro (Gerente)'
-                                  : userRec.perfil === 'secretario1'
-                                    ? '1º Secretário'
-                                    : '2º Secretário'}
+                                  ? 'Administrador Geral'
+                                  : 'Secretário / Auxiliar'}
                               </span>
                             </div>
                           )}
@@ -1451,146 +1105,6 @@ export const AdminConfig: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Card: Chave PIX Pública */}
-        <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl">
-          <CardHeader>
-            <CardTitle className="font-serif text-lg font-bold text-[#1E3A5F] flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-[#C9A227]" />
-              Chave PIX de Doações
-            </CardTitle>
-            <CardDescription className="text-xs text-[#5A5A5A]">
-              Edite a chave PIX (CNPJ, CPF, e-mail, telefone ou aleatória) exibida no site público e
-              no banner de doações.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <form onSubmit={handleSavePix} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#1A1A1A]">
-                  Chave PIX Copia e Cola
-                </label>
-                <Input
-                  value={chavePix}
-                  onChange={(e) => setChavePix(e.target.value)}
-                  placeholder="Ex: 14.037.658/0001-82"
-                  className="text-xs sm:text-sm border-[#E6E2D8] font-mono"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isSavingPix || !chavePix.trim()}
-                className="w-full bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold"
-              >
-                {isSavingPix ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar Chave PIX'
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Card: Imagem do QR Code Substituível */}
-        <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl md:col-span-2">
-          <CardHeader>
-            <CardTitle className="font-serif text-lg font-bold text-[#1E3A5F] flex items-center gap-2">
-              <QrCode className="w-5 h-5 text-[#C9A227]" />
-              Imagem do QR Code Oficial de Doações
-            </CardTitle>
-            <CardDescription className="text-xs text-[#5A5A5A]">
-              Substitua o QR Code gerado por uma imagem oficial exportada do seu aplicativo
-              bancário.
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8]">
-              <div className="w-28 h-28 aspect-square rounded-lg bg-white border border-[#E6E2D8] flex items-center justify-center overflow-hidden flex-shrink-0 shadow-xs">
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Pré-visualização do QR Code"
-                    className="w-full h-full object-contain"
-                  />
-                ) : qrCodeImage ? (
-                  <img
-                    src={qrCodeImage}
-                    alt="QR Code oficial cadastrado"
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <div className="text-center p-2 text-slate-400">
-                    <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-50" />
-                    <span className="text-[10px] block leading-tight">QR dinâmico em uso</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="text-xs text-[#5A5A5A] space-y-1.5 flex-1">
-                <p className="font-semibold text-[#1E3A5F]">
-                  {qrCodeImage ? 'Imagem personalizada ativa' : 'Nenhuma imagem enviada ainda'}
-                </p>
-                <p className="text-[11px] leading-relaxed">
-                  {qrCodeImage
-                    ? 'A página pública está exibindo a sua imagem oficial enviada.'
-                    : 'A página pública está usando o QR Code dinâmico gerado a partir da chave PIX.'}
-                </p>
-                {qrCodeImage && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRemoveQrCode}
-                    disabled={isUploadingQr}
-                    className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-7 px-2 text-xs"
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" />
-                    Remover imagem e usar dinâmico
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <form onSubmit={handleUploadQrCode} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-[#1A1A1A]">
-                  Escolher imagem do QR Code (JPG, PNG ou SVG)
-                </label>
-                <Input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                  onChange={handleFileChange}
-                  className="text-xs border-[#E6E2D8] file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#1E3A5F] file:text-white"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isUploadingQr || !selectedFile}
-                className="w-full sm:w-auto bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold px-6"
-              >
-                {isUploadingQr ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
-                    Enviando QR Code...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-3.5 h-3.5 mr-1.5" />
-                    Substituir QR Code
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
         {/* Card: Assinaturas e Liderança Eclesiástica para Documentos */}
         <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl md:col-span-2">
           <CardHeader>
@@ -1704,195 +1218,10 @@ export const AdminConfig: React.FC = () => {
               </div>
             </form>
 
-            {/* SEÇÃO: UPLOAD DE ASSINATURAS MANUSCRITAS */}
-            <div className="mt-8 pt-6 border-t border-[#E6E2D8] space-y-4">
-              <div>
-                <h3 className="font-serif text-base font-bold text-[#1E3A5F] flex items-center gap-2">
-                  <PenTool className="w-4 h-4 text-[#C9A227]" />
-                  Upload das Assinaturas Manuscritas (Rubrica / Imagem)
-                </h3>
-                <p className="text-xs text-[#5A5A5A] mt-0.5">
-                  Envie foto nítida da assinatura manuscrita em papel branco. O sistema aplica com
-                  fundo transparente em Cartas, Certificados e Carteirinhas.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* 1. Assinatura do Pastor */}
-                <div className="p-4 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-[#1E3A5F]">Assinatura do Pastor</span>
-                      <span className="text-[10px] bg-[#1E3A5F]/10 text-[#1E3A5F] px-2 py-0.5 rounded font-semibold">
-                        Pastor Presidente
-                      </span>
-                    </div>
-
-                    <div className="w-full h-24 bg-white rounded-lg border border-[#E6E2D8] flex items-center justify-center overflow-hidden p-2 relative shadow-inner">
-                      {sigPastorUrl ? (
-                        <img
-                          src={sigPastorUrl}
-                          alt="Assinatura do Pastor"
-                          className="max-h-full max-w-full object-contain filter contrast-125"
-                        />
-                      ) : (
-                        <div className="text-center text-slate-400">
-                          <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-40" />
-                          <span className="text-[11px] block">Sem assinatura gravada</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-1">
-                    <label className="block w-full">
-                      <span className="sr-only">Escolher foto da assinatura</span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        disabled={uploadingSigKey === 'assinatura_pastor' || isProcessingSig}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleSelectAssinatura('assinatura_pastor', file)
-                          e.target.value = ''
-                        }}
-                        className="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#1E3A5F] file:text-white hover:file:bg-[#16304F] cursor-pointer"
-                      />
-                    </label>
-
-                    {sigPastorUrl && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoverAssinatura('assinatura_pastor')}
-                        disabled={uploadingSigKey === 'assinatura_pastor'}
-                        className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-7 text-xs font-medium"
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" /> Remover assinatura
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 2. Assinatura do 1º Secretário */}
-                <div className="p-4 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-[#1E3A5F]">
-                        Assinatura 1º Secretário
-                      </span>
-                      <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-semibold">
-                        1º Secretário
-                      </span>
-                    </div>
-
-                    <div className="w-full h-24 bg-white rounded-lg border border-[#E6E2D8] flex items-center justify-center overflow-hidden p-2 relative shadow-inner">
-                      {sig1SecUrl ? (
-                        <img
-                          src={sig1SecUrl}
-                          alt="Assinatura do 1º Secretário"
-                          className="max-h-full max-w-full object-contain filter contrast-125"
-                        />
-                      ) : (
-                        <div className="text-center text-slate-400">
-                          <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-40" />
-                          <span className="text-[11px] block">Sem assinatura gravada</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-1">
-                    <label className="block w-full">
-                      <span className="sr-only">Escolher foto da assinatura</span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        disabled={uploadingSigKey === 'assinatura_secretario1' || isProcessingSig}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleSelectAssinatura('assinatura_secretario1', file)
-                          e.target.value = ''
-                        }}
-                        className="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#1E3A5F] file:text-white hover:file:bg-[#16304F] cursor-pointer"
-                      />
-                    </label>
-
-                    {sig1SecUrl && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoverAssinatura('assinatura_secretario1')}
-                        disabled={uploadingSigKey === 'assinatura_secretario1'}
-                        className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-7 text-xs font-medium"
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" /> Remover assinatura
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* 3. Assinatura do 2º Secretário */}
-                <div className="p-4 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-[#1E3A5F]">
-                        Assinatura 2º Secretário
-                      </span>
-                      <span className="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-semibold">
-                        2º Secretário
-                      </span>
-                    </div>
-
-                    <div className="w-full h-24 bg-white rounded-lg border border-[#E6E2D8] flex items-center justify-center overflow-hidden p-2 relative shadow-inner">
-                      {sig2SecUrl ? (
-                        <img
-                          src={sig2SecUrl}
-                          alt="Assinatura do 2º Secretário"
-                          className="max-h-full max-w-full object-contain filter contrast-125"
-                        />
-                      ) : (
-                        <div className="text-center text-slate-400">
-                          <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-40" />
-                          <span className="text-[11px] block">Sem assinatura gravada</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 pt-1">
-                    <label className="block w-full">
-                      <span className="sr-only">Escolher foto da assinatura</span>
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp"
-                        disabled={uploadingSigKey === 'assinatura_secretario2' || isProcessingSig}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleSelectAssinatura('assinatura_secretario2', file)
-                          e.target.value = ''
-                        }}
-                        className="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#1E3A5F] file:text-white hover:file:bg-[#16304F] cursor-pointer"
-                      />
-                    </label>
-
-                    {sig2SecUrl && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoverAssinatura('assinatura_secretario2')}
-                        disabled={uploadingSigKey === 'assinatura_secretario2'}
-                        className="w-full text-rose-600 hover:text-rose-700 hover:bg-rose-50 h-7 text-xs font-medium"
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" /> Remover assinatura
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
+            <div className="mt-4 p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs text-[#1E3A5F] leading-relaxed">
+              Todos os modelos oficiais (Cartas de Recomendação, Mudança, Certificados de
+              Apresentação e Carteirinhas) contam com linha padronizada para assinatura manual sobre
+              o nome e cargo dos líderes.
             </div>
           </CardContent>
         </Card>
@@ -2100,7 +1429,7 @@ export const AdminConfig: React.FC = () => {
               <AlertOctagon className="w-6 h-6" />
             </div>
             <DialogTitle className="text-center font-serif text-xl font-bold text-rose-950">
-              Atenção: Zerar Dados Operacionais
+              Preparar para Novo Cliente (Zerar Dados Operacionais)
             </DialogTitle>
             <DialogDescription className="text-center text-xs sm:text-sm text-slate-600">
               Esta ação irreversível apaga todo o histórico e cadastros operacionais da instância

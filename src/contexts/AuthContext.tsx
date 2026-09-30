@@ -44,14 +44,22 @@ const CURRENT_USER_SESSION_KEY = 'adtc_current_user_id'
 // Atalhos rápidos para preenchimento de login
 export const KNOWN_LOGINS: Record<string, { email: string; perfil: UserPerfil; label: string }> = {
   admin: { email: 'admin@adtc.local', perfil: 'admin', label: 'Administrador Geral' },
-  tesoureiro: { email: 'tesouraria@adtc.local', perfil: 'tesoureiro', label: 'Tesoureiro' },
-  tesouraria: { email: 'tesouraria@adtc.local', perfil: 'tesoureiro', label: 'Tesoureiro' },
-  secretario1: { email: 'secretaria1@adtc.local', perfil: 'secretario1', label: '1º Secretário' },
-  secretaria1: { email: 'secretaria1@adtc.local', perfil: 'secretario1', label: '1º Secretário' },
-  secretario2: { email: 'secretaria2@adtc.local', perfil: 'secretario2', label: '2º Secretário' },
-  secretaria2: { email: 'secretaria2@adtc.local', perfil: 'secretario2', label: '2º Secretário' },
+  tesoureiro: {
+    email: 'tesouraria@adtc.local',
+    perfil: 'tesoureiro',
+    label: 'Administrador Geral',
+  },
+  secretario1: {
+    email: 'secretaria1@adtc.local',
+    perfil: 'secretario1',
+    label: 'Secretário / Auxiliar',
+  },
+  secretario2: {
+    email: 'secretaria2@adtc.local',
+    perfil: 'secretario2',
+    label: 'Secretário / Auxiliar',
+  },
 }
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loadingAuth, setLoadingAuth] = useState(true)

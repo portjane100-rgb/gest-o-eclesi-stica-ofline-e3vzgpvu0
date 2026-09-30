@@ -32,11 +32,13 @@ import {
 import { useToast } from '@/hooks/use-toast'
 
 export const AdminObreiros: React.FC = () => {
+  const { config } = useChurchConfig()
   const { nomes: nomesRaw } = useCongregacoes()
   const unidadesLista = nomesRaw || []
   const [obreiros, setObreiros] = useState<Obreiro[]>([])
-  const [search, setSearch] = useState('')
+  const [gerandoPdf, setGerandoPdf] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [editingObreiro, setEditingObreiro] = useState<Obreiro | null>(null)
@@ -195,6 +197,165 @@ export const AdminObreiros: React.FC = () => {
       o.congregacao.toLowerCase().includes(search.toLowerCase()),
   )
 
+  const handleBaixarRelacaoPdf = () => {
+    setGerandoPdf(true)
+    try {
+      // Ordem hierárquica de agrupamento
+      const gruposOrdem = [
+        'Pastor Presidente',
+        'Pastor',
+        'Evangelista',
+        'Presbítero',
+        'Diácono',
+        'Cooperador',
+      ]
+
+      const normalizarGrupo = (cargo: string) => {
+        const c = cargo.toLowerCase()
+        if (c.includes('presidente')) return 'Pastor Presidente'
+        if (c.includes('pastor')) return 'Pastores'
+        if (c.includes('evangelista')) return 'Evangelistas'
+        if (c.includes('presb') || c.includes('pb')) return 'Presbíteros'
+        if (c.includes('diác') || c.includes('diac')) return 'Diáconos'
+        if (c.includes('coop')) return 'Cooperadores'
+        return 'Outros Ministros'
+      }
+
+      // Agrupar
+      const mapaGrupos: Record<string, Obreiro[]> = {}
+      filtered.forEach((ob) => {
+        const g = normalizarGrupo(ob.cargo)
+        if (!mapaGrupos[g]) mapaGrupos[g] = []
+        mapaGrupos[g].push(ob)
+      })
+
+      const ordemChaves = [
+        'Pastor Presidente',
+        'Pastores',
+        'Evangelistas',
+        'Presbíteros',
+        'Diáconos',
+        'Cooperadores',
+        'Outros Ministros',
+      ]
+
+      let secoesHtml = ''
+      ordemChaves.forEach((grupoNome) => {
+        const itens = mapaGrupos[grupoNome]
+        if (!itens || itens.length === 0) return
+
+        const rows = itens
+          .map(
+            (ob, i) => `
+            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+              <td style="padding: 5px 8px; width: 30px; text-align: center; color: #64748b;">${i + 1}</td>
+              <td style="padding: 5px 8px; font-weight: bold; color: #1e293b;">${ob.nome}</td>
+              <td style="padding: 5px 8px; color: #334155;">${ob.cargo}</td>
+              <td style="padding: 5px 8px; color: #334155;">${ob.congregacao || '—'}</td>
+              <td style="padding: 5px 8px; color: #334155;">${(ob as any).data_consagracao ? formatarDataBr((ob as any).data_consagracao) : '—'}</td>
+              <td style="padding: 5px 8px; color: #334155;">${ob.telefone || '—'}</td>
+              <td style="padding: 5px 8px; text-align: center; color: #334155;">${ob.status || 'Ativo'}</td>
+            </tr>`,
+          )
+          .join('')
+
+        secoesHtml += `
+          <div style="margin-top: 14px; page-break-inside: avoid;">
+            <div style="background: #1E3A5F; color: #fff; padding: 4px 10px; font-weight: bold; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 4px 4px 0 0;">
+              ${grupoNome} (${itens.length})
+            </div>
+            <table style="width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e2e8f0;">
+              <thead>
+                <tr style="background: #f1f5f9; text-transform: uppercase; font-size: 9px; color: #475569; border-bottom: 1px solid #cbd5e1;">
+                  <th style="padding: 4px 8px; text-align: center;">#</th>
+                  <th style="padding: 4px 8px; text-align: left;">Nome</th>
+                  <th style="padding: 4px 8px; text-align: left;">Cargo</th>
+                  <th style="padding: 4px 8px; text-align: left;">Congregação</th>
+                  <th style="padding: 4px 8px; text-align: left;">Consagração</th>
+                  <th style="padding: 4px 8px; text-align: left;">Contato</th>
+                  <th style="padding: 4px 8px; text-align: center;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>`
+      })
+
+      const logoHtml = config.logoUrl
+        ? `<img src="${config.logoUrl}" alt="Logo" style="height: 50px; max-width: 140px; object-fit: contain;" />`
+        : ''
+
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Relação do Corpo de Obreiros — ${config.nomeIgreja || 'Igreja'}</title>
+  <style>
+    @page { size: A4 portrait; margin: 12mm 10mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; font-size: 11px; }
+    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #C9A227; padding-bottom: 8px; margin-bottom: 10px; }
+    .church-info h1 { margin: 0; font-size: 15px; color: #1E3A5F; text-transform: uppercase; }
+    .church-info p { margin: 2px 0 0; font-size: 10px; color: #64748b; }
+    .title-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .title-box h2 { margin: 0; font-size: 12px; color: #1E3A5F; text-transform: uppercase; }
+    .title-box span { font-size: 11px; color: #64748b; font-weight: bold; }
+    .footer { margin-top: 18px; font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="church-info">
+      <h1>${config.nomeIgreja || 'Gestão Eclesiástica'}</h1>
+      <p>${config.denominacao || 'Igreja Evangélica'} ${config.cidadeIgreja ? `• ${config.cidadeIgreja}` : ''}</p>
+      ${config.enderecoIgreja ? `<p>${config.enderecoIgreja}</p>` : ''}
+    </div>
+    ${logoHtml}
+  </div>
+
+  <div class="title-box">
+    <h2>Relação Oficial do Corpo de Obreiros</h2>
+    <span>Total: ${filtered.length} ministro(s)</span>
+  </div>
+
+  ${secoesHtml || '<p style="text-align: center; color: #94a3b8; padding: 20px;">Nenhum obreiro cadastrado.</p>'}
+
+  <div class="footer">
+    Relação ministerial oficial emitida em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} • ${config.nomeIgreja || 'Igreja'}
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 250);
+    }
+  </script>
+</body>
+</html>`
+
+      const printWindow = window.open('', '_blank', 'width=950,height=750')
+      if (!printWindow) {
+        toast({
+          variant: 'destructive',
+          title: 'Bloqueio de pop-up',
+          description: 'Habilite pop-ups para gerar e imprimir o PDF.',
+        })
+        return
+      }
+      printWindow.document.write(html)
+      printWindow.document.close()
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar PDF de obreiros',
+        description: e?.message,
+      })
+    } finally {
+      setGerandoPdf(false)
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -207,13 +368,31 @@ export const AdminObreiros: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          onClick={handleOpenCreate}
-          className="bg-[#1E3A5F] hover:bg-[#16304F] text-white flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Obreiro
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Botão Baixar Relação de Obreiros (PDF) */}
+          <Button
+            onClick={handleBaixarRelacaoPdf}
+            disabled={gerandoPdf}
+            variant="outline"
+            className="border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/10 text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
+            title="Baixar Relação de Obreiros em PDF timbrado por cargo"
+          >
+            {gerandoPdf ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <FileText className="w-3.5 h-3.5 text-[#1E3A5F]" />
+            )}
+            Baixar Relação de Obreiros (PDF)
+          </Button>
+
+          <Button
+            onClick={handleOpenCreate}
+            className="bg-[#1E3A5F] hover:bg-[#16304F] text-white flex items-center gap-2 text-xs font-semibold"
+          >
+            <Plus className="w-4 h-4" />
+            Novo Obreiro
+          </Button>
+        </div>
       </div>
 
       <div className="relative max-w-md">

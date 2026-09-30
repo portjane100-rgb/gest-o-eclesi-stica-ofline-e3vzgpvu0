@@ -341,13 +341,11 @@ export interface DocRecomendacaoData {
 export function buildCartaRecomendacaoHtml(data: DocRecomendacaoData): string {
   const watermarkSrc = data.watermarkDataUri || data.logoDataUri
   const id = data.churchIdentity || {}
-  const nomeIgreja = id.nomeIgreja?.trim() || 'ADTC Campanário'
-  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica Assembleia de Deus'
-  const subtitulo = id.subtituloIgreja?.trim() || `Templo Central — ${nomeIgreja}`
-  const endereco =
-    id.enderecoIgreja?.trim() ||
-    'Rua Alberto Batista Fontenele, nº 141 — Campanário-Uruoca - CE • CEP 62460-000'
-  const cidadeUf = id.cidadeUf?.trim() || 'Campanário, Ceará'
+  const nomeIgreja = id.nomeIgreja?.trim() || 'Igreja Local'
+  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica'
+  const subtitulo = id.subtituloIgreja?.trim() || (nomeIgreja ? `Templo Sede — ${nomeIgreja}` : '')
+  const endereco = id.enderecoIgreja?.trim() || ''
+  const cidadeUf = id.cidadeUf?.trim() || ''
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -399,25 +397,22 @@ export function buildCartaRecomendacaoHtml(data: DocRecomendacaoData): string {
     </div>
 
     <div class="content-relative">
-      <!-- Bloco de assinaturas equilibrado e simétrico: Pastor, 1º Secretário e 2º Secretário -->
+      <!-- Bloco de assinaturas para assinatura manual sobre nome e cargo -->
       <div class="signatures-grid-3">
         <div class="sig-col">
-          ${data.assinaturaPastorDataUri ? `<img src="${data.assinaturaPastorDataUri}" alt="Assinatura" class="sig-img" />` : ''}
-          <div class="sig-line"></div>
+          <div class="sig-line" style="margin-top: 36px;"></div>
           <p class="sig-name">${data.nomePastor}</p>
           <p class="sig-role">${data.cargoPastor || 'Pastor Presidente'}</p>
         </div>
 
         <div class="sig-col">
-          ${data.assinatura1SecDataUri ? `<img src="${data.assinatura1SecDataUri}" alt="Assinatura" class="sig-img" />` : ''}
-          <div class="sig-line"></div>
+          <div class="sig-line" style="margin-top: 36px;"></div>
           <p class="sig-name">${data.nome1Sec}</p>
           <p class="sig-role">${data.cargo1Sec || '1º Secretário'}</p>
         </div>
 
         <div class="sig-col">
-          ${data.assinatura2SecDataUri ? `<img src="${data.assinatura2SecDataUri}" alt="Assinatura" class="sig-img" />` : ''}
-          <div class="sig-line"></div>
+          <div class="sig-line" style="margin-top: 36px;"></div>
           <p class="sig-name">${data.nome2Sec}</p>
           <p class="sig-role">${data.cargo2Sec || '2º Secretário'}</p>
         </div>
@@ -465,13 +460,11 @@ export interface DocMudancaData {
 export function buildCartaMudancaHtml(data: DocMudancaData): string {
   const watermarkSrc = data.watermarkDataUri || data.logoDataUri
   const id = data.churchIdentity || {}
-  const nomeIgreja = id.nomeIgreja?.trim() || 'ADTC Campanário'
-  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica Assembleia de Deus'
-  const subtitulo = id.subtituloIgreja?.trim() || `Templo Central — ${nomeIgreja}`
-  const endereco =
-    id.enderecoIgreja?.trim() ||
-    'Rua Alberto Batista Fontenele, nº 141 — Campanário-Uruoca - CE • CEP 62460-000'
-  const cidadeUf = id.cidadeUf?.trim() || 'Campanário, Ceará'
+  const nomeIgreja = id.nomeIgreja?.trim() || 'Igreja Local'
+  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica'
+  const subtitulo = id.subtituloIgreja?.trim() || (nomeIgreja ? `Templo Sede — ${nomeIgreja}` : '')
+  const endereco = id.enderecoIgreja?.trim() || ''
+  const cidadeUf = id.cidadeUf?.trim() || ''
 
   // Se tiver 1º e 2º secretários, usa o grid de 3 assinaturas igual à Carta de Recomendação
   const temSecretarios = Boolean(data.nome1Sec || data.nome2Sec)
@@ -489,30 +482,26 @@ export function buildCartaMudancaHtml(data: DocMudancaData): string {
   const assinaturasHtml = temSecretarios
     ? `<div class="signatures-grid-3">
         <div class="sig-col">
-          ${pastorSigImg}
-          <div class="sig-line"></div>
+          <div class="sig-line" style="margin-top: 36px;"></div>
           <p class="sig-name">${data.nomePastor}</p>
           <p class="sig-role">${data.cargoPastor || 'Pastor Presidente'}</p>
         </div>
 
         <div class="sig-col">
-          ${sec1SigImg}
-          <div class="sig-line"></div>
+          <div class="sig-line" style="margin-top: 36px;"></div>
           <p class="sig-name">${data.nome1Sec || ''}</p>
           <p class="sig-role">${data.cargo1Sec || '1º Secretário'}</p>
         </div>
 
         <div class="sig-col">
-          ${sec2SigImg}
-          <div class="sig-line"></div>
+          <div class="sig-line" style="margin-top: 36px;"></div>
           <p class="sig-name">${data.nome2Sec || ''}</p>
           <p class="sig-role">${data.cargo2Sec || '2º Secretário'}</p>
         </div>
       </div>`
     : `<div style="display: flex; justify-content: center; margin-top: 14px; margin-bottom: 14px;">
         <div class="sig-col" style="max-width: 320px;">
-          ${pastorSigImg}
-          <div class="sig-line" style="width: 250px;"></div>
+          <div class="sig-line" style="width: 250px; margin-top: 36px;"></div>
           <p class="sig-name">${data.nomePastor}</p>
           <p class="sig-role">${data.cargoPastor || 'Pastor Presidente'}</p>
         </div>
@@ -616,11 +605,10 @@ export interface DocCartaoMembroData {
 
 export function buildCartaoMembroHtml(data: DocCartaoMembroData): string {
   const id = data.churchIdentity || {}
-  const nomeIgreja = id.nomeIgreja?.trim() || 'ADTC Campanário'
-  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica Assembleia de Deus'
-  const subtitulo = id.subtituloIgreja?.trim() || 'Templo Central'
-  const endereco =
-    id.enderecoIgreja?.trim() || 'Alberto Batista nº 966 • Campanário-Uruoca - CE CEP 62460-000'
+  const nomeIgreja = id.nomeIgreja?.trim() || 'Igreja Local'
+  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica'
+  const subtitulo = id.subtituloIgreja?.trim() || ''
+  const endereco = id.enderecoIgreja?.trim() || ''
 
   const fotoBlock = data.fotoDataUri
     ? `<img src="${data.fotoDataUri}" alt="${data.nome}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" />`
@@ -972,8 +960,7 @@ export function buildCartaoMembroHtml(data: DocCartaoMembroData): string {
 
       <div style="padding: 0 14px 10px 14px;">
         <div class="pastor-box">
-          ${data.assinaturaPastorDataUri ? `<img src="${data.assinaturaPastorDataUri}" alt="Assinatura Pastor" style="height: 38px; max-width: 150px; object-fit: contain; margin-bottom: -10px; display: block; margin-left: auto; margin-right: auto;" />` : ''}
-          <div class="pastor-line" style="${data.assinaturaPastorDataUri ? 'margin-top: 8px;' : ''}">
+          <div class="pastor-line" style="margin-top: 24px;">
             <span class="pastor-title">Pastor presidente</span>
             <span class="pastor-nome">${data.pastorPresidente}</span>
           </div>
@@ -1016,12 +1003,10 @@ export interface DocFichaMembroBrancoData {
 export function buildFichaMembroBrancoHtml(data: DocFichaMembroBrancoData): string {
   const watermarkSrc = data.watermarkDataUri || data.logoDataUri
   const id = data.churchIdentity || {}
-  const nomeIgreja = id.nomeIgreja?.trim() || 'ADTC Campanário'
-  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica Assembleia de Deus'
-  const subtitulo = id.subtituloIgreja?.trim() || `Templo Central — ${nomeIgreja}`
-  const endereco =
-    id.enderecoIgreja?.trim() ||
-    'Rua Alberto Batista Fontenele, nº 141 — Campanário-Uruoca - CE • CEP 62460-000'
+  const nomeIgreja = id.nomeIgreja?.trim() || 'Igreja Local'
+  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica'
+  const subtitulo = id.subtituloIgreja?.trim() || (nomeIgreja ? `Templo Sede — ${nomeIgreja}` : '')
+  const endereco = id.enderecoIgreja?.trim() || ''
 
   const unidades = data.unidades || [
     'Sede',
@@ -1523,14 +1508,11 @@ export function buildFichaMembroBrancoHtml(data: DocFichaMembroBrancoData): stri
 export function buildCertificadoApresentacaoHtml(data: DocCertificadoApresentacaoData): string {
   const watermarkSrc = data.watermarkDataUri || data.logoDataUri
   const id = data.churchIdentity || {}
-  const nomeIgreja = id.nomeIgreja?.trim() || 'ADTC Campanário'
-  const sigla = id.siglaIgreja?.trim() || 'ADTC'
-  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica Assembleia de Deus'
-  const subtitulo = id.subtituloIgreja?.trim() || `Templo Central — ${nomeIgreja}`
-  const endereco =
-    id.enderecoIgreja?.trim() ||
-    'Rua Alberto Batista Fontenele, nº 141 — Campanário-Uruoca - CE • CEP 62460-000'
-  const cidadeUf = id.cidadeUf?.trim() || 'Campanário - CE'
+  const nomeIgreja = id.nomeIgreja?.trim() || 'Igreja Local'
+  const siglaIgreja = id.siglaIgreja?.trim() || ''
+  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica'
+  const cnpj = id.cnpj?.trim() || ''
+  const enderecoIgreja = id.enderecoIgreja?.trim() || ''  const cidadeUf = id.cidadeUf?.trim() || 'Campanário - CE'
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -1857,14 +1839,13 @@ export function buildCertificadoApresentacaoHtml(data: DocCertificadoApresentaca
       <div class="cert-content-rel">
         <div class="cert-signatures">
           <div class="cert-sig-col" style="display: flex; flex-direction: column; align-items: center;">
-            ${data.assinaturaPastorDataUri ? `<img src="${data.assinaturaPastorDataUri}" alt="Assinatura Pastor" style="height: 44px; max-width: 160px; object-fit: contain; margin-bottom: -8px; display: block;" />` : ''}
-            <div class="cert-sig-line" style="width: 100%;"></div>
+            <div class="cert-sig-line" style="width: 100%; margin-top: 36px;"></div>
             <p class="cert-sig-name">${data.pastorOficiante}</p>
             <p class="cert-sig-role">Pastor Oficiante • ${sigla}</p>
           </div>
 
           <div class="cert-sig-col" style="display: flex; flex-direction: column; align-items: center;">
-            <div class="cert-sig-line" style="width: 100%; margin-top: ${data.assinaturaPastorDataUri ? '36px' : '0'};"></div>
+            <div class="cert-sig-line" style="width: 100%; margin-top: 36px;"></div>
             <p class="cert-sig-name">${data.nomePai || data.nomeMae || 'Pais / Responsáveis'}</p>
             <p class="cert-sig-role">Assinatura dos Responsáveis</p>
           </div>

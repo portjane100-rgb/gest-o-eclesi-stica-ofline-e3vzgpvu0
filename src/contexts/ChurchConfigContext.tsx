@@ -40,15 +40,6 @@ export interface ChurchConfig {
   labelUnidades: string
   labelEscala: string
   labelCalendario: string
-  labelSalmos?: string
-
-  // Financeiro / PIX
-  pixChave: string
-  pixTitular: string
-  pixBanco: string
-  pixCnpj: string
-  pixMensagem: string
-  pixVersiculo: string
 
   // Modelos de Documentos PDF
   modeloCartaRecomendacao?: string
@@ -67,7 +58,7 @@ export const CHURCH_CONFIG_DEFAULTS: ChurchConfig = {
   cidadeUf: 'Uruoca / Campanário - CE',
   telefoneContato: '(88) 99368-2458',
   emailContato: 'adtccampanario@gmail.com',
-  instagramUrl: 'https://www.instagram.com/adtccampanario?stkn=ODNndm02a25xN25r',
+  instagramUrl: '',
   logoUrl: logoOficial,
   nomePastor: 'Pr. José Francisco Portela Fontenele',
 
@@ -91,16 +82,6 @@ export const CHURCH_CONFIG_DEFAULTS: ChurchConfig = {
   labelUnidades: 'Congregações',
   labelEscala: 'Escala de Trabalho',
   labelCalendario: 'Calendário de Festas',
-  labelSalmos: 'Salmos Musicados',
-
-  pixChave: '14.037.658/0001-82',
-  pixTitular: 'José Francisco Portela',
-  pixBanco: 'Nubank / Caixa',
-  pixCnpj: '14.037.658/0001-82',
-  pixMensagem:
-    'Cada um dê conforme determinou em seu coração, não com tristeza ou por obrigação, pois Deus ama quem dá com alegria.',
-  pixVersiculo: '2 Coríntios 9:7',
-
   modeloCartaRecomendacao:
     'Temos a grata satisfação de vos enviar o nosso amado irmão, em plena comunhão nesta igreja, para que o recebais no Senhor como convém aos santos.',
   modeloCartaMudanca:
@@ -268,14 +249,6 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
         labelEscala: map['rotulo_escala']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelEscala,
         labelCalendario:
           map['rotulo_calendario']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelCalendario,
-        labelSalmos: map['rotulo_salmos']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelSalmos,
-
-        pixChave: map['pix_chave_copia_e_cola']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixChave,
-        pixTitular: map['pix_titular']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixTitular,
-        pixBanco: map['pix_banco']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixBanco,
-        pixCnpj: map['pix_cnpj']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixCnpj,
-        pixMensagem: map['pix_mensagem']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixMensagem,
-        pixVersiculo: map['pix_versiculo']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixVersiculo,
 
         modeloCartaRecomendacao:
           map['modelo_carta_recomendacao']?.valor?.trim() ||

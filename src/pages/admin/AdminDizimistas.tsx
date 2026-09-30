@@ -384,16 +384,6 @@ export function AdminDizimistas() {
         <div className="flex flex-wrap items-center gap-2">
           {abaSessao === 'dizimistas' && (
             <>
-              <Link
-                to="/carteirinha"
-                target="_blank"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border border-[#C9A227] text-[#1E3A5F] bg-[#C9A227]/10 hover:bg-[#C9A227]/20 transition"
-                title="Abrir página pública onde o membro baixa a carteirinha digital"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-[#C9A227]" />
-                Página Pública da Carteirinha
-              </Link>
-
               <Button
                 onClick={handleExportarCsv}
                 variant="outline"
@@ -413,18 +403,6 @@ export function AdminDizimistas() {
                 Adicionar Dizimista
               </Button>
             </>
-          )}
-
-          {abaSessao === 'planilha' && (
-            <Link
-              to="/carteirinha"
-              target="_blank"
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border border-[#C9A227] text-[#1E3A5F] bg-[#C9A227]/10 hover:bg-[#C9A227]/20 transition"
-              title="Abrir página pública onde o membro baixa a carteirinha digital"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-[#C9A227]" />
-              Carteirinha Pública
-            </Link>
           )}
         </div>
       </div>

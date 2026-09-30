@@ -43,7 +43,6 @@ export const ModoRevendaSection: React.FC = () => {
   const [cidadeEstado, setCidadeEstado] = useState(config.cidadeEstado || '')
   const [telefoneContato, setTelefoneContato] = useState(config.telefoneContato || '')
   const [emailContato, setEmailContato] = useState(config.emailContato || '')
-  const [instagramUrl, setInstagramUrl] = useState(config.instagramUrl || '')
 
   // Cores
   const [corPrimaria, setCorPrimaria] = useState(config.corPrimaria || '#1E3A5F')
@@ -66,7 +65,6 @@ export const ModoRevendaSection: React.FC = () => {
   const [labelCalendario, setLabelCalendario] = useState(
     config.labelCalendario || 'Calendário de Festas',
   )
-  const [labelSalmos, setLabelSalmos] = useState(config.labelSalmos || 'Salmos Musicados')
 
   // Logo upload
   const [selectedLogoFile, setSelectedLogoFile] = useState<File | null>(null)
@@ -84,7 +82,6 @@ export const ModoRevendaSection: React.FC = () => {
     setCidadeEstado(config.cidadeEstado || '')
     setTelefoneContato(config.telefoneContato || '')
     setEmailContato(config.emailContato || '')
-    setInstagramUrl(config.instagramUrl || '')
     setCorPrimaria(config.corPrimaria || '#1E3A5F')
     setCorDestaque(config.corDestaque || '#C9A227')
     setHomeHeroSubtitle(config.homeHeroSubtitle || '')
@@ -97,7 +94,6 @@ export const ModoRevendaSection: React.FC = () => {
     setLabelUnidades(config.labelUnidades || 'Congregações')
     setLabelEscala(config.labelEscala || 'Escala de Trabalho')
     setLabelCalendario(config.labelCalendario || 'Calendário de Festas')
-    setLabelSalmos(config.labelSalmos || 'Salmos Musicados')
   }, [config])
 
   const handleLogoFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -206,7 +202,6 @@ export const ModoRevendaSection: React.FC = () => {
         igreja_cidade_estado: cidadeEstado.trim(),
         igreja_telefone: telefoneContato.trim(),
         igreja_email: emailContato.trim(),
-        igreja_instagram: instagramUrl.trim(),
 
         tema_cor_primaria: corPrimaria.trim(),
         tema_cor_destaque: corDestaque.trim(),
@@ -222,7 +217,6 @@ export const ModoRevendaSection: React.FC = () => {
         rotulo_unidades: labelUnidades.trim(),
         rotulo_escala: labelEscala.trim(),
         rotulo_calendario: labelCalendario.trim(),
-        rotulo_salmos: labelSalmos.trim(),
       })
 
       toast({
@@ -375,19 +369,6 @@ export const ModoRevendaSection: React.FC = () => {
                   disabled={!isTesoureiro}
                   onChange={(e) => setEmailContato(e.target.value)}
                   placeholder="Ex: contato@igreja.org"
-                  className="bg-white border-[#E6E2D8] text-xs sm:text-sm"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#1E3A5F]">
-                  Instagram Oficial (URL completa)
-                </label>
-                <Input
-                  value={instagramUrl}
-                  disabled={!isTesoureiro}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
-                  placeholder="https://www.instagram.com/suaigreja"
                   className="bg-white border-[#E6E2D8] text-xs sm:text-sm"
                 />
               </div>
@@ -696,16 +677,6 @@ export const ModoRevendaSection: React.FC = () => {
                   value={labelCalendario}
                   disabled={!isTesoureiro}
                   onChange={(e) => setLabelCalendario(e.target.value)}
-                  className="bg-white border-[#E6E2D8] text-xs"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Salmos / Cânticos</label>
-                <Input
-                  value={labelSalmos}
-                  disabled={!isTesoureiro}
-                  onChange={(e) => setLabelSalmos(e.target.value)}
                   className="bg-white border-[#E6E2D8] text-xs"
                 />
               </div>

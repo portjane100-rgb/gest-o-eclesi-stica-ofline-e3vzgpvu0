@@ -368,28 +368,14 @@ export const LoginPage: React.FC = () => {
                       onClick={() => preencherAtalho('admin')}
                       className="text-left px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-200 text-[11px] text-slate-700 font-medium transition-colors"
                     >
-                      🛡️ Administrador
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => preencherAtalho('tesoureiro')}
-                      className="text-left px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-200 text-[11px] text-slate-700 font-medium transition-colors"
-                    >
-                      💰 Tesoureiro
+                      🛡️ Administrador Geral
                     </button>
                     <button
                       type="button"
                       onClick={() => preencherAtalho('secretario1')}
                       className="text-left px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-200 text-[11px] text-slate-700 font-medium transition-colors"
                     >
-                      📋 1º Secretário
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => preencherAtalho('secretario2')}
-                      className="text-left px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-200 text-[11px] text-slate-700 font-medium transition-colors"
-                    >
-                      📝 2º Secretário
+                      📋 Secretário / Auxiliar
                     </button>
                   </div>
                 </div>

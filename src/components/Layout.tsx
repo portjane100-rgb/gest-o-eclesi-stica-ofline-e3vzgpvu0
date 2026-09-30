@@ -56,7 +56,6 @@ export const Layout: React.FC = () => {
     { to: '/agenda-semanal', label: 'Agenda Semanal' },
     { to: '/escala', label: config.labelEscala || 'Escala de Trabalho' },
     { to: '/congregacoes', label: config.labelUnidades || 'Congregações' },
-    { to: '/salmos', label: config.labelSalmos || 'Salmos Musicados' },
     { to: '/calendario', label: config.labelCalendario || 'Calendário de Festas' },
     { to: '/carteirinha', label: 'Carteirinha Digital' },
     { to: '/doacoes', label: 'Doações PIX' },
@@ -327,14 +326,7 @@ export const Layout: React.FC = () => {
                     Relação de Congregações
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    to="/salmos"
-                    className="hover:text-[#C9A227] transition inline-block py-0.5"
-                  >
-                    Salmos Musicados
-                  </Link>
-                </li>
+
                 <li>
                   <Link
                     to="/calendario"

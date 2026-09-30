@@ -64,12 +64,8 @@ export const KitImplantacaoSection: React.FC = () => {
   const [igrejaCidadeEstado, setIgrejaCidadeEstado] = useState('')
   const [igrejaTelefone, setIgrejaTelefone] = useState('')
   const [igrejaEmail, setIgrejaEmail] = useState('')
-  const [igrejaInstagram, setIgrejaInstagram] = useState('')
   const [igrejaCorPrimaria, setIgrejaCorPrimaria] = useState('#1E3A5F')
   const [igrejaCorDestaque, setIgrejaCorDestaque] = useState('#C9A227')
-  const [igrejaPixChave, setIgrejaPixChave] = useState('')
-  const [igrejaPixTitular, setIgrejaPixTitular] = useState('')
-  const [igrejaPixBanco, setIgrejaPixBanco] = useState('')
 
   // Etapa 2: Unidades Iniciais
   const [unidades, setUnidades] = useState<UnidadeForm[]>([
@@ -253,12 +249,8 @@ export const KitImplantacaoSection: React.FC = () => {
           cidadeEstado: igrejaCidadeEstado.trim(),
           telefone: igrejaTelefone.trim(),
           email: igrejaEmail.trim(),
-          instagram: igrejaInstagram.trim(),
           corPrimaria: igrejaCorPrimaria.trim(),
           corDestaque: igrejaCorDestaque.trim(),
-          pixChave: igrejaPixChave.trim(),
-          pixTitular: igrejaPixTitular.trim() || tesoureiroNome.trim(),
-          pixBanco: igrejaPixBanco.trim(),
         },
         unidades: unidades.filter((u) => u.nome.trim()),
         tesoureiro: {
@@ -422,16 +414,6 @@ export const KitImplantacaoSection: React.FC = () => {
                   className="bg-white border-[#E6E2D8]"
                 />
               </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#1E3A5F]">Instagram Oficial</label>
-                <Input
-                  value={igrejaInstagram}
-                  onChange={(e) => setIgrejaInstagram(e.target.value)}
-                  placeholder="https://www.instagram.com/novaigreja"
-                  className="bg-white border-[#E6E2D8]"
-                />
-              </div>
             </div>
 
             {/* Cores Iniciais */}
@@ -470,44 +452,6 @@ export const KitImplantacaoSection: React.FC = () => {
                       {igrejaCorDestaque}
                     </span>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Chave PIX Inicial */}
-            <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-3">
-              <span className="text-xs font-bold text-[#1E3A5F]">
-                Chave PIX da Igreja (Doações & Dízimos)
-              </span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-700">Chave PIX</label>
-                  <Input
-                    value={igrejaPixChave}
-                    onChange={(e) => setIgrejaPixChave(e.target.value)}
-                    placeholder="CNPJ, E-mail ou Celular"
-                    className="bg-white border-[#E6E2D8] text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-700">
-                    Titular da Conta
-                  </label>
-                  <Input
-                    value={igrejaPixTitular}
-                    onChange={(e) => setIgrejaPixTitular(e.target.value)}
-                    placeholder="Nome da Igreja ou Pastor"
-                    className="bg-white border-[#E6E2D8] text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-slate-700">Banco</label>
-                  <Input
-                    value={igrejaPixBanco}
-                    onChange={(e) => setIgrejaPixBanco(e.target.value)}
-                    placeholder="Ex: Caixa Econômica, Bradesco"
-                    className="bg-white border-[#E6E2D8] text-xs"
-                  />
                 </div>
               </div>
             </div>
@@ -839,7 +783,6 @@ export const KitImplantacaoSection: React.FC = () => {
                 <li>Todos os Dizimistas, Ofertas e Planilhas Financeiras Mensais</li>
                 <li>Todos os Bens do Patrimônio e Inventário</li>
                 <li>Todas as Escalas Semanais de Trabalho e Calendário de Eventos</li>
-                <li>Todos os Salmos e Cânticos</li>
                 <li>Todas as Cartas de Recomendação, Mudança e Certificados emitidos</li>
                 <li>Todas as assinaturas manuscritas gravadas</li>
               </ul>

@@ -36,15 +36,9 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
-import { exportarMembrosParaCsv } from '@/lib/exportUtils'
-import { ADTC_LOGO_URL, ADTC_TOCHA_WATERMARK_DATA_URI } from '@/components/AdtcLogo'
 import { getLogoAsDataUri, buildFichaMembroBrancoHtml } from '@/lib/documentTemplates'
 import { FileText } from 'lucide-react'
 import { compressImage } from '@/lib/imageCompressor'
-import {
-  ModalFelicitarAniversariante,
-  type AniversarianteFelicitarData,
-} from '@/components/ModalFelicitarAniversariante'
 
 type AbaMembros = 'ativos' | 'inativos' | 'in_memoria' | 'aniversariantes'
 
@@ -108,16 +102,6 @@ export const AdminMembros: React.FC = () => {
   const [fotoFile, setFotoFile] = useState<File | null>(null)
   const [isCompressingFoto, setIsCompressingFoto] = useState(false)
 
-  // FRENTE 1: Mensagem de aniversário editável persistida na coleção de configurações
-  const MENSAGEM_PADRAO_ANIVERSARIO = `A paz do Senhor, {nome}! A ${config.nomeIgreja || 'nossa igreja'} deseja a você muitas felicidades e que Deus abençoe seu novo ano de vida! 🎉`
-  const [mensagemAniversario, setMensagemAniversario] = useState(MENSAGEM_PADRAO_ANIVERSARIO)
-  const [isModalMsgAnivOpen, setIsModalMsgAnivOpen] = useState(false)
-  const [tempMensagemAniv, setTempMensagemAniv] = useState(MENSAGEM_PADRAO_ANIVERSARIO)
-  const [salvandoMsgAniv, setSalvandoMsgAniv] = useState(false)
-  const [felicitarModalOpen, setFelicitarModalOpen] = useState(false)
-  const [aniversarianteSelecionado, setAniversarianteSelecionado] =
-    useState<AniversarianteFelicitarData | null>(null)
-
   const loadData = async () => {
     try {
       const [recordsMembros, recordsCongregados] = await Promise.all([
@@ -130,19 +114,6 @@ export const AdminMembros: React.FC = () => {
       ])
       setMembros(recordsMembros)
       setCongregados(recordsCongregados)
-
-      // Carregar mensagem de aniversário persistida
-      try {
-        const configAniv = await pb
-          .collection('configuracoes')
-          .getFirstListItem('chave="mensagem_aniversario"')
-        if (configAniv && configAniv.valor) {
-          setMensagemAniversario(configAniv.valor)
-          setTempMensagemAniv(configAniv.valor)
-        }
-      } catch {
-        /* intentionally ignored */
-      }
     } catch (err) {
       console.error('Erro ao carregar membros:', err)
     } finally {
@@ -240,62 +211,6 @@ export const AdminMembros: React.FC = () => {
         telefone: c.telefone,
       })),
   ].sort((a, b) => a.nome.localeCompare(b.nome))
-
-  // Formatador do link do WhatsApp (wa.me priorizando whatsapp, telefone como reserva, higienizando não-numéricos e prefixando 55)
-  const formatarLinkWhatsAppAniversario = (item: AniversarianteItem): string => {
-    const rawNumero = (item.whatsapp || item.telefone || '').replace(/\D/g, '')
-    if (!rawNumero) return ''
-    let numeroFinal = rawNumero
-    if (numeroFinal.length === 10 || numeroFinal.length === 11) {
-      numeroFinal = `55${numeroFinal}`
-    } else if (numeroFinal.length < 10) {
-      numeroFinal = `5588${numeroFinal}` // fallback DDD 88 Uruoca/Campanário
-    }
-    const textoMsg = (mensagemAniversario || MENSAGEM_PADRAO_ANIVERSARIO).replace(
-      /\{nome\}/g,
-      item.nome,
-    )
-    return `https://wa.me/${numeroFinal}?text=${encodeURIComponent(textoMsg)}`
-  }
-
-  const handleSalvarMensagemAniversario = async () => {
-    setSalvandoMsgAniv(true)
-    try {
-      let recordId = ''
-      try {
-        const existing = await pb
-          .collection('configuracoes')
-          .getFirstListItem('chave="mensagem_aniversario"')
-        recordId = existing.id
-      } catch {
-        /* intentionally ignored */
-      }
-
-      if (recordId) {
-        await pb.collection('configuracoes').update(recordId, { valor: tempMensagemAniv })
-      } else {
-        await pb.collection('configuracoes').create({
-          chave: 'mensagem_aniversario',
-          valor: tempMensagemAniv,
-        })
-      }
-
-      setMensagemAniversario(tempMensagemAniv)
-      setIsModalMsgAnivOpen(false)
-      toast({
-        title: 'Mensagem atualizada!',
-        description: 'A nova mensagem padrão será usada nas felicitações pelo WhatsApp.',
-      })
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao salvar mensagem',
-        description: err?.message,
-      })
-    } finally {
-      setSalvandoMsgAniv(false)
-    }
-  }
 
   useEffect(() => {
     loadData()
@@ -559,11 +474,18 @@ export const AdminMembros: React.FC = () => {
   const handleBaixarFichaEmBranco = async () => {
     try {
       setGerandoFichaPdf(true)
-      const logoDataUri = await getLogoAsDataUri(ADTC_LOGO_URL)
+      const logoDataUri = await getLogoAsDataUri(config.logoUrl || '')
       const htmlCompleto = buildFichaMembroBrancoHtml({
         logoDataUri,
-        watermarkDataUri: ADTC_TOCHA_WATERMARK_DATA_URI,
         unidades: [...(unidadesLista || [])],
+        churchIdentity: {
+          nomeIgreja: config.nomeIgreja,
+          siglaIgreja: config.siglaIgreja,
+          denominacao: config.denominacao,
+          enderecoIgreja: config.enderecoIgreja,
+          cidadeUf: config.cidadeIgreja,
+          nomePastor: config.nomePastor,
+        },
       })
 
       const printWindow = window.open('', '_blank', 'width=1050,height=850')
@@ -590,13 +512,6 @@ export const AdminMembros: React.FC = () => {
     }
   }
 
-  const handleExportarCsv = () => {
-    exportarMembrosParaCsv(membros, `membros_adtc_${abaAtiva}.csv`)
-    toast({
-      title: 'Planilha exportada com sucesso!',
-      description: 'Arquivo CSV com codificação UTF-8 compatível com Excel.',
-    })
-  }
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header com Ações */}
@@ -628,17 +543,6 @@ export const AdminMembros: React.FC = () => {
               <FileText className="w-3.5 h-3.5 text-[#1E3A5F]" />
             )}
             Baixar Ficha em Branco (PDF)
-          </Button>
-
-          {/* Botão Exportar CSV */}
-          <Button
-            onClick={handleExportarCsv}
-            variant="outline"
-            className="border-[#E6E2D8] text-slate-700 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5"
-            title="Baixar lista completa em planilha Excel/CSV"
-          >
-            <Download className="w-3.5 h-3.5 text-emerald-600" />
-            Baixar Planilha (CSV)
           </Button>
 
           {/* Botão Novo Membro */}
@@ -725,7 +629,7 @@ export const AdminMembros: React.FC = () => {
 
       {/* Conteúdo da Aba Selecionada */}
       {abaAtiva === 'aniversariantes' ? (
-        /* ABA: ANIVERSARIANTES DE HOJE */
+        /* ABA: ANIVERSARIANTES DE HOJE (APENAS CONSULTA) */
         <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl overflow-hidden">
           <div className="p-4 bg-pink-50/70 border-b border-[#E6E2D8] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5 text-xs text-pink-950">
@@ -735,23 +639,11 @@ export const AdminMembros: React.FC = () => {
                   Membros e Congregados Ativos aniversariando hoje
                 </strong>
                 <p className="text-slate-600 text-[11px]">
-                  Felicite com uma mensagem personalizada no WhatsApp com apenas 1 clique.
+                  Relação de irmãos aniversariantes para consulta da secretaria e liderança.
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setTempMensagemAniv(mensagemAniversario)
-                  setIsModalMsgAnivOpen(true)
-                }}
-                className="text-xs border-[#E6E2D8] text-[#1E3A5F] hover:bg-white"
-              >
-                <Settings className="w-3.5 h-3.5 mr-1.5 text-[#C9A227]" />
-                Personalizar Mensagem
-              </Button>
               <Badge className="bg-pink-600 text-white font-bold text-xs">
                 {aniversariantesHoje.length} aniversariante(s) hoje
               </Badge>
@@ -762,12 +654,11 @@ export const AdminMembros: React.FC = () => {
             <table className="w-full text-left text-xs sm:text-sm">
               <thead className="bg-[#1E3A5F] text-white uppercase text-[10px] sm:text-xs tracking-wider">
                 <tr>
-                  <th className="p-3 sm:p-4">Pessoa</th>
+                  <th className="p-3 sm:p-4">Nome</th>
                   <th className="p-3 sm:p-4">Tipo</th>
                   <th className="p-3 sm:p-4">Congregação</th>
                   <th className="p-3 sm:p-4">Data Nascimento</th>
-                  <th className="p-3 sm:p-4">Contato (WhatsApp / Tel)</th>
-                  <th className="p-3 sm:p-4 text-right">Felicitações</th>
+                  <th className="p-3 sm:p-4">Telefone / Contato</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E6E2D8]">
@@ -823,45 +714,17 @@ export const AdminMembros: React.FC = () => {
                         </td>
                         <td className="p-3 sm:p-4 text-slate-700">
                           {contatoExibicao ? (
-                            <div className="flex flex-col">
-                              <span className="font-mono text-xs">{contatoExibicao}</span>
-                              {item.whatsapp && (
-                                <span className="text-[10px] text-emerald-600 font-medium">
-                                  WhatsApp cadastrado
-                                </span>
-                              )}
-                            </div>
+                            <span className="font-mono text-xs">{contatoExibicao}</span>
                           ) : (
-                            <span className="text-slate-400 italic">Sem número registrado</span>
+                            <span className="text-slate-400 italic">Sem contato registrado</span>
                           )}
-                        </td>
-                        <td className="p-3 sm:p-4 text-right">
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => {
-                              setAniversarianteSelecionado({
-                                nome: item.nome,
-                                whatsapp: item.whatsapp,
-                                telefone: item.telefone,
-                                tipo: item.tipo,
-                                congregacao: item.congregacao,
-                              })
-                              setFelicitarModalOpen(true)
-                            }}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs"
-                            title={`Felicitar ${item.nome}`}
-                          >
-                            <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                            Felicitar
-                          </Button>
                         </td>
                       </tr>
                     )
                   })
                 ) : (
                   <tr>
-                    <td colSpan={6} className="p-12 text-center text-slate-500">
+                    <td colSpan={5} className="p-12 text-center text-slate-500">
                       <div className="max-w-xs mx-auto space-y-2">
                         <Cake className="w-10 h-10 text-pink-300 mx-auto" />
                         <p className="font-medium text-slate-700">Nenhum aniversariante hoje</p>
@@ -1546,14 +1409,6 @@ export const AdminMembros: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Modal de Felicitações Editável no WhatsApp */}
-      <ModalFelicitarAniversariante
-        open={felicitarModalOpen}
-        onOpenChange={setFelicitarModalOpen}
-        aniversariante={aniversarianteSelecionado}
-        mensagemPadrao={mensagemAniversario || MENSAGEM_PADRAO_ANIVERSARIO}
-      />
     </div>
   )
 }

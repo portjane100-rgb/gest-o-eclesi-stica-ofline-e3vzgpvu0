@@ -42,7 +42,7 @@ import type { Obreiro, AgendaSemanalItem, Configuracao, Membro, Congregado } fro
 import { UNIDADES, DIAS_SEMANA } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
 import { InlineText } from '@/components/InlineText'
-import { SalmosMusicados } from '@/components/SalmosMusicados'
+
 import { useAuth } from '@/contexts/AuthContext'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 import { useToast } from '@/hooks/use-toast'
@@ -109,9 +109,6 @@ export const Index: React.FC = () => {
 
   // Próximo evento do Calendário
   const [proximoEvento, setProximoEvento] = useState<ProximoEventoInfo | null>(null)
-
-  // Salmo do dia
-  const [salmoDoDia, setSalmoDoDia] = useState<SalmoDoDiaItem | null>(null)
 
   // Versículo rotativo no Hero com transição suave
   const [heroVerseIndex, setHeroVerseIndex] = useState<number>(0)
@@ -401,31 +398,6 @@ export const Index: React.FC = () => {
         }
       } catch (err) {
         console.warn('Erro ao carregar próximo evento:', err)
-      }
-
-      // 5. Salmo do dia
-      try {
-        const salmosRes = await pb.collection('salmos').getList<any>(1, 50, {
-          sort: 'ordem',
-        })
-        if (salmosRes.items.length > 0) {
-          // Selecionar o salmo pelo dia do ano para ser o "Salmo do dia"
-          const diaDoAno = Math.floor(
-            (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24,
-          )
-          const indexSalmo = diaDoAno % salmosRes.items.length
-          const s = salmosRes.items[indexSalmo]
-          setSalmoDoDia({
-            id: s.id,
-            numero: s.numero,
-            titulo: s.titulo,
-            referencia: s.referencia || `Salmo ${s.numero}`,
-            versiculo_chave: s.versiculo_chave,
-            audio_url: s.audio_url,
-          })
-        }
-      } catch (err) {
-        console.warn('Erro ao carregar salmo do dia:', err)
       }
 
       // Carrega configurações da coleção
@@ -1422,45 +1394,6 @@ export const Index: React.FC = () => {
       {/* 4. SEÇÃO BRANCO-CREME / DOURADO: AGENDA DO DIA E SALMO DO DIA */}
       <section className="bg-gradient-to-b from-[#FAF8F5] via-[#FFFDF9] to-[#F5EFE6] py-14 text-slate-900 border-y-2 border-[#C9A227]/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          {/* Card Destaque: Salmo do Dia com link para Salmos */}
-          {salmoDoDia && (
-            <div className="rounded-2xl bg-gradient-to-r from-amber-50 via-white to-amber-50 border-2 border-[#C9A227] p-6 shadow-xl relative overflow-hidden">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#072348] text-[#F3CA52] border border-[#C9A227] flex items-center justify-center font-serif text-lg font-bold shadow-md flex-shrink-0">
-                    S{salmoDoDia.numero}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Badge className="bg-[#072348] text-[#F3CA52] font-bold text-[10px] uppercase">
-                        Salmo do Dia
-                      </Badge>
-                      <span className="text-xs text-slate-500 font-medium">Louvor & Meditação</span>
-                    </div>
-                    <h3 className="font-serif text-xl font-bold text-[#0F325E] mt-0.5">
-                      {salmoDoDia.referencia} — {salmoDoDia.titulo}
-                    </h3>
-                    {salmoDoDia.versiculo_chave && (
-                      <p className="text-xs sm:text-sm italic text-slate-600 mt-1">
-                        &ldquo;{salmoDoDia.versiculo_chave}&rdquo;
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <Button
-                  asChild
-                  className="bg-gradient-to-r from-[#C9A227] to-[#E6BA30] hover:from-[#B08E1E] hover:to-[#C9A227] text-[#072348] font-bold text-xs shadow-md border border-amber-300 flex-shrink-0"
-                >
-                  <Link to="/salmos" className="flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4" />
-                    Ouvir Salmos Musicados
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          )}
-
           {/* Agenda de Hoje */}
           <div className="bg-white rounded-2xl border border-[#E6E2D8] p-6 sm:p-8 shadow-xl space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#E6E2D8] pb-4">

@@ -32,14 +32,17 @@ import {
   Droplets,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { exportarCongregadosParaCsv } from '@/lib/exportUtils'
+import { useChurchConfig } from '@/contexts/ChurchConfigContext'
+import { FileText } from 'lucide-react'
 
 type AbaCongregados = 'ativos' | 'inativos' | 'in_memoria'
 
 export const AdminCongregados: React.FC = () => {
+  const { config } = useChurchConfig()
   const { nomes: nomesRaw } = useCongregacoes()
   const unidadesLista = nomesRaw || []
   const [congregados, setCongregados] = useState<Congregado[]>([])
+  const [gerandoPdf, setGerandoPdf] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState<AbaCongregados>('ativos')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -366,12 +369,119 @@ export const AdminCongregados: React.FC = () => {
     (c.status || '').toLowerCase().includes('falecido'),
   ).length
 
-  const handleExportarCsv = () => {
-    exportarCongregadosParaCsv(congregados, `congregados_adtc_${abaAtiva}.csv`)
-    toast({
-      title: 'Planilha exportada com sucesso!',
-      description: 'Arquivo CSV com codificação UTF-8 compatível com Excel.',
-    })
+  const handleBaixarPdf = () => {
+    setGerandoPdf(true)
+    try {
+      const lista = congregadosFiltrados
+      const logoHtml = config.logoUrl
+        ? `<img src="${config.logoUrl}" alt="Logo" style="height: 50px; max-width: 140px; object-fit: contain;" />`
+        : ''
+      const tituloSessao =
+        abaAtiva === 'ativos'
+          ? 'Congregados Ativos'
+          : abaAtiva === 'inativos'
+            ? 'Congregados Inativos / Afastados'
+            : 'Congregados In Memória'
+
+      const rowsHtml = lista
+        .map(
+          (c, idx) => `
+          <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+            <td style="padding: 6px 8px; text-align: center; color: #64748b;">${idx + 1}</td>
+            <td style="padding: 6px 8px; font-weight: bold; color: #1e293b;">${c.nome || '—'}</td>
+            <td style="padding: 6px 8px; color: #334155;">${c.data_nascimento ? formatarDataBr(c.data_nascimento) : '—'}</td>
+            <td style="padding: 6px 8px; color: #334155;">${c.whatsapp || c.telefone || '—'}</td>
+            <td style="padding: 6px 8px; color: #334155;">${(c as any).data_conversao ? formatarDataBr((c as any).data_conversao) : (c as any).data_conversao_texto || '—'}</td>
+            <td style="padding: 6px 8px; color: #334155;">${c.congregacao || '—'}</td>
+            <td style="padding: 6px 8px; color: #334155;">${c.status || 'Ativo'}</td>
+          </tr>`,
+        )
+        .join('')
+
+      const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Relação de Congregados — ${config.nomeIgreja || 'Igreja'}</title>
+  <style>
+    @page { size: A4 portrait; margin: 12mm 10mm; }
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; color: #0f172a; margin: 0; padding: 0; font-size: 12px; }
+    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #C9A227; padding-bottom: 10px; margin-bottom: 14px; }
+    .church-info h1 { margin: 0; font-size: 16px; color: #1E3A5F; text-transform: uppercase; }
+    .church-info p { margin: 2px 0 0; font-size: 10px; color: #64748b; }
+    .title-box { background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .title-box h2 { margin: 0; font-size: 13px; color: #1E3A5F; text-transform: uppercase; }
+    .title-box span { font-size: 11px; color: #64748b; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #1E3A5F; color: #fff; padding: 7px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .footer { margin-top: 16px; font-size: 9px; color: #94a3b8; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 6px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="church-info">
+      <h1>${config.nomeIgreja || 'Gestão Eclesiástica'}</h1>
+      <p>${config.denominacao || 'Igreja Evangélica'} ${config.cidadeIgreja ? `• ${config.cidadeIgreja}` : ''}</p>
+      ${config.enderecoIgreja ? `<p>${config.enderecoIgreja}</p>` : ''}
+    </div>
+    ${logoHtml}
+  </div>
+
+  <div class="title-box">
+    <h2>Relação de ${tituloSessao}</h2>
+    <span>Total: ${lista.length} congregado(s)</span>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 30px;">#</th>
+        <th>Nome Completo</th>
+        <th>Data Nasc.</th>
+        <th>Contato</th>
+        <th>Aceitou Jesus</th>
+        <th>Congregação</th>
+        <th>Situação</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || '<tr><td colspan="7" style="padding: 16px; text-align: center; color: #94a3b8;">Nenhum congregado encontrado.</td></tr>'}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Documento oficial emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} • ${config.nomeIgreja || 'Igreja'}
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 250);
+    }
+  </script>
+</body>
+</html>`
+
+      const printWindow = window.open('', '_blank', 'width=950,height=750')
+      if (!printWindow) {
+        toast({
+          variant: 'destructive',
+          title: 'Bloqueio de pop-up',
+          description: 'Habilite pop-ups para gerar e imprimir o PDF.',
+        })
+        return
+      }
+      printWindow.document.write(html)
+      printWindow.document.close()
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar PDF',
+        description: e?.message,
+      })
+    } finally {
+      setGerandoPdf(false)
+    }
   }
 
   return (
@@ -391,14 +501,20 @@ export const AdminCongregados: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Baixar Planilha */}
+          {/* Baixar Planilha (PDF) */}
           <Button
-            onClick={handleExportarCsv}
+            onClick={handleBaixarPdf}
+            disabled={gerandoPdf}
             variant="outline"
-            className="border-[#E6E2D8] text-slate-700 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5"
+            className="border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/10 text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
+            title="Baixar relatório timbrado de congregados em PDF"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-600" />
-            Baixar Planilha (CSV)
+            {gerandoPdf ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <FileText className="w-3.5 h-3.5 text-[#1E3A5F]" />
+            )}
+            Baixar Planilha (PDF)
           </Button>
 
           {/* Novo Congregado */}

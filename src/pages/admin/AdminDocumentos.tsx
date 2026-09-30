@@ -44,7 +44,7 @@ import { formatarDataBr } from '@/lib/utils'
 import { CartaoMembroVisual } from '@/components/CartaoMembroVisual'
 import { CertificadoApresentacaoVisual } from '@/components/CertificadoApresentacaoVisual'
 import { ADTC_LOGO_URL, ADTC_TOCHA_WATERMARK_DATA_URI } from '@/components/AdtcLogo'
-import { processSignatureImage } from '@/lib/signatureProcessor'
+
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 import {
   getLogoAsDataUri,
@@ -271,23 +271,7 @@ export const AdminDocumentos: React.FC = () => {
   const [novoArquivo, setNovoArquivo] = useState<File | null>(null)
   const [novasObservacoes, setNovasObservacoes] = useState('')
 
-  // Imagens das assinaturas salvas (Pastor, 1º Secretário, 2º Secretário)
-  const [assinaturaPastorUrl, setAssinaturaPastorUrl] = useState<string | null>(null)
-  const [assinatura1SecUrl, setAssinatura1SecUrl] = useState<string | null>(null)
-  const [assinatura2SecUrl, setAssinatura2SecUrl] = useState<string | null>(null)
-  const [uploadingSigAdminDoc, setUploadingSigAdminDoc] = useState<string | null>(null)
-  const [isProcessingSigDoc, setIsProcessingSigDoc] = useState(false)
-  const [pendingDocSig, setPendingDocSig] = useState<{
-    tipo: 'pastor' | 'sec1' | 'sec2'
-    chave: 'assinatura_pastor' | 'assinatura_secretario1' | 'assinatura_secretario2'
-    file: File
-    previewUrl: string
-    title: string
-    width: number
-    height: number
-  } | null>(null)
-
-  // Modal para editar assinaturas/liderança diretamente
+  // Modal para editar liderança e cargos diretamente
   const [isConfigLiderancaModalOpen, setIsConfigLiderancaModalOpen] = useState(false)
 
   useEffect(() => {
@@ -316,20 +300,6 @@ export const AdminDocumentos: React.FC = () => {
           if (c.chave === 'lideranca_cargo_1_secretario') s1Cargo = val
           if (c.chave === 'lideranca_nome_2_secretario') s2Nome = val
           if (c.chave === 'lideranca_cargo_2_secretario') s2Cargo = val
-        }
-
-        // Assinaturas de imagem
-        if (c.chave === 'assinatura_pastor') {
-          if (c.arquivo) setAssinaturaPastorUrl(pb.files.getURL(c, c.arquivo))
-          else if (c.valor && c.valor.startsWith('data:image')) setAssinaturaPastorUrl(c.valor)
-        }
-        if (c.chave === 'assinatura_secretario1') {
-          if (c.arquivo) setAssinatura1SecUrl(pb.files.getURL(c, c.arquivo))
-          else if (c.valor && c.valor.startsWith('data:image')) setAssinatura1SecUrl(c.valor)
-        }
-        if (c.chave === 'assinatura_secretario2') {
-          if (c.arquivo) setAssinatura2SecUrl(pb.files.getURL(c, c.arquivo))
-          else if (c.valor && c.valor.startsWith('data:image')) setAssinatura2SecUrl(c.valor)
         }
       })
 
@@ -489,93 +459,6 @@ export const AdminDocumentos: React.FC = () => {
     setAprNomeMae(mae)
     setTextoEditadoApr(null)
     setIsEditingTextoApr(false)
-  }
-
-  // Selecionar assinatura manuscrita e pré-processar (recorte + transparência + contraste)
-  const handleSelectAssinaturaDoc = async (tipo: 'pastor' | 'sec1' | 'sec2', file: File) => {
-    const chaves = {
-      pastor: 'assinatura_pastor',
-      sec1: 'assinatura_secretario1',
-      sec2: 'assinatura_secretario2',
-    } as const
-    const titulos = {
-      pastor: 'Assinatura do Pastor Presidente',
-      sec1: 'Assinatura do 1º Secretário',
-      sec2: 'Assinatura do 2º Secretário',
-    }
-
-    setIsProcessingSigDoc(true)
-    try {
-      const res = await processSignatureImage(file)
-      setPendingDocSig({
-        tipo,
-        chave: chaves[tipo],
-        file: res.file,
-        previewUrl: res.previewUrl,
-        title: titulos[tipo],
-        width: res.width,
-        height: res.height,
-      })
-    } catch (err: any) {
-      console.error('Erro ao processar assinatura no modal:', err)
-      setPendingDocSig({
-        tipo,
-        chave: chaves[tipo],
-        file,
-        previewUrl: URL.createObjectURL(file),
-        title: titulos[tipo],
-        width: 0,
-        height: 0,
-      })
-    } finally {
-      setIsProcessingSigDoc(false)
-    }
-  }
-
-  // Gravar assinatura após conferir a pré-visualização no modal
-  const handleConfirmarAssinaturaDoc = async () => {
-    if (!pendingDocSig) return
-    const { tipo, chave, file } = pendingDocSig
-    setUploadingSigAdminDoc(tipo)
-    try {
-      const fd = new FormData()
-      fd.append('arquivo', file)
-      fd.append('valor', `Assinatura tratada salva em ${new Date().toLocaleDateString('pt-BR')}`)
-      let recId = ''
-      try {
-        const existing = await pb
-          .collection('configuracoes')
-          .getFirstListItem<Configuracao>(`chave='${chave}'`)
-        recId = existing.id
-      } catch {
-        /* intentionally ignored */
-      }
-      let rec: Configuracao
-      if (recId) {
-        rec = await pb.collection('configuracoes').update<Configuracao>(recId, fd)
-      } else {
-        fd.append('chave', chave)
-        rec = await pb.collection('configuracoes').create<Configuracao>(fd)
-      }
-      const newUrl = rec.arquivo ? pb.files.getURL(rec, rec.arquivo) : null
-      if (tipo === 'pastor') setAssinaturaPastorUrl(newUrl)
-      else if (tipo === 'sec1') setAssinatura1SecUrl(newUrl)
-      else setAssinatura2SecUrl(newUrl)
-
-      toast({
-        title: 'Assinatura salva com sucesso!',
-        description: 'Fundo transparente e recorte aplicados para documentos e carteirinhas.',
-      })
-      setPendingDocSig(null)
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao salvar assinatura',
-        description: err?.message,
-      })
-    } finally {
-      setUploadingSigAdminDoc(null)
-    }
   }
 
   const loadCartasRecebidas = async () => {
@@ -2693,101 +2576,9 @@ export const AdminDocumentos: React.FC = () => {
               </div>
             </div>
 
-            {/* Bloco de Upload Rápido de Assinaturas Manuscritas no Modal */}
-            <div className="pt-4 border-t border-[#E6E2D8] space-y-3">
-              <div className="flex items-center gap-1.5">
-                <PenTool className="w-4 h-4 text-[#C9A227]" />
-                <h4 className="text-xs font-bold text-[#1E3A5F]">
-                  Upload de Assinaturas Manuscritas (Rubrica)
-                </h4>
-              </div>
-              <p className="text-[11px] text-slate-500">
-                Suba UMA VEZ a foto da assinatura em papel branco para sair impressa nas cartas e
-                carteirinha:
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Pastor */}
-                <div className="p-2.5 bg-white rounded-lg border border-[#E6E2D8] space-y-2">
-                  <span className="text-[11px] font-bold text-[#1E3A5F] block">Pastor</span>
-                  <div className="h-16 bg-[#F7F5F0] rounded border border-dashed border-[#E6E2D8] flex items-center justify-center overflow-hidden p-1">
-                    {assinaturaPastorUrl ? (
-                      <img
-                        src={assinaturaPastorUrl}
-                        alt="Assinatura Pastor"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-[10px] text-slate-400">Sem assinatura</span>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    disabled={uploadingSigAdminDoc === 'pastor' || isProcessingSigDoc}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleSelectAssinaturaDoc('pastor', file)
-                      e.target.value = ''
-                    }}
-                    className="block w-full text-[10px] text-slate-500 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-[#1E3A5F] file:text-white"
-                  />
-                </div>
-
-                {/* 1º Secretário */}
-                <div className="p-2.5 bg-white rounded-lg border border-[#E6E2D8] space-y-2">
-                  <span className="text-[11px] font-bold text-[#1E3A5F] block">1º Secretário</span>
-                  <div className="h-16 bg-[#F7F5F0] rounded border border-dashed border-[#E6E2D8] flex items-center justify-center overflow-hidden p-1">
-                    {assinatura1SecUrl ? (
-                      <img
-                        src={assinatura1SecUrl}
-                        alt="Assinatura 1º Secretário"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-[10px] text-slate-400">Sem assinatura</span>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    disabled={uploadingSigAdminDoc === 'sec1' || isProcessingSigDoc}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleSelectAssinaturaDoc('sec1', file)
-                      e.target.value = ''
-                    }}
-                    className="block w-full text-[10px] text-slate-500 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-[#1E3A5F] file:text-white"
-                  />
-                </div>
-
-                {/* 2º Secretário */}
-                <div className="p-2.5 bg-white rounded-lg border border-[#E6E2D8] space-y-2">
-                  <span className="text-[11px] font-bold text-[#1E3A5F] block">2º Secretário</span>
-                  <div className="h-16 bg-[#F7F5F0] rounded border border-dashed border-[#E6E2D8] flex items-center justify-center overflow-hidden p-1">
-                    {assinatura2SecUrl ? (
-                      <img
-                        src={assinatura2SecUrl}
-                        alt="Assinatura 2º Secretário"
-                        className="max-h-full max-w-full object-contain"
-                      />
-                    ) : (
-                      <span className="text-[10px] text-slate-400">Sem assinatura</span>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    disabled={uploadingSigAdminDoc === 'sec2' || isProcessingSigDoc}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleSelectAssinaturaDoc('sec2', file)
-                      e.target.value = ''
-                    }}
-                    className="block w-full text-[10px] text-slate-500 file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-[#1E3A5F] file:text-white"
-                  />
-                </div>
-              </div>
+            <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100 text-[11px] text-[#1E3A5F]">
+              Os documentos gerados contam com linha padronizada para assinatura manual dos líderes
+              acima de seus respectivos nomes e cargos.
             </div>
 
             <DialogFooter className="pt-3 border-t border-[#E6E2D8]">
