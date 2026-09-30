@@ -76,8 +76,8 @@ export const LoginModal: React.FC = () => {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSendingReset, setIsSendingReset] = useState(false)
-  const [resetNotice, setResetNotice] = useState<string | null>(null)
-
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null)
+  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<string | null>(null)
   const navigate = useNavigate()
   const { toast } = useToast()
 
@@ -125,7 +125,8 @@ export const LoginModal: React.FC = () => {
     if (!recoveryEmail) return
 
     setIsSendingReset(true)
-    setResetNotice(null)
+    setGeneratedCode(null)
+    setEmailDeliveryStatus(null)
 
     try {
       const baseUrl = import.meta.env.VITE_POCKETBASE_URL
@@ -147,13 +148,16 @@ export const LoginModal: React.FC = () => {
       })
 
       if (data.recoveryCode) {
-        setResetNotice(
-          `Código de segurança gerado para ${recoveryEmail}: ${data.recoveryCode} (válido por 30 minutos).`,
-        )
+        setGeneratedCode(data.recoveryCode)
         setResetCode(data.recoveryCode)
+      }
+      if (data.emailSent) {
+        setEmailDeliveryStatus(
+          `Uma cópia deste código foi enviada para ${recoveryEmail}. Você não precisa clicar em nenhum link — use este código diretamente aqui nesta tela.`,
+        )
       } else {
-        setResetNotice(
-          `Link de redefinição enviado com sucesso para ${recoveryEmail}. Caso precise redefinir com código instantâneo, você pode inseri-lo na próxima etapa.`,
+        setEmailDeliveryStatus(
+          `O código foi gerado diretamente na tela. Guarde-o e use abaixo para definir sua nova senha.`,
         )
       }
 
@@ -233,7 +237,8 @@ export const LoginModal: React.FC = () => {
     setResetCode('')
     setNewPassword('')
     setConfirmPassword('')
-    setResetNotice(null)
+    setGeneratedCode(null)
+    setEmailDeliveryStatus(null)
     setErrorMessage(null)
     setShowSecretarioNotice(false)
     closeLoginModal()
@@ -321,14 +326,31 @@ export const LoginModal: React.FC = () => {
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-[#1A1A1A]">Sua Senha Pessoal</label>
-                  <button
-                    type="button"
-                    onClick={() => setView('forgot_email')}
-                    className="text-xs text-[#C9A227] hover:text-[#b08d20] hover:underline font-medium"
-                  >
-                    Esqueci a senha
-                  </button>
-                </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setView('reset_code')
+                        setErrorMessage(null)
+                      }}
+                      className="text-[11px] text-[#1E3A5F] hover:underline font-medium"
+                      title="Já tem o código de 6 dígitos? Clique para redefinir"
+                    >
+                      Já tenho código
+                    </button>
+                    <span className="text-slate-300 text-xs">•</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setView('forgot_email')
+                        setErrorMessage(null)
+                      }}
+                      className="text-xs text-[#C9A227] hover:text-[#b08d20] hover:underline font-medium"
+                    >
+                      Esqueci a senha
+                    </button>
+                  </div>
+                </div>{' '}
                 <div className="relative">
                   <Input
                     type={showPassword ? 'text' : 'password'}
@@ -352,7 +374,6 @@ export const LoginModal: React.FC = () => {
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-
                 {errorMessage && (
                   <p className="text-xs text-red-600 font-medium pt-0.5">{errorMessage}</p>
                 )}
@@ -490,13 +511,40 @@ export const LoginModal: React.FC = () => {
                 Criar Nova Senha
               </DialogTitle>
               <DialogDescription className="text-xs text-[#5A5A5A]">
-                Insira o código de validação e digite a nova senha de acesso do painel.
+                Utilize o código de 6 dígitos gerado e defina sua nova senha de acesso.
               </DialogDescription>
             </DialogHeader>
 
-            {resetNotice && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs leading-relaxed">
-                {resetNotice}
+            {/* Destaque do Código de 6 dígitos SEMPRE visível */}
+            {generatedCode ? (
+              <div className="p-3.5 bg-amber-50 border-2 border-amber-300 rounded-xl text-amber-950 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-amber-900 text-[11px] uppercase tracking-wider">
+                    Seu Código de Recuperação:
+                  </span>
+                  <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-2 py-0.5 rounded-full">
+                    Válido por 30 minutos
+                  </span>
+                </div>
+                <div className="flex items-center justify-center py-1">
+                  <div className="font-mono text-2xl sm:text-3xl font-extrabold tracking-widest text-[#1E3A5F] bg-white px-4 py-1.5 rounded-lg border border-amber-300 shadow-xs">
+                    {generatedCode}
+                  </div>
+                </div>
+                <p className="text-[11px] text-amber-900 leading-relaxed text-center">
+                  Use este código no campo abaixo para validar sua nova senha. Não é necessário
+                  clicar em nenhum link externo.
+                </p>
+                {emailDeliveryStatus && (
+                  <p className="text-[10px] text-amber-800/90 leading-tight pt-1 border-t border-amber-200/60 text-center">
+                    {emailDeliveryStatus}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs leading-relaxed">
+                Digite o código de 6 dígitos recebido e crie sua nova senha de acesso. O código tem
+                validade de 30 minutos.
               </div>
             )}
 

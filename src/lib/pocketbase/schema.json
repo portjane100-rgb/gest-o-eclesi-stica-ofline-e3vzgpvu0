@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-09-30T18:30:30.275Z",
+  "generatedAt": "2026-09-30T18:49:36.194Z",
   "collections": [
     {
       "name": "users",
       "type": "auth",
       "apiRules": {
-        "list": "id = @request.auth.id",
-        "view": "id = @request.auth.id",
-        "create": "",
-        "update": "id = @request.auth.id",
-        "delete": "id = @request.auth.id"
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": null,
+        "update": "@request.auth.id != '' && (id = @request.auth.id || @request.auth.perfil = 'tesoureiro' || @request.auth.perfil = 'admin' || @request.auth.email = 'portelajane@outlook.com')",
+        "delete": "@request.auth.id != '' && (@request.auth.perfil = 'tesoureiro' || @request.auth.perfil = 'admin' || @request.auth.email = 'portelajane@outlook.com')"
       },
       "fields": [
         {
@@ -37,11 +37,1478 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "perfil",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["tesoureiro", "secretario1", "secretario2", "admin"]
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
+      ]
+    },
+    {
+      "name": "membros",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_nascimento",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_conversao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_batismo",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "congregacao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Sede",
+            "Congregação das Casinhas",
+            "Congregação do Alto",
+            "Congregação da Vila dos Pescadores"
+          ]
+        },
+        {
+          "name": "foto",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Ativo", "Inativo/Afastado", "Transferido por Mudança", "Falecido"]
+        },
+        {
+          "name": "numero_registro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "numero_ficha",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "filiacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "naturalidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estado_civil",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rg",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_nascimento_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_conversao_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_batismo_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "whatsapp",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_membros_congregacao ON membros (congregacao)",
+        "CREATE INDEX idx_membros_status ON membros (status)",
+        "CREATE INDEX idx_membros_nome ON membros (nome)"
+      ]
+    },
+    {
+      "name": "congregados",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_nascimento",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "congregacao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Sede",
+            "Congregação das Casinhas",
+            "Congregação do Alto",
+            "Congregação da Vila dos Pescadores"
+          ]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["Ativo", "Inativo/Afastado", "Falecido"]
+        },
+        {
+          "name": "whatsapp",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_congregados_congregacao ON congregados (congregacao)",
+        "CREATE INDEX idx_congregados_nome ON congregados (nome)",
+        "CREATE INDEX `idx_congregados_status` ON `congregados` (status)"
+      ]
+    },
+    {
+      "name": "obreiros",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cargo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Pastor Presidente", "Evangelista", "Presbítero", "Diácono", "Auxiliar"]
+        },
+        {
+          "name": "foto",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "congregacao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Sede",
+            "Congregação das Casinhas",
+            "Congregação do Alto",
+            "Congregação da Vila dos Pescadores"
+          ]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Ativo", "Inativo"]
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mensagem_pastoral",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_obreiros_cargo ON obreiros (cargo)",
+        "CREATE INDEX idx_obreiros_ordem ON obreiros (ordem)",
+        "CREATE INDEX idx_obreiros_status ON obreiros (status)"
+      ]
+    },
+    {
+      "name": "dizimistas",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "congregacao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Sede",
+            "Congregação das Casinhas",
+            "Congregação do Alto",
+            "Congregação da Vila dos Pescadores"
+          ]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "membro",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "membros"
+        },
+        {
+          "name": "ativo",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "mes_referencia",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_dizimistas_congregacao ON dizimistas (congregacao)",
+        "CREATE INDEX idx_dizimistas_nome ON dizimistas (nome)",
+        "CREATE INDEX `idx_dizimistas_mes` ON `dizimistas` (mes_referencia)"
+      ]
+    },
+    {
+      "name": "patrimonio",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Templo", "Casa Pastoral", "Bem Inventariado"]
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "endereco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "quantidade",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "detalhes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_patrimonio_tipo ON patrimonio (tipo)"]
+    },
+    {
+      "name": "escala",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "data",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "culto_horario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "local",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Sede",
+            "Congregação das Casinhas",
+            "Congregação do Alto",
+            "Congregação da Vila dos Pescadores"
+          ]
+        },
+        {
+          "name": "dirigente",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pregador",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "portaria_recepcao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "som_midia",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "louvor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "professores_salinha_criancas",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_escala_data ON escala (data)",
+        "CREATE INDEX idx_escala_local ON escala (local)"
+      ]
+    },
+    {
+      "name": "calendario",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_termino",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "departamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "foto",
+          "type": "file",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_calendario_inicio ON calendario (data_inicio)"]
+    },
+    {
+      "name": "agenda_semanal",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "unidade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Sede",
+            "Congregação das Casinhas",
+            "Congregação do Alto",
+            "Congregação da Vila dos Pescadores"
+          ]
+        },
+        {
+          "name": "dia_semana",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
+        },
+        {
+          "name": "horario",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "evento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_agenda_unidade ON agenda_semanal (unidade)",
+        "CREATE INDEX idx_agenda_dia ON agenda_semanal (dia_semana)"
+      ]
+    },
+    {
+      "name": "configuracoes",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "chave",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "valor",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "arquivo",
+          "type": "file",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_configuracoes_chave ON configuracoes (chave)"]
+    },
+    {
+      "name": "salmos",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "numero",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "audio",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_salmos_numero ON salmos (numero)",
+        "CREATE INDEX idx_salmos_ordem ON salmos (ordem)"
+      ]
+    },
+    {
+      "name": "albuns_fotos",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_evento",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_albuns_fotos_ordem ON albuns_fotos (ordem)"]
+    },
+    {
+      "name": "fotos",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "album",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "albuns_fotos"
+        },
+        {
+          "name": "arquivo",
+          "type": "file",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "legenda",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_fotos_album ON fotos (album)",
+        "CREATE INDEX idx_fotos_ordem ON fotos (ordem)"
+      ]
+    },
+    {
+      "name": "escala_semana",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_inicio",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "data_fim",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "dias",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativa",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "fotos",
+          "type": "file",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_escala_semana_inicio ON escala_semana (data_inicio)",
+        "CREATE INDEX idx_escala_semana_fim ON escala_semana (data_fim)"
+      ]
+    },
+    {
+      "name": "cartas_recebidas",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipo_pessoa",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Membro", "Obreiro"]
+        },
+        {
+          "name": "funcao_obreiro",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "igreja_origem",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cidade_origem",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_recebimento",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "congregacao_destino",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "Sede",
+            "Congregação das Casinhas",
+            "Congregação do Alto",
+            "Congregação da Vila dos Pescadores"
+          ]
+        },
+        {
+          "name": "arquivo_pdf",
+          "type": "file",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_cartas_tipo ON cartas_recebidas (tipo_pessoa)",
+        "CREATE INDEX idx_cartas_nome ON cartas_recebidas (nome)",
+        "CREATE INDEX idx_cartas_data ON cartas_recebidas (data_recebimento DESC)"
+      ]
+    },
+    {
+      "name": "solicitacoes_cadastro",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["membro", "congregado"]
+        },
+        {
+          "name": "status_solicitacao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pendente", "aprovada", "rejeitada"]
+        },
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_nascimento",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_nascimento_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "congregacao",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "Sede",
+            "Congregação das Casinhas",
+            "Congregação do Alto",
+            "Congregação da Vila dos Pescadores"
+          ]
+        },
+        {
+          "name": "filiacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "naturalidade",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "estado_civil",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "rg",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cpf",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_conversao",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_conversao_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_batismo",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "data_batismo_texto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "cargo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "whatsapp",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_solicitacoes_status ON solicitacoes_cadastro (status_solicitacao)",
+        "CREATE INDEX idx_solicitacoes_tipo ON solicitacoes_cadastro (tipo)",
+        "CREATE INDEX idx_solicitacoes_congregacao ON solicitacoes_cadastro (congregacao)"
+      ]
+    },
+    {
+      "name": "congregacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "titulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "subtitulo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "endereco",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dias_culto",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "dirigente_geral",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ordem",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ativa",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE UNIQUE INDEX idx_congregacoes_nome ON congregacoes (nome)"]
+    },
+    {
+      "name": "planilhas_mensais",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "mes",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "ano",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "congregacao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "chave_periodo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "linhas_dizimos",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "linhas_ofertas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "linhas_contabilidade",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "saldo_mes_anterior",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_ofertas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_dizimos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "oferta_especial",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_entradas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_saidas_20",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "saldo_sede",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "saldo_congregacao",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "assinaturas",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "observacoes",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "percentual_sede",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "total_saidas",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "valores_manuais",
+          "type": "json",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_planilhas_periodo ON planilhas_mensais (ano DESC, mes DESC)",
+        "CREATE INDEX idx_planilhas_congregacao ON planilhas_mensais (congregacao)",
+        "CREATE UNIQUE INDEX idx_planilhas_chave ON planilhas_mensais (chave_periodo)"
       ]
     }
   ]

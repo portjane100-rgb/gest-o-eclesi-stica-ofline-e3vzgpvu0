@@ -21,12 +21,16 @@ routerAdd('POST', '/backend/v1/admin/confirm-password-reset', (e) => {
 
     // Verificar se o código bate com o código salvo em configuracoes
     let valid = false
+    let targetEmail = ADMIN_EMAIL
     try {
       const rec = $app.findFirstRecordByData('configuracoes', 'chave', 'admin_pwd_reset_token')
       const data = JSON.parse(rec.getString('valor') || '{}')
       if (data.code && data.code.toUpperCase() === code) {
         if (new Date(data.expiresAt) > new Date()) {
           valid = true
+          if (data.email) {
+            targetEmail = data.email
+          }
         } else {
           return e.json(400, { error: 'O código de recuperação expirou. Solicite um novo.' })
         }
@@ -34,11 +38,16 @@ routerAdd('POST', '/backend/v1/admin/confirm-password-reset', (e) => {
     } catch (_) {}
 
     if (!valid) {
-      return e.json(400, { error: 'Código de recuperação inválido.' })
+      return e.json(400, { error: 'Código de recuperação inválido ou inexistente.' })
     }
 
     // Atualizar a senha do usuário
-    const user = $app.findAuthRecordByEmail('users', ADMIN_EMAIL)
+    let user
+    try {
+      user = $app.findAuthRecordByEmail('users', targetEmail)
+    } catch (_) {
+      user = $app.findAuthRecordByEmail('users', ADMIN_EMAIL)
+    }
     user.setPassword(newPassword)
     $app.save(user)
 
