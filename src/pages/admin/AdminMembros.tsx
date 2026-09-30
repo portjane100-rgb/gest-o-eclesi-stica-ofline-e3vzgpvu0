@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
-import type { Membro, SolicitacaoCadastro, SituacaoEclesiastica, Congregado } from '@/types/adtc'
+import type { Membro, SituacaoEclesiastica, Congregado } from '@/types/adtc'
 import { UNIDADES } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
 import useRealtime from '@/hooks/use-realtime'
@@ -26,15 +26,9 @@ import {
   Loader2,
   Upload,
   AlertTriangle,
-  Link as LinkIcon,
   Download,
-  CheckCircle,
-  XCircle,
-  Clock,
   UserCheck,
   UserX,
-  Share2,
-  Check,
   RotateCcw,
   Cake,
   MessageCircle,
@@ -52,7 +46,7 @@ import {
   type AniversarianteFelicitarData,
 } from '@/components/ModalFelicitarAniversariante'
 
-type AbaMembros = 'ativos' | 'inativos' | 'in_memoria' | 'pendentes' | 'aniversariantes'
+type AbaMembros = 'ativos' | 'inativos' | 'in_memoria' | 'aniversariantes'
 
 export const AdminMembros: React.FC = () => {
   const { nomes: nomesRaw } = useCongregacoes()
@@ -60,7 +54,6 @@ export const AdminMembros: React.FC = () => {
   const { config } = useChurchConfig()
   const [membros, setMembros] = useState<Membro[]>([])
   const [congregados, setCongregados] = useState<Congregado[]>([])
-  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoCadastro[]>([])
   const [abaAtiva, setAbaAtiva] = useState<AbaMembros>(() => {
     // Suporte tanto para search padrão (?aba=...) quanto para HashRouter (#/admin/membros?aba=...)
     const fullHref = typeof window !== 'undefined' ? window.location.href : ''
@@ -70,7 +63,6 @@ export const AdminMembros: React.FC = () => {
     const abaParam = params.get('aba')
     if (
       abaParam === 'aniversariantes' ||
-      abaParam === 'pendentes' ||
       abaParam === 'inativos' ||
       abaParam === 'in_memoria' ||
       abaParam === 'falecidos'
@@ -90,16 +82,7 @@ export const AdminMembros: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
-  // Modal de Links de Cadastro Compartilháveis
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
-  const [copiadoMembro, setCopiadoMembro] = useState(false)
-  const [copiadoCongregado, setCopiadoCongregado] = useState(false)
   const [gerandoFichaPdf, setGerandoFichaPdf] = useState(false)
-
-  // Modal de Revisão & Aprovação de Solicitação
-  const [revisandoSolicitacao, setRevisandoSolicitacao] = useState<SolicitacaoCadastro | null>(null)
-  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
-  const [rejeitandoId, setRejeitandoId] = useState<string | null>(null)
 
   // Form State
   const [nome, setNome] = useState('')
@@ -137,21 +120,16 @@ export const AdminMembros: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [recordsMembros, recordsCongregados, recordsSolicitacoes] = await Promise.all([
+      const [recordsMembros, recordsCongregados] = await Promise.all([
         pb.collection('membros').getFullList<Membro>({
           sort: 'nome',
         }),
         pb.collection('congregados').getFullList<Congregado>({
           sort: 'nome',
         }),
-        pb.collection('solicitacoes_cadastro').getFullList<SolicitacaoCadastro>({
-          filter: "tipo='membro' && status_solicitacao='pendente'",
-          sort: '-created',
-        }),
       ])
       setMembros(recordsMembros)
       setCongregados(recordsCongregados)
-      setSolicitacoes(recordsSolicitacoes)
 
       // Carregar mensagem de aniversário persistida
       try {
@@ -166,7 +144,7 @@ export const AdminMembros: React.FC = () => {
         /* intentionally ignored */
       }
     } catch (err) {
-      console.error('Erro ao carregar membros/solicitações:', err)
+      console.error('Erro ao carregar membros:', err)
     } finally {
       setLoading(false)
     }
@@ -335,12 +313,7 @@ export const AdminMembros: React.FC = () => {
     }
     const abaParam = params.get('aba')
     if (abaParam) {
-      if (
-        abaParam === 'aniversariantes' ||
-        abaParam === 'pendentes' ||
-        abaParam === 'inativos' ||
-        abaParam === 'in_memoria'
-      ) {
+      if (abaParam === 'aniversariantes' || abaParam === 'inativos' || abaParam === 'in_memoria') {
         setAbaAtiva(abaParam as AbaMembros)
       } else if (abaParam === 'falecidos') {
         setAbaAtiva('in_memoria')
@@ -351,7 +324,6 @@ export const AdminMembros: React.FC = () => {
   // Inscrições Realtime
   useRealtime<Membro>('membros', () => loadData())
   useRealtime<Congregado>('congregados', () => loadData())
-  useRealtime<SolicitacaoCadastro>('solicitacoes_cadastro', () => loadData())
 
   const resetForm = () => {
     setNome('')
@@ -424,34 +396,6 @@ export const AdminMembros: React.FC = () => {
     setIsModalOpen(true)
   }
 
-  // Abrir modal com dados da solicitação para revisão antes de aprovar
-  const handleRevisarSolicitacao = (sol: SolicitacaoCadastro) => {
-    setRevisandoSolicitacao(sol)
-    resetForm()
-    setNome(sol.nome || '')
-    setFiliacao(sol.filiacao || '')
-    setNaturalidade(sol.naturalidade || '')
-    setEstadoCivil(sol.estado_civil || '')
-    setRg(sol.rg || '')
-    setCpf(sol.cpf || '')
-    setEndereco(sol.endereco || '')
-    setObservacao(sol.observacao || '')
-    setTelefone(sol.telefone || '')
-    setWhatsapp(sol.whatsapp || '')
-    setCongregacao(sol.congregacao || 'Sede')
-    setDataNascimento(sol.data_nascimento ? sol.data_nascimento.slice(0, 10) : '')
-    setDataNascimentoTexto(sol.data_nascimento_texto || '')
-    setDataConversao(sol.data_conversao ? sol.data_conversao.slice(0, 10) : '')
-    setDataConversaoTexto(sol.data_conversao_texto || '')
-    setDataBatismo(sol.data_batismo ? sol.data_batismo.slice(0, 10) : '')
-    setDataBatismoTexto(sol.data_batismo_texto || '')
-    setStatus('Ativo')
-
-    // Atribui automaticamente o próximo número de ficha oficial
-    setNumeroFicha(calcularProximaFicha())
-    setIsModalOpen(true)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrors({})
@@ -498,18 +442,6 @@ export const AdminMembros: React.FC = () => {
           formData.append('numero_registro', `${config.siglaIgreja || 'MBR'}-${nextNum}`)
         }
         await pb.collection('membros').create(formData)
-
-        // Se veio de uma solicitação, marca como aprovada
-        if (revisandoSolicitacao) {
-          try {
-            await pb
-              .collection('solicitacoes_cadastro')
-              .update(revisandoSolicitacao.id, { status_solicitacao: 'aprovada' })
-          } catch (err) {
-            console.error('Erro ao marcar solicitação aprovada:', err)
-          }
-          setRevisandoSolicitacao(null)
-        }
         toast({ title: 'Membro cadastrado com sucesso no rol oficial!' })
       }
 
@@ -573,26 +505,6 @@ export const AdminMembros: React.FC = () => {
     }
   }
 
-  // Rejeitar solicitação pendente
-  const handleRejeitarSolicitacao = async () => {
-    if (!rejeitandoId) return
-    try {
-      await pb
-        .collection('solicitacoes_cadastro')
-        .update(rejeitandoId, { status_solicitacao: 'rejeitada' })
-      toast({ title: 'Solicitação de cadastro rejeitada/removida da fila.' })
-      setIsRejectModalOpen(false)
-      setRejeitandoId(null)
-      loadData()
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao rejeitar solicitação',
-        description: err?.message,
-      })
-    }
-  }
-
   // Filtragem por aba e busca
   const membrosFiltrados = membros.filter((m) => {
     const s = (m.status || 'Ativo').toLowerCase()
@@ -624,16 +536,6 @@ export const AdminMembros: React.FC = () => {
     )
   })
 
-  const solicitacoesFiltradas = solicitacoes.filter((s) => {
-    if (!search.trim()) return true
-    const term = search.toLowerCase()
-    return (
-      s.nome.toLowerCase().includes(term) ||
-      s.congregacao.toLowerCase().includes(term) ||
-      (s.telefone && s.telefone.includes(term))
-    )
-  })
-
   // Contadores por aba
   const totalAtivos = membros.filter((m) => {
     const s = (m.status || 'Ativo').toLowerCase()
@@ -652,31 +554,7 @@ export const AdminMembros: React.FC = () => {
   const totalFalecidos = membros.filter((m) =>
     (m.status || '').toLowerCase().includes('falecido'),
   ).length
-  const totalPendentes = solicitacoes.length
   const totalAniversariantesHoje = aniversariantesHoje.length
-
-  const linkCadastroMembro = `${window.location.origin}/cadastro/membro`
-  const linkCadastroCongregado = `${window.location.origin}/cadastro/congregado`
-
-  const handleCopiarLinkMembro = () => {
-    navigator.clipboard.writeText(linkCadastroMembro)
-    setCopiadoMembro(true)
-    toast({
-      title: 'Link de Membro copiado!',
-      description: 'Envie para novos membros preencherem a ficha completa pelo celular.',
-    })
-    setTimeout(() => setCopiadoMembro(false), 3000)
-  }
-
-  const handleCopiarLinkCongregado = () => {
-    navigator.clipboard.writeText(linkCadastroCongregado)
-    setCopiadoCongregado(true)
-    toast({
-      title: 'Link de Congregado copiado!',
-      description: 'Envie para congregados preencherem o cadastro rápido pelo celular.',
-    })
-    setTimeout(() => setCopiadoCongregado(false), 3000)
-  }
 
   const handleBaixarFichaEmBranco = async () => {
     try {
@@ -731,23 +609,11 @@ export const AdminMembros: React.FC = () => {
             Gestão do Rol de Membros
           </h2>
           <p className="text-xs sm:text-sm text-[#5A5A5A] mt-1">
-            Fichas eclesiásticas, situações (Ativos, Inativos, Falecidos) e solicitações pendentes
-            de cadastro.
+            Fichas eclesiásticas e controle de situações (Ativos, Inativos e Falecidos).
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Botão Gerar Links */}
-          <Button
-            onClick={() => setIsLinkModalOpen(true)}
-            variant="outline"
-            className="border-[#C9A227] text-[#1E3A5F] hover:bg-amber-50 text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
-            title="Abrir modal com links de cadastro de Membro e de Congregado"
-          >
-            <LinkIcon className="w-3.5 h-3.5 text-[#C9A227]" />
-            Gerar Link de Cadastro
-          </Button>
-
           {/* Botão Ficha em Branco (PDF) */}
           <Button
             onClick={handleBaixarFichaEmBranco}
@@ -786,7 +652,7 @@ export const AdminMembros: React.FC = () => {
         </div>
       </div>
 
-      {/* Abas: Ativos / Inativos e Afastados / Falecidos / Solicitações Pendentes */}
+      {/* Abas: Ativos / Inativos e Afastados / Falecidos / Aniversariantes */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <Tabs
           value={abaAtiva}
@@ -827,19 +693,6 @@ export const AdminMembros: React.FC = () => {
             </TabsTrigger>
 
             <TabsTrigger
-              value="pendentes"
-              className="text-xs font-semibold px-3 py-2 data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white rounded-lg flex items-center gap-1.5"
-            >
-              <Clock className="w-3.5 h-3.5 text-[#C9A227]" />
-              <span>Solicitações Pendentes</span>
-              {totalPendentes > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 bg-rose-500 text-white font-bold rounded-full text-[10px] animate-pulse">
-                  {totalPendentes}
-                </span>
-              )}
-            </TabsTrigger>
-
-            <TabsTrigger
               value="aniversariantes"
               className="text-xs font-semibold px-3 py-2 data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white rounded-lg flex items-center gap-1.5"
             >
@@ -862,11 +715,7 @@ export const AdminMembros: React.FC = () => {
         <div className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5A5A]" />
           <Input
-            placeholder={
-              abaAtiva === 'pendentes'
-                ? 'Buscar solicitação...'
-                : 'Buscar membro por nome, ficha ou doc...'
-            }
+            placeholder="Buscar membro por nome, ficha ou doc..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-white border-[#E6E2D8] text-xs sm:text-sm rounded-xl"
@@ -1021,112 +870,6 @@ export const AdminMembros: React.FC = () => {
                           de hoje.
                         </p>
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ) : abaAtiva === 'pendentes' ? (
-        /* ABA: SOLICITAÇÕES PENDENTES DE MEMBROS */
-        <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl overflow-hidden">
-          <div className="p-4 bg-amber-50/60 border-b border-[#E6E2D8] flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-amber-900">
-              <Clock className="w-4 h-4 text-[#C9A227]" />
-              <span>
-                Fichas preenchidas pelo link público aguardando revisão e aprovação da secretaria.
-              </span>
-            </div>
-            <Badge className="bg-[#C9A227] text-[#1E3A5F] font-bold text-xs">
-              {solicitacoesFiltradas.length} pendentes
-            </Badge>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-[#1E3A5F] text-white uppercase text-[10px] sm:text-xs tracking-wider">
-                <tr>
-                  <th className="p-3 sm:p-4">Nome Solicitante</th>
-                  <th className="p-3 sm:p-4">Congregação</th>
-                  <th className="p-3 sm:p-4">Contato / Docs</th>
-                  <th className="p-3 sm:p-4">Endereço & Filiação</th>
-                  <th className="p-3 sm:p-4">Data Envio</th>
-                  <th className="p-3 sm:p-4 text-right">Ação Administrativa</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E6E2D8]">
-                {solicitacoesFiltradas.length > 0 ? (
-                  solicitacoesFiltradas.map((sol) => (
-                    <tr key={sol.id} className="hover:bg-amber-50/30 transition">
-                      <td className="p-3 sm:p-4 font-semibold text-[#1E3A5F]">
-                        <div>{sol.nome}</div>
-                        {sol.observacao && (
-                          <div className="text-[10px] text-amber-700 italic">{sol.observacao}</div>
-                        )}
-                        {sol.estado_civil && (
-                          <div className="text-[11px] text-slate-500">
-                            {sol.estado_civil} {sol.naturalidade ? `• ${sol.naturalidade}` : ''}
-                          </div>
-                        )}
-                      </td>
-                      <td className="p-3 sm:p-4 text-slate-700">{sol.congregacao}</td>
-                      <td className="p-3 sm:p-4 text-xs text-slate-600">
-                        {sol.whatsapp ? (
-                          <div className="text-emerald-700 font-semibold flex items-center gap-1">
-                            <span>WhatsApp:</span> {sol.whatsapp}
-                          </div>
-                        ) : null}
-                        <div>Tel: {sol.telefone || '—'}</div>
-                        {sol.cpf && <div>CPF: {sol.cpf}</div>}
-                        {sol.rg && <div>RG: {sol.rg}</div>}
-                      </td>
-                      <td className="p-3 sm:p-4 text-xs text-slate-600 max-w-xs">
-                        {sol.filiacao && (
-                          <div className="truncate text-[11px]" title={sol.filiacao}>
-                            <strong>Pais:</strong> {sol.filiacao}
-                          </div>
-                        )}
-                        {sol.endereco && (
-                          <div className="truncate text-[11px] text-slate-500" title={sol.endereco}>
-                            <strong>End:</strong> {sol.endereco}
-                          </div>
-                        )}
-                      </td>
-                      <td className="p-3 sm:p-4 text-xs text-slate-500 whitespace-nowrap">
-                        {formatarDataBr(sol.created)}
-                      </td>
-                      <td className="p-3 sm:p-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <Button
-                            onClick={() => handleRevisarSolicitacao(sol)}
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 flex items-center gap-1.5 shadow-sm"
-                            title="Revisar e Aprovar como Membro Oficial"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Revisar & Aprovar
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              setRejeitandoId(sol.id)
-                              setIsRejectModalOpen(true)
-                            }}
-                            variant="ghost"
-                            size="sm"
-                            className="text-rose-600 hover:bg-rose-50 h-8 px-2"
-                            title="Rejeitar Solicitação"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-[#5A5A5A] italic">
-                      Nenhuma solicitação de membro pendente no momento.
                     </td>
                   </tr>
                 )}
@@ -1377,164 +1120,15 @@ export const AdminMembros: React.FC = () => {
         </Card>
       )}
 
-      {/* Modal de Links de Cadastro Compartilháveis (Membro e Congregado) */}
-      <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
-        <DialogContent className="max-w-lg bg-white border border-[#E6E2D8] shadow-2xl rounded-2xl">
-          <DialogHeader>
-            <div className="w-12 h-12 rounded-full bg-amber-50 border border-[#C9A227]/40 text-[#1E3A5F] flex items-center justify-center mx-auto mb-2">
-              <Share2 className="w-6 h-6 text-[#C9A227]" />
-            </div>
-            <DialogTitle className="text-center font-serif text-xl font-bold text-[#1E3A5F]">
-              Links de Cadastro Compartilháveis
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-[#5A5A5A]">
-              Copie o link desejado para enviar pelo WhatsApp. Ao preencher, os registros chegam na
-              aba <strong>"Solicitações Pendentes"</strong> para você revisar e aprovar.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2">
-            {/* 1. LINK DE MEMBRO */}
-            <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-[#1E3A5F] flex items-center gap-1.5">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  1. Cadastro de Membro (Ficha Completa)
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">/cadastro/membro</span>
-              </div>
-              <p className="text-[11px] text-slate-600">
-                Coleta filiação, datas de conversão e batismo, documentos e congregação vinculada.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <Input
-                  readOnly
-                  value={linkCadastroMembro}
-                  className="text-xs bg-white font-mono select-all"
-                />
-                <Button
-                  onClick={handleCopiarLinkMembro}
-                  className={`text-xs ${
-                    copiadoMembro
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-[#1E3A5F] hover:bg-[#16304F] text-white'
-                  }`}
-                >
-                  {copiadoMembro ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 mr-1" />
-                      Copiado!
-                    </>
-                  ) : (
-                    'Copiar'
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* 2. LINK DE CONGREGADO */}
-            <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-[#1E3A5F] flex items-center gap-1.5">
-                  <Share2 className="w-3.5 h-3.5 text-[#C9A227]" />
-                  2. Cadastro de Congregado (Rápido)
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">/cadastro/congregado</span>
-              </div>
-              <p className="text-[11px] text-slate-600">
-                Pede apenas nome completo, congregação, data de nascimento e telefone / WhatsApp.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <Input
-                  readOnly
-                  value={linkCadastroCongregado}
-                  className="text-xs bg-white font-mono select-all"
-                />
-                <Button
-                  onClick={handleCopiarLinkCongregado}
-                  className={`text-xs ${
-                    copiadoCongregado
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-[#1E3A5F] hover:bg-[#16304F] text-white'
-                  }`}
-                >
-                  {copiadoCongregado ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 mr-1" />
-                      Copiado!
-                    </>
-                  ) : (
-                    'Copiar'
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="text-[11px] text-slate-500 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
-              <p>
-                <strong>Regra Vigente:</strong> Nenhum cadastro entra de imediato nas listas
-                públicas — a secretaria revisa cada um na aba "Solicitações Pendentes" antes de
-                oficializar.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsLinkModalOpen(false)}
-              className="w-full text-xs"
-            >
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Rejeição de Solicitação */}
-      <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
-        <DialogContent className="max-w-md bg-white border border-[#E6E2D8]">
-          <DialogHeader>
-            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-2">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-            <DialogTitle className="text-center font-serif text-lg text-[#1E3A5F]">
-              Rejeitar Solicitação
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-[#5A5A5A]">
-              Deseja remover esta solicitação de cadastro pendente da fila de aprovação?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsRejectModalOpen(false)}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleRejeitarSolicitacao} className="bg-rose-600 text-white flex-1">
-              Rejeitar Solicitação
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Formulário (Criar / Editar / Aprovar) */}
+      {/* Modal de Formulário (Criar / Editar) */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-xl bg-white border border-[#E6E2D8] shadow-2xl rounded-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl font-bold text-[#1E3A5F]">
-              {revisandoSolicitacao
-                ? 'Revisar & Aprovar Solicitação de Membro'
-                : editingMembro
-                  ? 'Editar Membro'
-                  : 'Novo Membro'}
+              {editingMembro ? 'Editar Membro' : 'Novo Membro'}
             </DialogTitle>
             <DialogDescription className="text-xs text-[#5A5A5A]">
-              {revisandoSolicitacao
-                ? 'Confira os dados enviados pelo candidato a membro. Ao salvar, a solicitação é aprovada e inserida no rol oficial com o número de ficha.'
-                : `Preencha os dados do membro da ${config.siglaIgreja || config.nomeIgreja || 'igreja'}. Todos os campos são salvos de forma segura.`}
+              {`Preencha os dados do membro da ${config.siglaIgreja || config.nomeIgreja || 'igreja'}. Todos os campos são salvos de forma segura.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -1829,10 +1423,7 @@ export const AdminMembros: React.FC = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => {
-                  setIsModalOpen(false)
-                  setRevisandoSolicitacao(null)
-                }}
+                onClick={() => setIsModalOpen(false)}
                 className="text-xs"
               >
                 Cancelar
@@ -1847,8 +1438,6 @@ export const AdminMembros: React.FC = () => {
                     <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                     Salvando...
                   </>
-                ) : revisandoSolicitacao ? (
-                  'Aprovar & Inserir Membro Oficial'
                 ) : (
                   'Salvar Membro'
                 )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import pb from '@/lib/pocketbase/client'
-import type { Congregado, SolicitacaoCadastro, SituacaoEclesiastica } from '@/types/adtc'
+import type { Congregado, SituacaoEclesiastica } from '@/types/adtc'
 import { UNIDADES } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
 import useRealtime from '@/hooks/use-realtime'
@@ -27,26 +27,19 @@ import {
   UserX,
   Loader2,
   AlertTriangle,
-  Link as LinkIcon,
   Download,
-  Share2,
-  Check,
   RotateCcw,
-  Clock,
-  CheckCircle,
-  XCircle,
   Droplets,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { exportarCongregadosParaCsv } from '@/lib/exportUtils'
 
-type AbaCongregados = 'ativos' | 'inativos' | 'in_memoria' | 'pendentes'
+type AbaCongregados = 'ativos' | 'inativos' | 'in_memoria'
 
 export const AdminCongregados: React.FC = () => {
   const { nomes: nomesRaw } = useCongregacoes()
   const unidadesLista = nomesRaw || []
   const [congregados, setCongregados] = useState<Congregado[]>([])
-  const [solicitacoes, setSolicitacoes] = useState<SolicitacaoCadastro[]>([])
   const [abaAtiva, setAbaAtiva] = useState<AbaCongregados>('ativos')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -57,15 +50,6 @@ export const AdminCongregados: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
-
-  // Modal Links de Cadastro
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
-  const [copiadoMembro, setCopiadoMembro] = useState(false)
-  const [copiadoCongregado, setCopiadoCongregado] = useState(false)
-
-  // Rejeição de solicitação
-  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
-  const [rejeitandoId, setRejeitandoId] = useState<string | null>(null)
 
   // Form State (Cadastro/Edição de Congregado)
   const [nome, setNome] = useState('')
@@ -102,19 +86,12 @@ export const AdminCongregados: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const [recordsCongregados, recordsSolicitacoes] = await Promise.all([
-        pb.collection('congregados').getFullList<Congregado>({
-          sort: 'nome',
-        }),
-        pb.collection('solicitacoes_cadastro').getFullList<SolicitacaoCadastro>({
-          filter: "tipo='congregado' && status_solicitacao='pendente'",
-          sort: '-created',
-        }),
-      ])
+      const recordsCongregados = await pb.collection('congregados').getFullList<Congregado>({
+        sort: 'nome',
+      })
       setCongregados(recordsCongregados)
-      setSolicitacoes(recordsSolicitacoes)
     } catch (err) {
-      console.error('Erro ao buscar congregados/solicitações:', err)
+      console.error('Erro ao buscar congregados:', err)
     } finally {
       setLoading(false)
     }
@@ -125,7 +102,6 @@ export const AdminCongregados: React.FC = () => {
   }, [])
 
   useRealtime<Congregado>('congregados', () => loadData())
-  useRealtime<SolicitacaoCadastro>('solicitacoes_cadastro', () => loadData())
 
   const resetForm = () => {
     setNome('')
@@ -153,56 +129,6 @@ export const AdminCongregados: React.FC = () => {
     setStatus((c.status as SituacaoEclesiastica) || 'Ativo')
     setErrors({})
     setIsModalOpen(true)
-  }
-
-  // Aprovar solicitação de congregado com 1 clique
-  const handleAprovarSolicitacao = async (sol: SolicitacaoCadastro) => {
-    try {
-      const payload: Record<string, any> = {
-        nome: sol.nome.trim(),
-        congregacao: sol.congregacao,
-        status: 'Ativo',
-      }
-      if (sol.telefone) payload.telefone = sol.telefone.trim()
-      if (sol.whatsapp) payload.whatsapp = sol.whatsapp.trim()
-      if (sol.data_nascimento) payload.data_nascimento = sol.data_nascimento
-
-      await pb.collection('congregados').create(payload)
-      await pb
-        .collection('solicitacoes_cadastro')
-        .update(sol.id, { status_solicitacao: 'aprovada' })
-
-      toast({
-        title: 'Congregado aprovado!',
-        description: `${sol.nome} agora está registrado na sessão de Congregados.`,
-      })
-      loadData()
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao aprovar congregado',
-        description: err?.message,
-      })
-    }
-  }
-
-  const handleRejeitarSolicitacao = async () => {
-    if (!rejeitandoId) return
-    try {
-      await pb
-        .collection('solicitacoes_cadastro')
-        .update(rejeitandoId, { status_solicitacao: 'rejeitada' })
-      toast({ title: 'Solicitação de congregado rejeitada.' })
-      setIsRejectModalOpen(false)
-      setRejeitandoId(null)
-      loadData()
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao rejeitar',
-        description: err?.message,
-      })
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -427,16 +353,6 @@ export const AdminCongregados: React.FC = () => {
     )
   })
 
-  const solicitacoesFiltradas = solicitacoes.filter((s) => {
-    if (!search.trim()) return true
-    const term = search.toLowerCase()
-    return (
-      s.nome.toLowerCase().includes(term) ||
-      s.congregacao.toLowerCase().includes(term) ||
-      (s.telefone && s.telefone.includes(term))
-    )
-  })
-
   // Contadores
   const totalAtivos = congregados.filter((c) => {
     const s = (c.status || 'Ativo').toLowerCase()
@@ -449,30 +365,6 @@ export const AdminCongregados: React.FC = () => {
   const totalFalecidos = congregados.filter((c) =>
     (c.status || '').toLowerCase().includes('falecido'),
   ).length
-  const totalPendentes = solicitacoes.length
-
-  const linkCadastroMembro = `${window.location.origin}/cadastro/membro`
-  const linkCadastroCongregado = `${window.location.origin}/cadastro/congregado`
-
-  const handleCopiarLinkMembro = () => {
-    navigator.clipboard.writeText(linkCadastroMembro)
-    setCopiadoMembro(true)
-    toast({
-      title: 'Link de Membro copiado!',
-      description: 'Envie para novos membros preencherem a ficha completa pelo celular.',
-    })
-    setTimeout(() => setCopiadoMembro(false), 3000)
-  }
-
-  const handleCopiarLinkCongregado = () => {
-    navigator.clipboard.writeText(linkCadastroCongregado)
-    setCopiadoCongregado(true)
-    toast({
-      title: 'Link de Congregado copiado!',
-      description: 'Envie para congregados preencherem o cadastro rápido pelo celular.',
-    })
-    setTimeout(() => setCopiadoCongregado(false), 3000)
-  }
 
   const handleExportarCsv = () => {
     exportarCongregadosParaCsv(congregados, `congregados_adtc_${abaAtiva}.csv`)
@@ -494,22 +386,11 @@ export const AdminCongregados: React.FC = () => {
             Gestão de Congregados
           </h2>
           <p className="text-xs sm:text-sm text-[#5A5A5A] mt-1">
-            Controle de fiéis das 4 congregações, solicitações públicas e fluxo de batismo para
-            membro oficial.
+            Controle de fiéis das congregações e fluxo de batismo para membro oficial.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Gerar Link */}
-          <Button
-            onClick={() => setIsLinkModalOpen(true)}
-            variant="outline"
-            className="border-[#C9A227] text-[#1E3A5F] hover:bg-amber-50 text-xs font-semibold flex items-center gap-1.5"
-          >
-            <LinkIcon className="w-3.5 h-3.5 text-[#C9A227]" />
-            Gerar Link de Cadastro
-          </Button>
-
           {/* Baixar Planilha */}
           <Button
             onClick={handleExportarCsv}
@@ -570,19 +451,6 @@ export const AdminCongregados: React.FC = () => {
                 {totalFalecidos}
               </span>
             </TabsTrigger>
-
-            <TabsTrigger
-              value="pendentes"
-              className="text-xs font-semibold px-3 py-2 data-[state=active]:bg-[#1E3A5F] data-[state=active]:text-white rounded-lg flex items-center gap-1.5"
-            >
-              <Clock className="w-3.5 h-3.5 text-[#C9A227]" />
-              <span>Solicitações Pendentes</span>
-              {totalPendentes > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 bg-rose-500 text-white font-bold rounded-full text-[10px] animate-pulse">
-                  {totalPendentes}
-                </span>
-              )}
-            </TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -599,371 +467,178 @@ export const AdminCongregados: React.FC = () => {
       </div>
 
       {/* Conteúdo */}
-      {abaAtiva === 'pendentes' ? (
-        /* SOLICITAÇÕES PENDENTES DE CONGREGADOS */
-        <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl overflow-hidden">
-          <div className="p-4 bg-amber-50/60 border-b border-[#E6E2D8] flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-amber-900">
-              <Clock className="w-4 h-4 text-[#C9A227]" />
-              <span>
-                Cadastros rápidos enviados pelo link público aguardando confirmação da secretaria.
-              </span>
+      {/* LISTAGEM DE CONGREGADOS (ATIVOS / INATIVOS / IN MEMÓRIA) */}
+      <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl overflow-hidden">
+        {abaAtiva === 'in_memoria' && (
+          <div className="p-4 bg-slate-100/80 border-b border-[#E6E2D8] flex items-center justify-between">
+            <div className="text-xs text-slate-700">
+              <strong className="text-[#1E3A5F]">Sessão In Memória:</strong> Congregados falecidos
+              preservados no histórico eclesiástico da igreja.
             </div>
-            <Badge className="bg-[#C9A227] text-[#1E3A5F] font-bold text-xs">
-              {solicitacoesFiltradas.length} pendentes
+            <Badge className="bg-slate-700 text-white font-bold text-xs">
+              {totalFalecidos} registro(s)
             </Badge>
           </div>
+        )}
+        {abaAtiva === 'inativos' && (
+          <div className="p-4 bg-amber-50/70 border-b border-[#E6E2D8] flex items-center justify-between">
+            <div className="text-xs text-amber-900">
+              <strong className="text-[#1E3A5F]">Sessão Inativos:</strong> Congregados inativados
+              temporariamente. Use o botão <strong>"Reativar"</strong> para movê-los de volta à
+              sessão Ativos.
+            </div>
+            <Badge className="bg-amber-600 text-white font-bold text-xs">
+              {totalInativos} inativo(s)
+            </Badge>
+          </div>
+        )}
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-[#1E3A5F] text-white uppercase text-[10px] sm:text-xs tracking-wider">
-                <tr>
-                  <th className="p-3 sm:p-4">Nome Completo</th>
-                  <th className="p-3 sm:p-4">Congregação</th>
-                  <th className="p-3 sm:p-4">Telefone / WhatsApp</th>
-                  <th className="p-3 sm:p-4">Data Nasc.</th>
-                  <th className="p-3 sm:p-4">Data Envio</th>
-                  <th className="p-3 sm:p-4 text-right">Ação</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E6E2D8]">
-                {solicitacoesFiltradas.length > 0 ? (
-                  solicitacoesFiltradas.map((sol) => (
-                    <tr key={sol.id} className="hover:bg-amber-50/30 transition">
-                      <td className="p-3 sm:p-4 font-semibold text-[#1E3A5F]">{sol.nome}</td>
-                      <td className="p-3 sm:p-4 text-slate-700">{sol.congregacao}</td>
-                      <td className="p-3 sm:p-4 text-slate-600">{sol.telefone || '—'}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs sm:text-sm">
+            <thead className="bg-[#1E3A5F] text-white uppercase text-[10px] sm:text-xs tracking-wider">
+              <tr>
+                <th className="p-3 sm:p-4">Nome Completo</th>
+                <th className="p-3 sm:p-4">Congregação Vinculada</th>
+                <th className="p-3 sm:p-4">Telefone</th>
+                <th className="p-3 sm:p-4">Data Nasc.</th>
+                <th className="p-3 sm:p-4">Situação</th>
+                <th className="p-3 sm:p-4 text-right">Ações & Batismo</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E6E2D8]">
+              {congregadosFiltrados.length > 0 ? (
+                congregadosFiltrados.map((c) => {
+                  const statusStr = (c.status || 'Ativo').toLowerCase()
+                  const isFalecido = statusStr.includes('falecido')
+                  const isInativo =
+                    !isFalecido && (statusStr.includes('inativo') || statusStr.includes('afastado'))
+                  const isAtivo = !isFalecido && !isInativo
+
+                  return (
+                    <tr key={c.id} className="hover:bg-slate-50 transition">
+                      <td className="p-3 sm:p-4 font-semibold text-[#1E3A5F]">{c.nome}</td>
+                      <td className="p-3 sm:p-4 text-slate-700">{c.congregacao}</td>
+                      <td className="p-3 sm:p-4 text-slate-600">{c.telefone || '—'}</td>
                       <td className="p-3 sm:p-4 text-slate-600">
-                        {sol.data_nascimento ? formatarDataBr(sol.data_nascimento) : '—'}
+                        {c.data_nascimento ? formatarDataBr(c.data_nascimento) : '—'}
                       </td>
-                      <td className="p-3 sm:p-4 text-slate-500 text-xs">
-                        {formatarDataBr(sol.created)}
+                      <td className="p-3 sm:p-4">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${
+                            isAtivo
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                              : isInativo
+                                ? 'bg-amber-50 text-amber-700 border-amber-300'
+                                : 'bg-slate-100 text-slate-700 border-slate-300'
+                          }`}
+                        >
+                          {isFalecido ? 'In Memória (Falecido)' : c.status || 'Ativo'}
+                        </Badge>
                       </td>
                       <td className="p-3 sm:p-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* FRENTE 3: Botão de Batismo */}
+                          {isAtivo && (
+                            <Button
+                              onClick={() => handleOpenBatismo(c)}
+                              size="sm"
+                              className="bg-gradient-to-r from-[#1E3A5F] to-[#0A2E5C] hover:from-[#16304F] hover:to-[#082244] text-[#C9A227] text-xs h-8 px-2.5 font-bold shadow-xs flex items-center gap-1 border border-[#C9A227]/40"
+                              title="Registrar Batismo: preenche ficha oficial de membro e remove o registro de congregado"
+                            >
+                              <Droplets className="w-3.5 h-3.5 text-[#C9A227]" />
+                              Batizar (Virar Membro)
+                            </Button>
+                          )}
+
+                          {/* Situação */}
+                          {isAtivo ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleChangeStatus(c, 'Inativo/Afastado')}
+                              className="h-8 text-amber-700 hover:bg-amber-50 text-xs px-2"
+                              title="Mover para a sessão Inativos"
+                            >
+                              Inativar
+                            </Button>
+                          ) : isInativo ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleChangeStatus(c, 'Ativo')}
+                              className="h-8 text-emerald-700 hover:bg-emerald-50 text-xs px-2 font-medium"
+                              title="Reativar para Congregados Ativos"
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />
+                              Reativar
+                            </Button>
+                          ) : isFalecido ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleChangeStatus(c, 'Ativo')}
+                              className="h-8 text-emerald-700 hover:bg-emerald-50 text-xs px-2 font-medium"
+                              title="Restaurar para Ativos caso marcado por engano"
+                            >
+                              <RotateCcw className="w-3 h-3 mr-1" />
+                              Reativar
+                            </Button>
+                          ) : null}
+
+                          {!isFalecido && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleChangeStatus(c, 'Falecido')}
+                              className="h-8 text-slate-500 hover:bg-slate-100 text-[11px] px-1.5"
+                              title="Marcar como Falecido (vai para a sessão In Memória)"
+                            >
+                              Falecido
+                            </Button>
+                          )}
+
+                          {/* Editar */}
                           <Button
-                            onClick={() => handleAprovarSolicitacao(sol)}
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-3 flex items-center gap-1.5 shadow-sm"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            Aprovar
-                          </Button>
-                          <Button
-                            onClick={() => {
-                              setRejeitandoId(sol.id)
-                              setIsRejectModalOpen(true)
-                            }}
                             variant="ghost"
-                            size="sm"
-                            className="text-rose-600 hover:bg-rose-50 h-8 px-2"
-                            title="Rejeitar Solicitação"
+                            size="icon"
+                            onClick={() => handleOpenEdit(c)}
+                            className="h-8 w-8 text-[#1E3A5F]"
+                            title="Editar Dados"
                           >
-                            <XCircle className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+
+                          {/* Excluir */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setDeletingId(c.id)
+                              setIsDeleteModalOpen(true)
+                            }}
+                            className="h-8 w-8 text-rose-600 hover:bg-rose-50"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         </div>
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-[#5A5A5A] italic">
-                      Nenhuma solicitação de congregado pendente no momento.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ) : (
-        /* LISTAGEM DE CONGREGADOS (ATIVOS / INATIVOS / IN MEMÓRIA) */
-        <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl overflow-hidden">
-          {abaAtiva === 'in_memoria' && (
-            <div className="p-4 bg-slate-100/80 border-b border-[#E6E2D8] flex items-center justify-between">
-              <div className="text-xs text-slate-700">
-                <strong className="text-[#1E3A5F]">Sessão In Memória:</strong> Congregados falecidos
-                preservados no histórico eclesiástico da igreja.
-              </div>
-              <Badge className="bg-slate-700 text-white font-bold text-xs">
-                {totalFalecidos} registro(s)
-              </Badge>
-            </div>
-          )}
-          {abaAtiva === 'inativos' && (
-            <div className="p-4 bg-amber-50/70 border-b border-[#E6E2D8] flex items-center justify-between">
-              <div className="text-xs text-amber-900">
-                <strong className="text-[#1E3A5F]">Sessão Inativos:</strong> Congregados inativados
-                temporariamente. Use o botão <strong>"Reativar"</strong> para movê-los de volta à
-                sessão Ativos.
-              </div>
-              <Badge className="bg-amber-600 text-white font-bold text-xs">
-                {totalInativos} inativo(s)
-              </Badge>
-            </div>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-[#1E3A5F] text-white uppercase text-[10px] sm:text-xs tracking-wider">
+                  )
+                })
+              ) : (
                 <tr>
-                  <th className="p-3 sm:p-4">Nome Completo</th>
-                  <th className="p-3 sm:p-4">Congregação Vinculada</th>
-                  <th className="p-3 sm:p-4">Telefone</th>
-                  <th className="p-3 sm:p-4">Data Nasc.</th>
-                  <th className="p-3 sm:p-4">Situação</th>
-                  <th className="p-3 sm:p-4 text-right">Ações & Batismo</th>
+                  <td colSpan={6} className="p-8 text-center text-[#5A5A5A] italic">
+                    Nenhum congregado cadastrado nesta sessão (
+                    {abaAtiva === 'in_memoria' ? 'In Memória' : abaAtiva}).
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E6E2D8]">
-                {congregadosFiltrados.length > 0 ? (
-                  congregadosFiltrados.map((c) => {
-                    const statusStr = (c.status || 'Ativo').toLowerCase()
-                    const isFalecido = statusStr.includes('falecido')
-                    const isInativo =
-                      !isFalecido &&
-                      (statusStr.includes('inativo') || statusStr.includes('afastado'))
-                    const isAtivo = !isFalecido && !isInativo
-
-                    return (
-                      <tr key={c.id} className="hover:bg-slate-50 transition">
-                        <td className="p-3 sm:p-4 font-semibold text-[#1E3A5F]">{c.nome}</td>
-                        <td className="p-3 sm:p-4 text-slate-700">{c.congregacao}</td>
-                        <td className="p-3 sm:p-4 text-slate-600">{c.telefone || '—'}</td>
-                        <td className="p-3 sm:p-4 text-slate-600">
-                          {c.data_nascimento ? formatarDataBr(c.data_nascimento) : '—'}
-                        </td>
-                        <td className="p-3 sm:p-4">
-                          <Badge
-                            variant="outline"
-                            className={`text-[10px] ${
-                              isAtivo
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                                : isInativo
-                                  ? 'bg-amber-50 text-amber-700 border-amber-300'
-                                  : 'bg-slate-100 text-slate-700 border-slate-300'
-                            }`}
-                          >
-                            {isFalecido ? 'In Memória (Falecido)' : c.status || 'Ativo'}
-                          </Badge>
-                        </td>
-                        <td className="p-3 sm:p-4 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {/* FRENTE 3: Botão de Batismo */}
-                            {isAtivo && (
-                              <Button
-                                onClick={() => handleOpenBatismo(c)}
-                                size="sm"
-                                className="bg-gradient-to-r from-[#1E3A5F] to-[#0A2E5C] hover:from-[#16304F] hover:to-[#082244] text-[#C9A227] text-xs h-8 px-2.5 font-bold shadow-xs flex items-center gap-1 border border-[#C9A227]/40"
-                                title="Registrar Batismo: preenche ficha oficial de membro e remove o registro de congregado"
-                              >
-                                <Droplets className="w-3.5 h-3.5 text-[#C9A227]" />
-                                Batizar (Virar Membro)
-                              </Button>
-                            )}
-
-                            {/* Situação */}
-                            {isAtivo ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleChangeStatus(c, 'Inativo/Afastado')}
-                                className="h-8 text-amber-700 hover:bg-amber-50 text-xs px-2"
-                                title="Mover para a sessão Inativos"
-                              >
-                                Inativar
-                              </Button>
-                            ) : isInativo ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleChangeStatus(c, 'Ativo')}
-                                className="h-8 text-emerald-700 hover:bg-emerald-50 text-xs px-2 font-medium"
-                                title="Reativar para Congregados Ativos"
-                              >
-                                <RotateCcw className="w-3 h-3 mr-1" />
-                                Reativar
-                              </Button>
-                            ) : isFalecido ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleChangeStatus(c, 'Ativo')}
-                                className="h-8 text-emerald-700 hover:bg-emerald-50 text-xs px-2 font-medium"
-                                title="Restaurar para Ativos caso marcado por engano"
-                              >
-                                <RotateCcw className="w-3 h-3 mr-1" />
-                                Reativar
-                              </Button>
-                            ) : null}
-
-                            {!isFalecido && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleChangeStatus(c, 'Falecido')}
-                                className="h-8 text-slate-500 hover:bg-slate-100 text-[11px] px-1.5"
-                                title="Marcar como Falecido (vai para a sessão In Memória)"
-                              >
-                                Falecido
-                              </Button>
-                            )}
-
-                            {/* Editar */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenEdit(c)}
-                              className="h-8 w-8 text-[#1E3A5F]"
-                              title="Editar Dados"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </Button>
-
-                            {/* Excluir */}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setDeletingId(c.id)
-                                setIsDeleteModalOpen(true)
-                              }}
-                              className="h-8 w-8 text-rose-600 hover:bg-rose-50"
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-[#5A5A5A] italic">
-                      Nenhum congregado cadastrado nesta sessão (
-                      {abaAtiva === 'in_memoria' ? 'In Memória' : abaAtiva}).
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      {/* Modal Links de Cadastro Compartilháveis (Membro e Congregado) */}
-      <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
-        <DialogContent className="max-w-lg bg-white border border-[#E6E2D8] shadow-2xl rounded-2xl">
-          <DialogHeader>
-            <div className="w-12 h-12 rounded-full bg-amber-50 border border-[#C9A227]/40 text-[#1E3A5F] flex items-center justify-center mx-auto mb-2">
-              <Share2 className="w-6 h-6 text-[#C9A227]" />
-            </div>
-            <DialogTitle className="text-center font-serif text-xl font-bold text-[#1E3A5F]">
-              Links de Cadastro Compartilháveis
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-[#5A5A5A]">
-              Copie o link desejado para enviar pelo WhatsApp. Ao preencher, os registros chegam na
-              aba <strong>"Solicitações Pendentes"</strong> para revisão e aprovação.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 pt-2">
-            {/* 1. LINK DE MEMBRO */}
-            <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-[#1E3A5F] flex items-center gap-1.5">
-                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  1. Cadastro de Membro (Ficha Completa)
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">/cadastro/membro</span>
-              </div>
-              <p className="text-[11px] text-slate-600">
-                Coleta filiação, datas de conversão e batismo, documentos e congregação vinculada.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <Input
-                  readOnly
-                  value={linkCadastroMembro}
-                  className="text-xs bg-white font-mono select-all"
-                />
-                <Button
-                  onClick={handleCopiarLinkMembro}
-                  className={`text-xs ${
-                    copiadoMembro
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-[#1E3A5F] hover:bg-[#16304F] text-white'
-                  }`}
-                >
-                  {copiadoMembro ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 mr-1" />
-                      Copiado!
-                    </>
-                  ) : (
-                    'Copiar'
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* 2. LINK DE CONGREGADO */}
-            <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] uppercase font-bold text-[#1E3A5F] flex items-center gap-1.5">
-                  <Share2 className="w-3.5 h-3.5 text-[#C9A227]" />
-                  2. Cadastro de Congregado (Rápido)
-                </span>
-                <span className="text-[10px] text-slate-500 font-medium">/cadastro/congregado</span>
-              </div>
-              <p className="text-[11px] text-slate-600">
-                Pede apenas nome completo, congregação, data de nascimento e telefone / WhatsApp.
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <Input
-                  readOnly
-                  value={linkCadastroCongregado}
-                  className="text-xs bg-white font-mono select-all"
-                />
-                <Button
-                  onClick={handleCopiarLinkCongregado}
-                  className={`text-xs ${
-                    copiadoCongregado
-                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      : 'bg-[#1E3A5F] hover:bg-[#16304F] text-white'
-                  }`}
-                >
-                  {copiadoCongregado ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 mr-1" />
-                      Copiado!
-                    </>
-                  ) : (
-                    'Copiar'
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="text-[11px] text-slate-500 space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
-              <p>
-                <strong>Regra Vigente:</strong> Os cadastros passam por aprovação na secretaria
-                antes de integrar as listagens ativas da congregação.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsLinkModalOpen(false)}
-              className="w-full text-xs"
-            >
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {/* Modal Form de Congregado */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -1273,35 +948,6 @@ export const AdminCongregados: React.FC = () => {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Rejeitar Solicitação */}
-      <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
-        <DialogContent className="max-w-md bg-white border border-[#E6E2D8]">
-          <DialogHeader>
-            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-2">
-              <AlertTriangle className="w-5 h-5" />
-            </div>
-            <DialogTitle className="text-center font-serif text-lg text-[#1E3A5F]">
-              Rejeitar Solicitação
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-[#5A5A5A]">
-              Deseja remover esta solicitação de congregado da fila de aprovação?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsRejectModalOpen(false)}
-              className="flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleRejeitarSolicitacao} className="bg-rose-600 text-white flex-1">
-              Rejeitar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
