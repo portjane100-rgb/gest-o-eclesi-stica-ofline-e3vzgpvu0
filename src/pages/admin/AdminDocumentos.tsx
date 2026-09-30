@@ -45,6 +45,7 @@ import { CertificadoApresentacaoVisual } from '@/components/CertificadoApresenta
 import { ADTC_LOGO_URL, ADTC_TOCHA_WATERMARK_DATA_URI } from '@/components/AdtcLogo'
 
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
+import { useCongregacoes } from '@/hooks/useCongregacoes'
 import {
   getLogoAsDataUri,
   convertImageUrlToDataUri,
@@ -133,6 +134,7 @@ function extrairPaiMae(filiacao?: string): { pai: string; mae: string } {
 export const AdminDocumentos: React.FC = () => {
   const { toast } = useToast()
   const { config } = useChurchConfig()
+  const { congregacoes } = useCongregacoes()
   const [activeTab, setActiveTab] = useState<'gerador' | 'arquivo'>('gerador')
 
   // Membros cadastrados para emissão

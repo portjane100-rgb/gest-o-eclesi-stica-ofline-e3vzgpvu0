@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   Users,
@@ -10,14 +10,11 @@ import {
   Building,
   CalendarDays,
   Clock,
-  Camera,
   FileText,
   Settings,
   LogOut,
   Menu,
   X,
-  ExternalLink,
-  ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'

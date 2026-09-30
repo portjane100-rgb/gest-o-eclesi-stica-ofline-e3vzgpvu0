@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { localDb } from '@/lib/localDb'
 import pb from '@/lib/pocketbase/client'
-import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useCongregacoes, type CongregacaoItem } from '@/hooks/useCongregacoes'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -32,7 +31,6 @@ import {
 } from 'lucide-react'
 
 export const AdminCongregacoes: React.FC = () => {
-  const { isTesoureiro } = useAuth()
   const { toast } = useToast()
   const { congregacoes, loading, reload } = useCongregacoes()
 
@@ -59,7 +57,9 @@ export const AdminCongregacoes: React.FC = () => {
   // Próxima ordem sugerida
   const proximaOrdem = useMemo(() => {
     if (congregacoes.length === 0) return 1
-    const maxOrdem = Math.max(...congregacoes.map((c) => (typeof c.ordem === 'number' ? c.ordem : 0)))
+    const maxOrdem = Math.max(
+      ...congregacoes.map((c) => (typeof c.ordem === 'number' ? c.ordem : 0)),
+    )
     return maxOrdem + 1
   }, [congregacoes])
 
@@ -322,9 +322,7 @@ export const AdminCongregacoes: React.FC = () => {
           {listaFiltrada.map((item) => {
             const dirigenteNome = item.dirigenteGeral || item.dirigente_geral || ''
             const cultos = item.diasCulto || item.dias_culto || ''
-            const localizacao = [item.endereco, item.bairro, item.cidade]
-              .filter(Boolean)
-              .join(', ')
+            const localizacao = [item.endereco, item.bairro, item.cidade].filter(Boolean).join(', ')
 
             return (
               <Card
@@ -342,9 +340,7 @@ export const AdminCongregacoes: React.FC = () => {
                           #{item.ordem ?? 1}
                         </Badge>
                         {item.ativo === false && (
-                          <Badge className="bg-slate-200 text-slate-700 text-[10px]">
-                            Inativa
-                          </Badge>
+                          <Badge className="bg-slate-200 text-slate-700 text-[10px]">Inativa</Badge>
                         )}
                       </div>
                       <h3 className="font-serif text-lg font-bold text-[#1E3A5F] truncate">
@@ -418,9 +414,10 @@ export const AdminCongregacoes: React.FC = () => {
                   </button>
                 </div>
               </Card>
-            ))}
-          </div>
-        )}
+            )
+          })}
+        </div>
+      )}
 
       {/* Modal Criar / Editar Congregação */}
       <Dialog open={modalAberto} onOpenChange={setModalAberto}>
@@ -440,9 +437,7 @@ export const AdminCongregacoes: React.FC = () => {
           <form onSubmit={handleSalvar} className="space-y-3.5 pt-2">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2 space-y-1">
-                <label className="text-xs font-bold text-[#1E3A5F]">
-                  Nome da Unidade *
-                </label>
+                <label className="text-xs font-bold text-[#1E3A5F]">Nome da Unidade *</label>
                 <Input
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
@@ -468,9 +463,7 @@ export const AdminCongregacoes: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#1E3A5F]">
-                Endereço Completo
-              </label>
+              <label className="text-xs font-bold text-[#1E3A5F]">Endereço Completo</label>
               <Input
                 value={endereco}
                 onChange={(e) => setEndereco(e.target.value)}
@@ -514,9 +507,7 @@ export const AdminCongregacoes: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#1E3A5F]">
-                Dias e Horários de Culto
-              </label>
+              <label className="text-xs font-bold text-[#1E3A5F]">Dias e Horários de Culto</label>
               <Input
                 value={diasCulto}
                 onChange={(e) => setDiasCulto(e.target.value)}
@@ -577,10 +568,8 @@ export const AdminCongregacoes: React.FC = () => {
             </DialogTitle>
             <DialogDescription className="text-center text-xs text-[#5A5A5A] pt-1">
               Deseja realmente remover a unidade{' '}
-              <strong className="text-slate-900 font-semibold">
-                "{itemExclusao?.nome}"
-              </strong>{' '}
-              do banco local?
+              <strong className="text-slate-900 font-semibold">"{itemExclusao?.nome}"</strong> do
+              banco local?
             </DialogDescription>
           </DialogHeader>
 
