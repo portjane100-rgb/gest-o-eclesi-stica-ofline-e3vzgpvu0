@@ -56,15 +56,6 @@ export const AdminConfig: React.FC = () => {
   const { user: currentAuthUser, isTesoureiro } = useAuth()
   const { toast } = useToast()
 
-  const [chavePix, setChavePix] = useState('')
-  const [pixRecordId, setPixRecordId] = useState<string | null>(null)
-  const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
-  const [qrRecordId, setQrRecordId] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [isSavingPix, setIsSavingPix] = useState(false)
-  const [isUploadingQr, setIsUploadingQr] = useState(false)
-
   // Assinaturas e Liderança dos Documentos Oficiais
   const [nomePastor, setNomePastor] = useState('José Francisco Portela Fontenele')
   const [cargoPastor, setCargoPastor] = useState('Pastor')
@@ -211,20 +202,10 @@ export const AdminConfig: React.FC = () => {
   }, [])
 
   useEffect(() => {
-    const fetchPix = async () => {
+    const fetchConfiguracoes = async () => {
       try {
         const records = await pb.collection('configuracoes').getFullList<Configuracao>()
         records.forEach((conf) => {
-          if (conf.chave === 'pix_chave_copia_e_cola') {
-            setPixRecordId(conf.id)
-            setChavePix(conf.valor || '')
-          }
-          if (conf.chave === 'pix_qr_code_imagem') {
-            setQrRecordId(conf.id)
-            if (conf.arquivo) {
-              setQrCodeImage(pb.files.getURL(conf, conf.arquivo))
-            }
-          }
           if (conf.chave === 'lideranca_nome_pastor' && conf.valor) setNomePastor(conf.valor)
           if (conf.chave === 'lideranca_cargo_pastor' && conf.valor) setCargoPastor(conf.valor)
           if (conf.chave === 'lideranca_nome_1_secretario' && conf.valor)
@@ -235,14 +216,12 @@ export const AdminConfig: React.FC = () => {
             setNome2Secretario(conf.valor)
           if (conf.chave === 'lideranca_cargo_2_secretario' && conf.valor)
             setCargo2Secretario(conf.valor)
-
-          // Assinaturas em arquivo ou base64
         })
       } catch {
         /* intentionally ignored */
       }
     }
-    fetchPix()
+    fetchConfiguracoes()
   }, [])
 
   const saveConfigChave = async (chave: string, valor: string) => {
@@ -1341,75 +1320,6 @@ export const AdminConfig: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL DE PRÉ-VISUALIZAÇÃO DA ASSINATURA PROCESSADA */}
-      <Dialog open={!!pendingSig} onOpenChange={(open) => !open && setPendingSig(null)}>
-        <DialogContent className="max-w-md bg-white border border-[#E6E2D8] shadow-2xl rounded-2xl">
-          <DialogHeader>
-            <div className="w-10 h-10 rounded-full bg-amber-50 text-[#C9A227] flex items-center justify-center mx-auto mb-2 border border-amber-200">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <DialogTitle className="text-center font-serif text-lg text-[#1E3A5F]">
-              Pré-visualização da Assinatura
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs text-[#5A5A5A]">
-              {pendingSig?.title}. O traço foi detectado, recortado com respiro de ~12px e o fundo
-              transformado em transparente.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2">
-            <div className="p-4 bg-[repeating-conic-gradient(#e2e8f0_0_25%,transparent_0_50%)] bg-[length:16px_16px] rounded-xl border border-[#CBD5E1] flex items-center justify-center min-h-[140px] shadow-inner">
-              {pendingSig?.previewUrl && (
-                <img
-                  src={pendingSig.previewUrl}
-                  alt="Pré-visualização tratada"
-                  className="max-h-28 max-w-full object-contain filter drop-shadow-sm"
-                />
-              )}
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] text-slate-500 bg-[#F7F5F0] p-2.5 rounded-lg border border-[#E6E2D8]">
-              <span>Formato: PNG transparente</span>
-              {pendingSig?.width ? (
-                <span>
-                  Dimensões: {pendingSig.width} × {pendingSig.height}px
-                </span>
-              ) : null}
-              <span className="text-emerald-700 font-semibold">Otimizada para documentos</span>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-[#E6E2D8]">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPendingSig(null)}
-              disabled={!!uploadingSigKey}
-              className="text-xs flex-1"
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirmarAssinatura}
-              disabled={!!uploadingSigKey}
-              className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs flex-1 font-semibold"
-            >
-              {uploadingSigKey ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                  Gravando...
-                </>
-              ) : (
-                <>
-                  <Check className="w-3.5 h-3.5 mr-1.5 text-[#C9A227]" />
-                  Confirmar e Gravar
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
       {/* MODAL DE CONFIRMAÇÃO DUPLA: ZERAR DADOS DO SISTEMA */}
       <Dialog
         open={isZerarModalOpen}
@@ -1449,9 +1359,8 @@ export const AdminConfig: React.FC = () => {
                     <li>Obreiros e Escalas de Trabalho</li>
                     <li>Dizimistas e Planilhas Mensais</li>
                     <li>Bens de Patrimônio</li>
-                    <li>Calendário e Agenda Semanal</li>
-                    <li>Salmos e Cânticos</li>
-                    <li>Cartas Oficiais e Solicitações</li>
+                    <li>Calendário e Festividades</li>
+                    <li>Documentos e Certificados Emitidos</li>
                   </ul>
                 </div>
 

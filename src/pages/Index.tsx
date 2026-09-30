@@ -823,9 +823,9 @@ export const Index: React.FC = () => {
               size="lg"
               className="bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white font-medium"
             >
-              <Link to="/salmos" className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-[#F3CA52]" />
-                Salmos Musicados
+              <Link to="/calendario" className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#F3CA52]" />
+                Calendário & Festas
               </Link>
             </Button>
           </div>
@@ -1211,15 +1211,16 @@ export const Index: React.FC = () => {
               </Card>
             </Link>
 
-            <Link to="/carteirinha" className="group">
+            <Link to="/calendario" className="group">
               <Card className="h-full border-2 border-[#C9A227] bg-gradient-to-b from-amber-50/50 to-white shadow-lg hover:shadow-2xl hover:border-[#8C6D15] transition-all duration-300 hover:-translate-y-1 rounded-2xl">
                 <CardContent className="p-4 sm:p-5 flex flex-col items-center justify-center text-center space-y-2 min-h-[140px]">
                   <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[#C9A227] text-[#072348] border border-amber-400 flex items-center justify-center group-hover:bg-[#072348] group-hover:text-[#F3CA52] transition-colors duration-300 shadow-md">
-                    <Award className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
                   </div>
                   <h3 className="font-serif font-bold text-xs sm:text-sm text-[#0F325E] leading-snug">
-                    Retire sua carteira digital
+                    Calendário de Festas
                   </h3>
+                  <p className="text-[11px] text-slate-500 line-clamp-1">Eventos oficiais</p>
                 </CardContent>
               </Card>
             </Link>

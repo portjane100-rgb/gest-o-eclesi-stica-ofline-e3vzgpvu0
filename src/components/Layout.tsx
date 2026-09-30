@@ -57,7 +57,6 @@ export const Layout: React.FC = () => {
     { to: '/escala', label: config.labelEscala || 'Escala de Trabalho' },
     { to: '/congregacoes', label: config.labelUnidades || 'Congregações' },
     { to: '/calendario', label: config.labelCalendario || 'Calendário de Festas' },
-    { to: '/carteirinha', label: 'Carteirinha Digital' },
     { to: '/doacoes', label: 'Doações PIX' },
   ]
 
@@ -337,10 +336,10 @@ export const Layout: React.FC = () => {
                 </li>
                 <li>
                   <Link
-                    to="/carteirinha"
-                    className="hover:text-[#C9A227] transition inline-block py-0.5 text-amber-200"
+                    to="/escala"
+                    className="hover:text-[#C9A227] transition inline-block py-0.5"
                   >
-                    Carteirinha Digital do Dizimista
+                    Escala de Trabalho
                   </Link>
                 </li>
                 <li>

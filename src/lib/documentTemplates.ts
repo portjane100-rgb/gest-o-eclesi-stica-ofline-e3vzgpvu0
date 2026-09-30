@@ -1512,7 +1512,11 @@ export function buildCertificadoApresentacaoHtml(data: DocCertificadoApresentaca
   const siglaIgreja = id.siglaIgreja?.trim() || ''
   const denominacao = id.denominacao?.trim() || 'Igreja Evangélica'
   const cnpj = id.cnpj?.trim() || ''
-  const enderecoIgreja = id.enderecoIgreja?.trim() || ''  const cidadeUf = id.cidadeUf?.trim() || 'Campanário - CE'
+  const enderecoIgreja = id.enderecoIgreja?.trim() || ''
+  const cidadeUf = id.cidadeUf?.trim() || ''
+  const endereco = enderecoIgreja
+  const subtitulo = id.subtituloIgreja?.trim() || (nomeIgreja ? `Templo Sede — ${nomeIgreja}` : '')
+  const sigla = siglaIgreja || 'Igreja'
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">

@@ -545,9 +545,8 @@ export function AdminDizimistas() {
             <AlertCircle className="w-4 h-4 text-[#1E3A5F] flex-shrink-0" />
             <span>
               <strong>Como funciona:</strong> Ao inativar ou remover um dizimista desta lista, o
-              cadastro do membro em <em>Membros</em> <strong>não</strong> é afetado nem excluído.
-              Dizimistas ativos que forem membros ativos podem emitir a carteirinha digital em{' '}
-              <code>/carteirinha</code>.
+              cadastro do membro em <em>Membros</em> <strong>não</strong> é afetado nem excluído. Os
+              dados servem para controle e prestação de contas da tesouraria local.
             </span>
           </div>
 
@@ -726,8 +725,8 @@ export function AdminDizimistas() {
                 </DialogTitle>
                 <DialogDescription className="text-xs text-[#5A5A5A]">
                   Selecione o membro ativo na lista oficial da{' '}
-                  {config.siglaIgreja || config.nomeIgreja || 'igreja'}. Ele terá acesso liberado
-                  para emitir a carteirinha digital.
+                  {config.siglaIgreja || config.nomeIgreja || 'igreja'} para vincular ao registro de
+                  dizimista.
                 </DialogDescription>
               </DialogHeader>
 

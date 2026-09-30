@@ -150,6 +150,7 @@ export interface EscalaPrintChurchIdentity {
   cidadeUf?: string
   nomePastor?: string
   siglaIgreja?: string
+  logoUrl?: string
 }
 
 /** Abre a janela de impressão/PDF timbrado oficial para a escala semanal */
@@ -157,17 +158,15 @@ export async function imprimirOuBaixarPdfEscalaSemana(
   semana: EscalaSemanaItem,
   churchIdentity?: EscalaPrintChurchIdentity,
 ): Promise<boolean> {
-  const logoDataUri = await getLogoAsDataUri(ADTC_LOGO_URL)
+  const id = churchIdentity || {}
+  const logoSrc = id.logoUrl || ADTC_LOGO_URL
+  const logoDataUri = await getLogoAsDataUri(logoSrc)
   const printWindow = window.open('', '_blank', 'width=950,height=900')
   if (!printWindow) return false
-
-  const id = churchIdentity || {}
-  const nomeIgreja = id.nomeIgreja?.trim() || 'ADTC Campanário'
-  const denominacao = id.denominacao?.trim() || 'IGREJA EVANGÉLICA ASSEMBLEIA DE DEUS'
-  const subtitulo = id.subtituloIgreja?.trim() || `Templo Central — ${nomeIgreja}`
-  const endereco =
-    id.enderecoIgreja?.trim() ||
-    'Rua Alberto Batista Fontenele, nº 141 — Campanário-Uruoca - CE • CEP 62460-000'
+  const nomeIgreja = id.nomeIgreja?.trim() || 'Igreja Local'
+  const denominacao = id.denominacao?.trim() || 'Igreja Evangélica'
+  const subtitulo = id.subtituloIgreja?.trim() || (nomeIgreja ? `Templo Sede — ${nomeIgreja}` : '')
+  const endereco = id.enderecoIgreja?.trim() || (id.cidadeUf ? `${id.cidadeUf}` : '')
   const pastorNome = id.nomePastor?.trim() || 'Pastor Presidente'
 
   const diasHtml = (semana.dias || [])
@@ -483,7 +482,6 @@ export function formatarTextoParaCompartilhar(
   if (semana.observacoes?.trim()) {
     txt += `📌 *Obs:* ${semana.observacoes.trim()}\n\n`
   }
-  txt += `🔗 Acesse a escala completa em: ${window.location.origin}/escala`
   return txt
 }
 

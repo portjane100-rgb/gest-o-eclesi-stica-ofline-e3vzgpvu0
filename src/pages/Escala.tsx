@@ -5,17 +5,21 @@ import type { EscalaSemanaItem } from '@/types/adtc'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Plus, Download, Share2, Sparkles, FileText } from 'lucide-react'
+import { Plus, Download, Copy, Check, Sparkles, FileText } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 import { VisualizadorEscalaSemana } from '@/components/VisualizadorEscalaSemana'
-import { imprimirOuBaixarPdfEscalaSemana, compartilharEscalaSemana } from '@/lib/escalaSemanaUtils'
+import {
+  imprimirOuBaixarPdfEscalaSemana,
+  formatarTextoParaCompartilhar,
+} from '@/lib/escalaSemanaUtils'
 
 export const Escala: React.FC = () => {
   const { isAdmin } = useAuth()
   const { toast } = useToast()
   const { config } = useChurchConfig()
+  const [copiadoPrincipal, setCopiadoPrincipal] = useState(false)
 
   const [semanas, setSemanas] = useState<EscalaSemanaItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,28 +74,58 @@ export const Escala: React.FC = () => {
                     cidadeUf: config.cidadeUf,
                     nomePastor: config.nomePastor,
                     siglaIgreja: config.siglaIgreja,
+                    logoUrl: config.logoUrl,
                   })
                 }}
                 className="bg-[#C9A227] hover:bg-[#B08E1E] text-[#1E3A5F] font-bold text-xs sm:text-sm shadow-md transition hover:scale-105 active:scale-95"
               >
                 <Download className="w-4 h-4 mr-1.5" />
-                Baixar Escala da Semana (PDF)
+                Baixar em PDF
               </Button>
               <Button
                 onClick={async () => {
-                  const res = await compartilharEscalaSemana(semanaPrincipal, () => {
-                    toast({
-                      title: 'Escala copiada!',
-                      description: 'Texto pronto para colar no WhatsApp.',
+                  try {
+                    const texto = formatarTextoParaCompartilhar(semanaPrincipal, {
+                      nomeIgreja: config.nomeIgreja,
+                      subtituloIgreja: config.subtituloIgreja,
+                      denominacao: config.denominacao,
+                      enderecoIgreja: config.enderecoIgreja,
+                      cidadeUf: config.cidadeUf,
+                      nomePastor: config.nomePastor,
+                      siglaIgreja: config.siglaIgreja,
                     })
-                  })
-                  if (res === 'shared') toast({ title: 'Compartilhado com sucesso!' })
+                    await navigator.clipboard.writeText(texto)
+                    setCopiadoPrincipal(true)
+                    setTimeout(() => setCopiadoPrincipal(false), 2500)
+                    toast({
+                      title: 'Texto da escala copiado!',
+                      description:
+                        'Texto formatado copiado com sucesso para a área de transferência.',
+                    })
+                  } catch {
+                    toast({
+                      variant: 'destructive',
+                      title: 'Erro ao copiar',
+                      description: 'Não foi possível copiar o texto automaticamente.',
+                    })
+                  }
                 }}
                 variant="outline"
-                className="border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/10 text-xs sm:text-sm"
+                className={`border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/10 text-xs sm:text-sm ${
+                  copiadoPrincipal ? 'bg-emerald-50 text-emerald-700 border-emerald-600' : ''
+                }`}
               >
-                <Share2 className="w-4 h-4 mr-1.5 text-[#1E3A5F]" />
-                Compartilhar no WhatsApp
+                {copiadoPrincipal ? (
+                  <>
+                    <Check className="w-4 h-4 mr-1.5 text-emerald-600" />
+                    Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-1.5 text-[#1E3A5F]" />
+                    Copiar Texto
+                  </>
+                )}
               </Button>
             </>
           )}

@@ -11,7 +11,8 @@ import {
   Baby,
   Users,
   Download,
-  Share2,
+  Copy,
+  Check,
   Printer,
   ChevronDown,
   ChevronUp,
@@ -20,7 +21,10 @@ import {
 } from 'lucide-react'
 import pb from '@/lib/pocketbase/client'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import { imprimirOuBaixarPdfEscalaSemana, compartilharEscalaSemana } from '@/lib/escalaSemanaUtils'
+import {
+  imprimirOuBaixarPdfEscalaSemana,
+  formatarTextoParaCompartilhar,
+} from '@/lib/escalaSemanaUtils'
 import { useToast } from '@/hooks/use-toast'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 
@@ -37,6 +41,7 @@ export const VisualizadorEscalaSemana: React.FC<VisualizadorEscalaSemanaProps> =
 }) => {
   const [expanded, setExpanded] = useState(initialExpanded)
   const [fotoModalAberta, setFotoModalAberta] = useState<string | null>(null)
+  const [copiado, setCopiado] = useState(false)
   const { toast } = useToast()
   const { config } = useChurchConfig()
 
@@ -48,6 +53,7 @@ export const VisualizadorEscalaSemana: React.FC<VisualizadorEscalaSemanaProps> =
     cidadeUf: config.cidadeUf,
     nomePastor: config.nomePastor,
     siglaIgreja: config.siglaIgreja,
+    logoUrl: config.logoUrl,
   }
 
   const handleDownloadPdf = async () => {
@@ -61,16 +67,22 @@ export const VisualizadorEscalaSemana: React.FC<VisualizadorEscalaSemanaProps> =
     }
   }
 
-  const handleShare = async () => {
-    const res = await compartilharEscalaSemana(semana, () => {
+  const handleCopyText = async () => {
+    try {
+      const texto = formatarTextoParaCompartilhar(semana, churchIdentity)
+      await navigator.clipboard.writeText(texto)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2500)
       toast({
-        title: 'Copiado para a área de transferência!',
-        description: 'O texto formatado da escala está pronto para colar no WhatsApp ou redes.',
+        title: 'Texto da escala copiado!',
+        description: 'Texto formatado copiado com sucesso para a área de transferência.',
       })
-    })
-
-    if (res === 'shared') {
-      toast({ title: 'Escala compartilhada com sucesso!' })
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao copiar',
+        description: 'Não foi possível copiar o texto automaticamente.',
+      })
     }
   }
 
@@ -105,15 +117,26 @@ export const VisualizadorEscalaSemana: React.FC<VisualizadorEscalaSemanaProps> =
               className="bg-[#C9A227] hover:bg-[#B08E1E] text-[#1E3A5F] font-bold text-xs sm:text-sm shadow-sm transition hover:scale-105 active:scale-95"
             >
               <Download className="w-4 h-4 mr-1.5" />
-              Baixar / Imprimir PDF
+              Baixar em PDF
             </Button>
             <Button
-              onClick={handleShare}
+              onClick={handleCopyText}
               variant="outline"
-              className="border-white/40 text-white hover:bg-white/10 text-xs sm:text-sm"
+              className={`text-xs sm:text-sm border-white/40 text-white hover:bg-white/10 transition ${
+                copiado ? 'bg-emerald-600/30 border-emerald-400 text-emerald-100' : ''
+              }`}
             >
-              <Share2 className="w-4 h-4 mr-1.5" />
-              Compartilhar
+              {copiado ? (
+                <>
+                  <Check className="w-4 h-4 mr-1.5 text-emerald-300" />
+                  Copiado!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-1.5" />
+                  Copiar Texto
+                </>
+              )}
             </Button>
             <Button
               variant="ghost"

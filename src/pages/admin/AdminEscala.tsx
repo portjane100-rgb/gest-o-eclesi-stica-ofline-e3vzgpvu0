@@ -19,17 +19,21 @@ import {
   Trash2,
   Loader2,
   AlertTriangle,
-  Share2,
+  Copy,
   Printer,
   Sparkles,
   CheckCircle2,
   FileText,
+  Check,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 import { FormEscalaSemana } from '@/components/FormEscalaSemana'
 import { VisualizadorEscalaSemana } from '@/components/VisualizadorEscalaSemana'
-import { imprimirOuBaixarPdfEscalaSemana, compartilharEscalaSemana } from '@/lib/escalaSemanaUtils'
+import {
+  imprimirOuBaixarPdfEscalaSemana,
+  formatarTextoParaCompartilhar,
+} from '@/lib/escalaSemanaUtils'
 import { toUtcMiddayIso } from '@/lib/utils'
 
 export const AdminEscala: React.FC = () => {
@@ -43,6 +47,34 @@ export const AdminEscala: React.FC = () => {
   const [editingSemana, setEditingSemana] = useState<EscalaSemanaItem | null>(null)
   const [deletingSemanaId, setDeletingSemanaId] = useState<string | null>(null)
   const [isSubmittingSemana, setIsSubmittingSemana] = useState(false)
+  const [copiedSemanaId, setCopiedSemanaId] = useState<string | null>(null)
+
+  const handleCopyText = async (semanaItem: EscalaSemanaItem) => {
+    try {
+      const texto = formatarTextoParaCompartilhar(semanaItem, {
+        nomeIgreja: config.nomeIgreja,
+        subtituloIgreja: config.subtituloIgreja,
+        denominacao: config.denominacao,
+        enderecoIgreja: config.enderecoIgreja,
+        cidadeUf: config.cidadeUf,
+        nomePastor: config.nomePastor,
+        siglaIgreja: config.siglaIgreja,
+      })
+      await navigator.clipboard.writeText(texto)
+      setCopiedSemanaId(semanaItem.id)
+      setTimeout(() => setCopiedSemanaId(null), 2500)
+      toast({
+        title: 'Texto da escala copiado!',
+        description: 'Texto formatado copiado com sucesso para a área de transferência.',
+      })
+    } catch {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao copiar',
+        description: 'Não foi possível copiar o texto automaticamente.',
+      })
+    }
+  }
 
   // --------------------------------------------------------------------------
   // Carregamento de Dados
@@ -219,9 +251,9 @@ export const AdminEscala: React.FC = () => {
             </span>
             <p className="text-xs text-slate-700 leading-relaxed">
               Preencha os 7 dias da semana (Segunda a Domingo) com a lista livre de atividades com
-              horário e as designações (Obreiros, Salinhas, Recepção). Após salvar, clique em{' '}
-              <strong>"Gerar Documento"</strong> para baixar o PDF timbrado oficial com a logo da
-              igreja ou compartilhar diretamente no WhatsApp da igreja.
+              horário e as designações (Obreiros, Salinhas, Recepção). Após salvar, você pode{' '}
+              <strong>"Baixar em PDF"</strong> timbrado oficial com os dados da igreja ou usar{' '}
+              <strong>"Copiar Texto"</strong> para enviar onde preferir.
             </p>
           </div>
           <Button
@@ -259,29 +291,37 @@ export const AdminEscala: React.FC = () => {
                           cidadeUf: config.cidadeUf,
                           nomePastor: config.nomePastor,
                           siglaIgreja: config.siglaIgreja,
+                          logoUrl: config.logoUrl,
                         })
                       }}
                       className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs h-9 justify-center"
+                      title="Gerar e Baixar em PDF timbrado oficial"
                     >
                       <Printer className="w-3.5 h-3.5 mr-1" />
-                      PDF
+                      Baixar em PDF
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={async () => {
-                        const res = await compartilharEscalaSemana(semanaItem, () => {
-                          toast({
-                            title: 'Texto copiado!',
-                            description: 'Pronto para enviar no WhatsApp.',
-                          })
-                        })
-                        if (res === 'shared') toast({ title: 'Compartilhado com sucesso!' })
-                      }}
-                      className="text-xs border-[#C9A227] text-[#8C6D15] hover:bg-[#C9A227]/10 h-9 justify-center"
+                      onClick={() => handleCopyText(semanaItem)}
+                      className={`text-xs h-9 justify-center font-medium ${
+                        copiedSemanaId === semanaItem.id
+                          ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
+                          : 'border-[#C9A227] text-[#8C6D15] hover:bg-[#C9A227]/10'
+                      }`}
+                      title="Copiar texto formatado da escala para a área de transferência"
                     >
-                      <Share2 className="w-3.5 h-3.5 mr-1" />
-                      WhatsApp
+                      {copiedSemanaId === semanaItem.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 mr-1 text-emerald-600" />
+                          Copiado!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 mr-1" />
+                          Copiar Texto
+                        </>
+                      )}
                     </Button>
                     <Button
                       size="sm"
