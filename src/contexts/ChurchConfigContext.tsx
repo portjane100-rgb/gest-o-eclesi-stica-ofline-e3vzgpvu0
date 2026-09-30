@@ -41,6 +41,7 @@ export interface ChurchConfig {
   labelEscala: string
   labelCalendario: string
   labelMuralFotos: string
+  labelSalmos?: string
 
   // Financeiro / PIX
   pixChave: string
@@ -92,6 +93,7 @@ export const CHURCH_CONFIG_DEFAULTS: ChurchConfig = {
   labelEscala: 'Escala de Trabalho',
   labelCalendario: 'Calendário de Festas',
   labelMuralFotos: 'Mural de Fotos',
+  labelSalmos: 'Salmos Musicados',
 
   pixChave: '14.037.658/0001-82',
   pixTitular: 'José Francisco Portela',
@@ -270,6 +272,7 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
           map['rotulo_calendario']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelCalendario,
         labelMuralFotos:
           map['rotulo_mural_fotos']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelMuralFotos,
+        labelSalmos: map['rotulo_salmos']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelSalmos,
 
         pixChave: map['pix_chave_copia_e_cola']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixChave,
         pixTitular: map['pix_titular']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.pixTitular,
@@ -308,9 +311,9 @@ export const ChurchConfigProvider: React.FC<{ children: React.ReactNode }> = ({ 
       for (const [chave, valor] of Object.entries(keys)) {
         const existingId = existingMap.get(chave)
         if (existingId) {
-          await localDb.update('configuracoes', existingId, { valor })
+          await localDb.update('configuracoes', existingId, { valor } as any)
         } else {
-          const created = await localDb.create('configuracoes', { chave, valor })
+          const created = await localDb.create('configuracoes', { chave, valor } as any)
           existingMap.set(chave, created.id)
         }
       }

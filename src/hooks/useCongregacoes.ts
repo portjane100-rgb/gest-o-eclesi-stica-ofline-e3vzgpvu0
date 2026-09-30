@@ -204,7 +204,11 @@ export function useCongregacoes() {
     return () => unsub()
   }, [reload])
 
-  return { congregacoes, loading, reload }
+  const nomes = (congregacoes || []).map((c) => (c?.nome || '').trim()).filter(Boolean)
+  const total = nomes.length
+  const textoTotalUnidades = `${total} ${total === 1 ? 'Unidade Eclesiástica' : 'Unidades Eclesiásticas'}`
+
+  return { congregacoes, nomes, total, textoTotalUnidades, loading, reload }
 }
 
 export default useCongregacoes

@@ -24,7 +24,7 @@ export const Layout: React.FC = () => {
   const { config } = useChurchConfig()
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { congregacoes, total } = useCongregacoes()
+  const { congregacoes = [], total = 0 } = useCongregacoes()
   const location = useLocation()
 
   useEffect(() => {
@@ -265,7 +265,7 @@ export const Layout: React.FC = () => {
                 {config.labelUnidades || 'Congregações'}
               </h4>
               <ul className="space-y-2 text-xs text-slate-300">
-                {congregacoes.map((item, idx) => {
+                {(congregacoes || []).map((item, idx) => {
                   const isSede = item.nome.trim().toLowerCase() === 'sede'
                   return (
                     <li key={item.id || item.nome || idx} className="flex items-start gap-1.5">

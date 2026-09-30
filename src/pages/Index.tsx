@@ -100,11 +100,12 @@ export const Index: React.FC = () => {
   const { config } = useChurchConfig()
   const { toast } = useToast()
   const {
-    congregacoes,
-    nomes: nomesUnidades,
-    total: totalUnidades,
-    textoTotalUnidades,
+    congregacoes = [],
+    nomes: nomesUnidadesRaw,
+    total: totalUnidades = 0,
+    textoTotalUnidades = '0 Unidades Eclesiásticas',
   } = useCongregacoes()
+  const nomesUnidades = nomesUnidadesRaw || []
 
   const [obreiros, setObreiros] = useState<Obreiro[]>([])
   const [pastorPresidente, setPastorPresidente] = useState<Obreiro | null>(null)
@@ -1723,7 +1724,7 @@ export const Index: React.FC = () => {
                       </Badge>
                     )}
                     <h3 className="font-serif font-bold italic text-base sm:text-lg text-[#0F325E] tracking-wide">
-                      {item.titulo || item.nome}
+                      {item.nome}
                     </h3>
                     <p className="text-xs text-slate-600">{item.endereco}</p>
                     <p className="text-xs text-slate-500 pt-1">Cultos: {item.diasCulto}</p>
@@ -1959,7 +1960,7 @@ export const Index: React.FC = () => {
                 onChange={(e) => setAgendaForm({ ...agendaForm, unidade: e.target.value })}
                 className="w-full h-9 px-3 rounded-md border border-[#E6E2D8] bg-white text-xs sm:text-sm"
               >
-                {nomesUnidades.map((u) => (
+                {(nomesUnidades || []).map((u) => (
                   <option key={u} value={u}>
                     {u}
                   </option>

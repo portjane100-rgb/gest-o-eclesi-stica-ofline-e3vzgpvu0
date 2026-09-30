@@ -55,7 +55,8 @@ import {
 type AbaMembros = 'ativos' | 'inativos' | 'in_memoria' | 'pendentes' | 'aniversariantes'
 
 export const AdminMembros: React.FC = () => {
-  const { nomes: unidadesLista } = useCongregacoes()
+  const { nomes: nomesRaw } = useCongregacoes()
+  const unidadesLista = nomesRaw || []
   const { config } = useChurchConfig()
   const [membros, setMembros] = useState<Membro[]>([])
   const [congregados, setCongregados] = useState<Congregado[]>([])
@@ -653,7 +654,7 @@ export const AdminMembros: React.FC = () => {
       const htmlCompleto = buildFichaMembroBrancoHtml({
         logoDataUri,
         watermarkDataUri: ADTC_TOCHA_WATERMARK_DATA_URI,
-        unidades: [...unidadesLista],
+        unidades: [...(unidadesLista || [])],
       })
 
       const printWindow = window.open('', '_blank', 'width=1050,height=850')
@@ -1652,7 +1653,7 @@ export const AdminMembros: React.FC = () => {
                   onChange={(e) => setCongregacao(e.target.value as any)}
                   className="w-full h-10 px-3 rounded-md border border-[#E6E2D8] bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#C9A227]"
                 >
-                  {unidadesLista.map((u) => (
+                  {(unidadesLista || []).map((u) => (
                     <option key={u} value={u}>
                       {u}
                     </option>

@@ -20,7 +20,13 @@ interface AuthContextType {
   isSecretario: boolean
   hasAnyUser: boolean
   loadingAuth: boolean
-  login: (loginOrEmail: string, password: string) => Promise<{ success: boolean; error?: string }>
+  isLoginModalOpen: boolean
+  openLoginModal: () => void
+  closeLoginModal: () => void
+  login: (
+    loginOrEmail: string,
+    password: string,
+  ) => Promise<{ success: boolean; error?: string; noEmailNotice?: boolean }>
   logout: () => void
   createInitialAdmin: (
     name: string,
@@ -50,6 +56,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loadingAuth, setLoadingAuth] = useState(true)
   const [hasAnyUser, setHasAnyUser] = useState(true)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+
+  const openLoginModal = useCallback(() => setIsLoginModalOpen(true), [])
+  const closeLoginModal = useCallback(() => setIsLoginModalOpen(false), [])
 
   const checkUsersExist = useCallback(async (): Promise<boolean> => {
     try {
@@ -345,6 +355,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isSecretario,
         hasAnyUser,
         loadingAuth,
+        isLoginModalOpen,
+        openLoginModal,
+        closeLoginModal,
         login,
         logout,
         createInitialAdmin,

@@ -38,7 +38,7 @@ import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 export const Dashboard: React.FC = () => {
   const { podeAcessarFinanceiro } = useAuth()
   const { config } = useChurchConfig()
-  const { total: totalUnidades } = useCongregacoes()
+  const { total: totalUnidades = 0 } = useCongregacoes()
   const [stats, setStats] = useState({
     totalMembros: 0,
     totalCongregados: 0,

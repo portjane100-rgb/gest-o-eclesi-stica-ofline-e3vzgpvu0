@@ -1,5 +1,5 @@
 import { localDb } from '@/lib/localDb'
-import type { PlanilhaMensal } from '@/types/adtc'
+import type { PlanilhaMensalRecord as PlanilhaMensal } from '@/types/adtc'
 
 export function gerarChavePeriodo(ano: number, mes: number): string {
   return `${ano}-${String(mes).padStart(2, '0')}`
@@ -78,13 +78,14 @@ export async function salvarPlanilhaMensal(
   const payload = {
     ...dados,
     periodo_chave: chave,
+    chave_periodo: dados.chave_periodo || chave,
     congregacao: cong,
   }
 
   if (existente && existente.id) {
-    return await localDb.update<PlanilhaMensal>('planilhas_mensais', existente.id, payload)
+    return await localDb.update<PlanilhaMensal>('planilhas_mensais', existente.id, payload as any)
   } else {
-    return await localDb.create<PlanilhaMensal>('planilhas_mensais', payload)
+    return await localDb.create<PlanilhaMensal>('planilhas_mensais', payload as any)
   }
 }
 

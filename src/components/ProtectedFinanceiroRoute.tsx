@@ -4,10 +4,14 @@ import { ShieldAlert, ArrowLeft, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
+import { useAuth } from '@/contexts/AuthContext'
+
 export const ProtectedFinanceiroRoute: React.FC<{
   children: React.ReactNode
-  podeAcessar: boolean
-}> = ({ children, podeAcessar }) => {
+  podeAcessar?: boolean
+}> = ({ children, podeAcessar: podeAcessarProp }) => {
+  const { podeAcessarFinanceiro } = useAuth()
+  const podeAcessar = podeAcessarProp !== undefined ? podeAcessarProp : podeAcessarFinanceiro
   if (!podeAcessar) {
     return (
       <div className="max-w-2xl mx-auto py-12 px-4">

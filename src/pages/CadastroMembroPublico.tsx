@@ -23,7 +23,8 @@ import {
 } from 'lucide-react'
 
 export const CadastroMembroPublico: React.FC = () => {
-  const { nomes: unidadesLista } = useCongregacoes()
+  const { nomes: nomesRaw } = useCongregacoes()
+  const unidadesLista = nomesRaw || []
   const { config } = useChurchConfig()
   const [submetido, setSubmetido] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -288,7 +289,7 @@ export const CadastroMembroPublico: React.FC = () => {
                       onChange={(e) => setCongregacao(e.target.value)}
                       className="w-full h-10 px-3 rounded-md border border-[#E6E2D8] bg-slate-50 focus:bg-white text-xs sm:text-sm font-medium text-[#1E3A5F] focus:ring-2 focus:ring-[#C9A227] focus:outline-none"
                     >
-                      {unidadesLista.map((u) => (
+                      {(unidadesLista || []).map((u) => (
                         <option key={u} value={u}>
                           {u}
                         </option>

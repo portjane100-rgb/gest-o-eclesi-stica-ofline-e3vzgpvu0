@@ -87,7 +87,8 @@ export const PlanilhaMensalView: React.FC = () => {
   const { toast } = useToast()
   const { user } = useAuth()
   const { config } = useChurchConfig()
-  const { congregacoes: listaCongregacoesDb, nomes: nomesCongregacoesOriginais } = useCongregacoes()
+  const { congregacoes: listaCongregacoesDb = [], nomes: nomesCongregacoesOriginais = [] } =
+    useCongregacoes()
 
   // Garante que todas as congregações cadastradas apareçam, com 'Sede' sempre disponível e sem duplicidades
   const nomesCongregacoes = useMemo(() => {

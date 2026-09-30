@@ -43,7 +43,8 @@ import { exportarCongregadosParaCsv } from '@/lib/exportUtils'
 type AbaCongregados = 'ativos' | 'inativos' | 'in_memoria' | 'pendentes'
 
 export const AdminCongregados: React.FC = () => {
-  const { nomes: unidadesLista } = useCongregacoes()
+  const { nomes: nomesRaw } = useCongregacoes()
+  const unidadesLista = nomesRaw || []
   const [congregados, setCongregados] = useState<Congregado[]>([])
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoCadastro[]>([])
   const [abaAtiva, setAbaAtiva] = useState<AbaCongregados>('ativos')
@@ -999,7 +1000,7 @@ export const AdminCongregados: React.FC = () => {
                 onChange={(e) => setCongregacao(e.target.value as any)}
                 className="w-full h-10 px-3 rounded-md border border-[#E6E2D8] bg-white text-xs sm:text-sm focus:ring-2 focus:ring-[#C9A227]"
               >
-                {unidadesLista.map((u) => (
+                {(unidadesLista || []).map((u) => (
                   <option key={u} value={u}>
                     {u}
                   </option>
@@ -1200,7 +1201,7 @@ export const AdminCongregados: React.FC = () => {
                   }
                   className="w-full h-10 px-3 rounded-md border border-[#E6E2D8] bg-white text-xs sm:text-sm"
                 >
-                  {unidadesLista.map((u) => (
+                  {(unidadesLista || []).map((u) => (
                     <option key={u} value={u}>
                       {u}
                     </option>

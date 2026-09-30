@@ -36,7 +36,8 @@ import { useToast } from '@/hooks/use-toast'
 export const Obreiros: React.FC = () => {
   const { isAdmin } = useAuth()
   const { toast } = useToast()
-  const { nomes: unidadesLista } = useCongregacoes()
+  const { nomes: nomesRaw } = useCongregacoes()
+  const unidadesLista = nomesRaw || []
 
   const [obreiros, setObreiros] = useState<Obreiro[]>([])
   const [loading, setLoading] = useState(true)
@@ -670,7 +671,7 @@ export const Obreiros: React.FC = () => {
                   onChange={(e) => setCongregacao(e.target.value as any)}
                   className="w-full h-10 px-3 rounded-md border border-[#E6E2D8] bg-white text-xs sm:text-sm focus:ring-2 focus:ring-[#C9A227]"
                 >
-                  {unidadesLista.map((u) => (
+                  {(unidadesLista || []).map((u) => (
                     <option key={u} value={u}>
                       {u}
                     </option>

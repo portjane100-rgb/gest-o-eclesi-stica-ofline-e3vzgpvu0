@@ -34,7 +34,8 @@ import { InlineText } from '@/components/InlineText'
 export const AgendaSemanal: React.FC = () => {
   const { isAdmin } = useAuth()
   const { toast } = useToast()
-  const { congregacoes, nomes: unidadesLista } = useCongregacoes()
+  const { congregacoes, nomes: nomesRaw } = useCongregacoes()
+  const unidadesLista = nomesRaw || []
 
   const [itens, setItens] = useState<AgendaSemanalItem[]>([])
   const [selectedUnidade, setSelectedUnidade] = useState<string>('Sede')
@@ -222,7 +223,7 @@ export const AgendaSemanal: React.FC = () => {
       <Tabs value={selectedUnidade} onValueChange={setSelectedUnidade} className="w-full space-y-8">
         <div className="flex justify-center">
           <TabsList className="bg-white border border-[#E6E2D8] p-1.5 rounded-xl shadow-xs flex-wrap h-auto gap-1">
-            {unidadesLista.map((unidade) => {
+            {(unidadesLista || []).map((unidade) => {
               const isVila = unidade.includes('Pescadores')
               const label = isVila ? 'Vila dos Pescadores' : unidade
               return (
@@ -238,8 +239,8 @@ export const AgendaSemanal: React.FC = () => {
           </TabsList>
         </div>
 
-        {unidadesLista.map((unidade) => {
-          const congregacaoInfo = congregacoes.find((c) => c.nome === unidade)
+        {(unidadesLista || []).map((unidade) => {
+          const congregacaoInfo = (congregacoes || []).find((c) => c.nome === unidade)
           return (
             <TabsContent key={unidade} value={unidade} className="space-y-6">
               <div className="bg-white rounded-2xl border border-[#E6E2D8] p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -422,7 +423,7 @@ export const AgendaSemanal: React.FC = () => {
                 onChange={(e) => setFormUnidade(e.target.value)}
                 className="w-full h-9 px-3 rounded-md border border-[#E6E2D8] bg-white text-xs sm:text-sm"
               >
-                {unidadesLista.map((u) => (
+                {(unidadesLista || []).map((u) => (
                   <option key={u} value={u}>
                     {u}
                   </option>
