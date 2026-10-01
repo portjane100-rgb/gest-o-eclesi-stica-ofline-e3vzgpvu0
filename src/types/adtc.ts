@@ -145,6 +145,22 @@ export interface CongregacaoRegistro extends RecordModel {
   ativa?: boolean
 }
 
+export type TipoMovimentacaoCongregacao = 'entrada' | 'saida' | 'repasse_sede'
+
+export interface MovimentacaoFinanceiroCongregacao {
+  id: string
+  congregacao: string
+  data: string // YYYY-MM-DD
+  descricao: string
+  categoria?: string
+  tipo: TipoMovimentacaoCongregacao // 'entrada' | 'saida' | 'repasse_sede'
+  valor: number
+  responsavel?: string
+  observacoes?: string
+  created?: string
+  updated?: string
+}
+
 export interface AgendaSemanalItem extends RecordModel {
   unidade: string
   dia_semana: 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo'
@@ -201,6 +217,7 @@ export interface LinhaDizimoPlanilha {
   numero: number
   nome: string
   membroId?: string
+  origem?: string // 'Sede' ou 'Congregação <nome>'
   valor1: number
   valor2: number
   valor3: number

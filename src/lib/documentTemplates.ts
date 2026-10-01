@@ -998,8 +998,501 @@ export interface DocCertificadoApresentacaoData {
 export interface DocFichaMembroBrancoData {
   logoDataUri: string
   watermarkDataUri?: string
-  unidades?: string[]
   churchIdentity?: DocChurchIdentity
+  unidades?: string[]
+}
+
+export interface DocFichaCongregadoBrancoData {
+  logoDataUri: string
+  watermarkDataUri?: string
+  churchIdentity?: DocChurchIdentity
+  unidades?: string[]
+}
+
+export function buildFichaCongregadoBrancoHtml(data: DocFichaCongregadoBrancoData): string {
+  const watermarkSrc = data.watermarkDataUri || data.logoDataUri
+  const id = data.churchIdentity || {}
+  const denominacao = id.denominacao?.trim() || id.nomeIgreja?.trim() || 'IGREJA EVANGÉLICA'
+  const subtitulo = id.subtituloIgreja?.trim() || 'MINISTÉRIO EVANGÉLICO'
+  const endereco = [id.enderecoIgreja, id.cidadeUf].filter(Boolean).join(' • ')
+  const nomeIgreja = id.nomeIgreja?.trim() || 'Igreja Local'
+  const unidades = data.unidades && data.unidades.length > 0 ? data.unidades : ['Sede']
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Ficha de Cadastro de Congregado — Modelo em Branco para Impressão</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 6mm 8mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #FFFFFF;
+      color: #1A202C;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9.5pt;
+      line-height: 1.35;
+      width: 100%;
+      height: 100%;
+    }
+    .sheet {
+      width: 100%;
+      max-width: 190mm;
+      margin: 0 auto;
+      padding: 4mm 6mm;
+      min-height: 275mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      background: #FFFFFF;
+      page-break-inside: avoid;
+    }
+    .watermark {
+      position: absolute;
+      top: 52%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 320px;
+      height: 320px;
+      opacity: 0.05;
+      pointer-events: none;
+      z-index: 0;
+      object-fit: contain;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+    }
+    .header-box {
+      background: linear-gradient(135deg, #072348 0%, #0F325E 60%, #163B6E 100%);
+      border-radius: 8px;
+      padding: 8px 14px;
+      margin-bottom: 8px;
+      border-bottom: 3px solid #C9A227;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: #FFFFFF;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #C9A227;
+      background: #072348;
+      flex-shrink: 0;
+    }
+    .header-titles h1 {
+      margin: 0;
+      font-size: 13pt;
+      font-weight: bold;
+      color: #FFFFFF;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: Georgia, serif;
+      line-height: 1.15;
+    }
+    .header-titles h2 {
+      margin: 2px 0 0 0;
+      font-size: 8.5pt;
+      font-weight: bold;
+      color: #F3CA52;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+    }
+    .header-titles p {
+      margin: 2px 0 0 0;
+      font-size: 7.5pt;
+      color: #E2E8F0;
+    }
+    .header-badge-ficha {
+      border: 1.5px dashed #C9A227;
+      border-radius: 6px;
+      padding: 4px 8px;
+      text-align: center;
+      background: rgba(7, 35, 72, 0.6);
+      min-width: 90px;
+    }
+    .header-badge-ficha .lbl {
+      font-size: 6.5pt;
+      text-transform: uppercase;
+      color: #F3CA52;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+      display: block;
+    }
+    .header-badge-ficha .val {
+      font-size: 9pt;
+      font-weight: bold;
+      color: #FFFFFF;
+      font-family: monospace;
+      display: block;
+      margin-top: 1px;
+    }
+    .title-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 4px 0 8px 0;
+    }
+    .title-strip-line {
+      flex: 1;
+      height: 1.5px;
+      background: linear-gradient(to right, transparent, #C9A227, transparent);
+    }
+    .title-strip-text {
+      font-family: Georgia, serif;
+      font-size: 13pt;
+      font-weight: bold;
+      color: #0F325E;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+    .section-box {
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      padding: 6px 10px 8px 10px;
+      margin-bottom: 7px;
+      background: #FFFFFF;
+    }
+    .section-title {
+      font-family: Georgia, serif;
+      font-size: 8.5pt;
+      font-weight: bold;
+      color: #0F325E;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      border-bottom: 1.5px solid #C9A227;
+      padding-bottom: 2px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title span.tag {
+      font-family: Arial, sans-serif;
+      font-size: 6.5pt;
+      color: #8C6D15;
+      font-weight: normal;
+      letter-spacing: 0.2px;
+      text-transform: none;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 5px;
+      align-items: flex-end;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .field-label {
+      font-size: 7pt;
+      font-weight: bold;
+      color: #334155;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      margin-bottom: 2px;
+    }
+    .field-line {
+      height: 18px;
+      border-bottom: 1px solid #1E293B;
+      width: 100%;
+    }
+    .field-boxes {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 2px;
+    }
+    .checkbox-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 7.5pt;
+      color: #1E293B;
+    }
+    .checkbox-square {
+      width: 11px;
+      height: 11px;
+      border: 1.2px solid #0F325E;
+      border-radius: 2px;
+      display: inline-block;
+    }
+    .footer-signatures {
+      border-top: 1px solid #E2E8F0;
+      padding-top: 8px;
+      margin-top: 6px;
+    }
+    .signatures-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-top: 14px;
+      text-align: center;
+    }
+    .sig-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .sig-line {
+      width: 85%;
+      border-top: 1px solid #0F325E;
+      margin-bottom: 3px;
+    }
+    .sig-label {
+      font-size: 7.5pt;
+      color: #475569;
+      text-transform: uppercase;
+      font-weight: bold;
+    }
+    .footer-legend {
+      text-align: center;
+      font-size: 7pt;
+      color: #8C6D15;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-top: 6px;
+      border-top: 1px dashed #C9A227;
+      padding-top: 3px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="sheet">
+    <img src="${watermarkSrc}" alt="" class="watermark" />
+
+    <div class="content">
+      <!-- Cabeçalho Institucional -->
+      <div class="header-box">
+        <div class="header-left">
+          <img src="${data.logoDataUri}" alt="Logo da Igreja" class="header-logo" />
+          <div class="header-titles">
+            <h1>${denominacao}</h1>
+            <h2>${subtitulo}</h2>
+            <p>${endereco}</p>
+          </div>
+        </div>
+        <div class="header-badge-ficha">
+          <span class="lbl">Ficha Congregado</span>
+          <span class="val">_______</span>
+          <span class="lbl" style="margin-top: 2px;">Data Cadastro</span>
+          <span class="val">__/__/____</span>
+        </div>
+      </div>
+
+      <!-- Título Oficial -->
+      <div class="title-strip">
+        <div class="title-strip-line"></div>
+        <h2 class="title-strip-text">Ficha de Cadastro de Congregado</h2>
+        <div class="title-strip-line"></div>
+      </div>
+
+      <!-- 1. IDENTIFICAÇÃO PESSOAL -->
+      <div class="section-box">
+        <div class="section-title">
+          <span>1. Identificação Pessoal</span>
+          <span class="tag">Preencher de forma legível à mão</span>
+        </div>
+
+        <div class="row">
+          <div class="field" style="flex: 3;">
+            <span class="field-label">Nome Completo:</span>
+            <div class="field-line"></div>
+          </div>
+          <div class="field" style="flex: 1.2;">
+            <span class="field-label">Como prefere ser chamado:</span>
+            <div class="field-line"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field" style="flex: 2.5;">
+            <span class="field-label">Filiação (Nome dos Pais / Responsáveis):</span>
+            <div class="field-line"></div>
+          </div>
+          <div class="field" style="flex: 1.2;">
+            <span class="field-label">Naturalidade (Cidade/UF):</span>
+            <div class="field-line"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field" style="flex: 1.3;">
+            <span class="field-label">Estado Civil:</span>
+            <div class="field-boxes" style="padding-top: 3px;">
+              <span class="checkbox-item"><span class="checkbox-square"></span> Solteiro(a)</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Casado(a)</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Viúvo(a)</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Outro</span>
+            </div>
+          </div>
+          <div class="field" style="flex: 1;">
+            <span class="field-label">Data de Nascimento:</span>
+            <div class="field-line" style="font-family: monospace; font-size: 8pt; color: #64748B; padding-top: 2px;">__ / __ / ____</div>
+          </div>
+          <div class="field" style="flex: 1;">
+            <span class="field-label">CPF (Opcional):</span>
+            <div class="field-line"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. CONGREGAÇÃO, LOCALIZAÇÃO & CONTATO -->
+      <div class="section-box">
+        <div class="section-title">
+          <span>2. Unidade / Congregação Frequentada & Contato</span>
+          <span class="tag">Unidades da Igreja</span>
+        </div>
+
+        <div class="row" style="margin-bottom: 4px;">
+          <div class="field">
+            <span class="field-label">Congregação / Unidade Frequentada:</span>
+            <div class="field-boxes" style="flex-wrap: wrap; gap: 12px; padding-top: 2px;">
+              ${unidades
+                .map(
+                  (u) =>
+                    `<span class="checkbox-item"><span class="checkbox-square"></span> ${u}</span>`,
+                )
+                .join('')}
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="field" style="flex: 2;">
+            <span class="field-label">Endereço Residencial (Rua/Av., Nº, Bairro/Localidade):</span>
+            <div class="field-line"></div>
+          </div>
+          <div class="field" style="flex: 1;">
+            <span class="field-label">Telefone / Celular:</span>
+            <div class="field-line"></div>
+          </div>
+          <div class="field" style="flex: 1;">
+            <span class="field-label">WhatsApp (Contato Principal):</span>
+            <div class="field-line"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. TRAJETÓRIA ESPIRITUAL (SEM BATISMO - ENXUTA PARA CONGREGADOS) -->
+      <div class="section-box">
+        <div class="section-title">
+          <span>3. Trajetória Espiritual & Decisão por Cristo</span>
+          <span class="tag">Informações de acolhimento e discipulado</span>
+        </div>
+
+        <!-- Aceitou Jesus -->
+        <div class="row">
+          <div class="field" style="flex: 1.2;">
+            <span class="field-label">Quando aceitou Jesus (Data ou Período aproximado):</span>
+            <div class="field-line" style="font-family: monospace; font-size: 8pt; color: #64748B; padding-top: 2px;">__ / __ / ____</div>
+          </div>
+          <div class="field" style="flex: 1.8;">
+            <span class="field-label">Local onde aceitou Jesus (Culto, evento, casa, congregação):</span>
+            <div class="field-line"></div>
+          </div>
+        </div>
+
+        <!-- Já foi batizado ou tem interesse -->
+        <div class="row" style="margin-top: 4px;">
+          <div class="field" style="flex: 1.5;">
+            <span class="field-label">Deseja participar das aulas de discipulado / batismo?</span>
+            <div class="field-boxes" style="padding-top: 3px;">
+              <span class="checkbox-item"><span class="checkbox-square"></span> Sim, desejo me preparar para o batismo</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Já sou batizado em outra igreja</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Desejo apenas congregar</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. INTEGRAÇÃO & MINISTÉRIOS -->
+      <div class="section-box">
+        <div class="section-title">
+          <span>4. Integração na Igreja & Ministérios de Interesse</span>
+          <span class="tag">Áreas em que gostaria de participar ou aprender</span>
+        </div>
+
+        <div class="row">
+          <div class="field">
+            <span class="field-label">Departamentos / Ministérios que deseja apoiar:</span>
+            <div class="field-boxes" style="flex-wrap: wrap; gap: 12px; padding-top: 3px;">
+              <span class="checkbox-item"><span class="checkbox-square"></span> Louvor / Coral / Instrumentos</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Crianças / EBD Infantil</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Jovens / Adolescentes</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Recepção / Portaria</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Missões / Ação Social</span>
+              <span class="checkbox-item"><span class="checkbox-square"></span> Mídia / Sonoplastia</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top: 6px;">
+          <div class="field">
+            <span class="field-label">Observações Pastorais / Quem o convidou ou apresentou à igreja:</span>
+            <div class="field-line" style="height: 18px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rodapé e Assinaturas -->
+    <div class="footer-signatures">
+      <div class="signatures-row">
+        <div class="sig-col">
+          <div class="sig-line"></div>
+          <span class="sig-label">Assinatura do Congregado</span>
+        </div>
+        <div class="sig-col">
+          <div class="sig-line"></div>
+          <span class="sig-label">Secretaria / Recepção</span>
+        </div>
+        <div class="sig-col">
+          <div class="sig-line"></div>
+          <span class="sig-label">Pastor / Dirigente</span>
+        </div>
+      </div>
+
+      <div class="footer-legend">
+        ${nomeIgreja} • Ficha Oficial de Congregado para Preenchimento à Mão
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 300);
+    };
+  </script>
+</body>
+</html>`
 }
 
 export function buildFichaMembroBrancoHtml(data: DocFichaMembroBrancoData): string {

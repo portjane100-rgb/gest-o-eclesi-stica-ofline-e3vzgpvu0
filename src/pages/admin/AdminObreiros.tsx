@@ -41,6 +41,7 @@ export const AdminObreiros: React.FC = () => {
   const [obreiros, setObreiros] = useState<Obreiro[]>([])
   const [gerandoPdf, setGerandoPdf] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [congregacaoFiltro, setCongregacaoFiltro] = useState<string>('todas')
   const [search, setSearch] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -96,6 +97,9 @@ export const AdminObreiros: React.FC = () => {
 
   const handleOpenCreate = () => {
     resetForm()
+    if (congregacaoFiltro !== 'todas') {
+      setCongregacao(congregacaoFiltro)
+    }
     setIsModalOpen(true)
   }
 
@@ -193,12 +197,26 @@ export const AdminObreiros: React.FC = () => {
     }
   }
 
-  const filtered = obreiros.filter(
-    (o) =>
-      o.nome.toLowerCase().includes(search.toLowerCase()) ||
-      o.cargo.toLowerCase().includes(search.toLowerCase()) ||
-      o.congregacao.toLowerCase().includes(search.toLowerCase()),
-  )
+  const filtered = obreiros.filter((o) => {
+    // Filtro de Congregação
+    if (congregacaoFiltro !== 'todas') {
+      const congO = (o.congregacao || '').trim().toLowerCase()
+      const congF = congregacaoFiltro.trim().toLowerCase()
+      if (congF === 'sede') {
+        if (congO !== 'sede' && congO !== '') return false
+      } else {
+        if (congO !== congF) return false
+      }
+    }
+
+    if (!search.trim()) return true
+    const term = search.toLowerCase()
+    return (
+      (o.nome || '').toLowerCase().includes(term) ||
+      (o.cargo || '').toLowerCase().includes(term) ||
+      (o.congregacao || '').toLowerCase().includes(term)
+    )
+  })
 
   const handleBaixarRelacaoPdf = () => {
     setGerandoPdf(true)
@@ -398,15 +416,57 @@ export const AdminObreiros: React.FC = () => {
         </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5A5A]" />
-        <Input
-          placeholder="Buscar por nome, cargo ou congregação..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 bg-white border-[#E6E2D8] text-xs sm:text-sm"
-        />
+      {/* Filtros: Congregação e Busca */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="w-full sm:w-64">
+          <select
+            value={congregacaoFiltro}
+            onChange={(e) => setCongregacaoFiltro(e.target.value)}
+            className="w-full h-10 px-3 rounded-xl border border-[#E6E2D8] bg-white text-xs sm:text-sm font-medium text-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-[#C9A227] shadow-2xs"
+            title="Filtrar corpo de obreiros por congregação ou Sede"
+          >
+            <option value="todas">Todas as Unidades (Geral)</option>
+            {unidadesLista.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5A5A]" />
+          <Input
+            placeholder="Buscar por nome ou cargo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 bg-white border-[#E6E2D8] text-xs sm:text-sm h-10 rounded-xl"
+          />
+        </div>
       </div>
+
+      {/* Banner de Contexto de Congregação Ativa */}
+      {congregacaoFiltro !== 'todas' && (
+        <div className="bg-gradient-to-r from-[#1E3A5F]/10 via-[#C9A227]/10 to-transparent p-3 sm:p-4 rounded-xl border border-[#C9A227]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C9A227] animate-pulse" />
+            <span className="text-xs sm:text-sm font-semibold text-[#1E3A5F]">
+              Gerenciando obreiros da unidade: <strong>{congregacaoFiltro}</strong>
+            </span>
+            <Badge className="bg-[#1E3A5F] text-white text-[10px] font-bold">
+              {filtered.length} obreiro(s) exibido(s)
+            </Badge>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCongregacaoFiltro('todas')}
+            className="text-xs text-[#1E3A5F] hover:bg-white/60 h-7 self-start sm:self-auto font-medium"
+          >
+            Limpar filtro (Ver todas)
+          </Button>
+        </div>
+      )}
 
       <Card className="border-[#E6E2D8] bg-white shadow-xs rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">

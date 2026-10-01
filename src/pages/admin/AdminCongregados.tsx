@@ -33,7 +33,9 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
-import { FileText } from 'lucide-react'
+import { FileText, Printer } from 'lucide-react'
+import { buildFichaCongregadoBrancoHtml, getLogoAsDataUri } from '@/lib/documentTemplates'
+import { ADTC_LOGO_URL } from '@/components/AdtcLogo'
 
 type AbaCongregados = 'ativos' | 'inativos' | 'in_memoria'
 
@@ -42,8 +44,10 @@ export const AdminCongregados: React.FC = () => {
   const { nomes: nomesRaw } = useCongregacoes()
   const unidadesLista = nomesRaw || []
   const [congregados, setCongregados] = useState<Congregado[]>([])
+  const [gerandoFichaBranco, setGerandoFichaBranco] = useState(false)
   const [gerandoPdf, setGerandoPdf] = useState(false)
   const [abaAtiva, setAbaAtiva] = useState<AbaCongregados>('ativos')
+  const [congregacaoFiltro, setCongregacaoFiltro] = useState<string>('todas')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -119,6 +123,9 @@ export const AdminCongregados: React.FC = () => {
 
   const handleOpenCreate = () => {
     resetForm()
+    if (congregacaoFiltro !== 'todas') {
+      setCongregacao(congregacaoFiltro)
+    }
     setIsModalOpen(true)
   }
 
@@ -335,26 +342,41 @@ export const AdminCongregados: React.FC = () => {
   }
 
   // Filtragem
-  const congregadosFiltrados = congregados.filter((c) => {
-    const s = (c.status || 'Ativo').toLowerCase()
-    if (abaAtiva === 'ativos') {
-      return s.includes('ativo') && !s.includes('inativo') && !s.includes('falecido')
-    }
-    if (abaAtiva === 'inativos') {
-      return (s.includes('inativo') || s.includes('afastado')) && !s.includes('falecido')
-    }
-    if (abaAtiva === 'in_memoria') {
-      return s.includes('falecido')
-    }
+  const congregadosFiltrados = congregados
+    .filter((c) => {
+      const s = (c.status || 'Ativo').toLowerCase()
+      if (abaAtiva === 'ativos') {
+        return s.includes('ativo') && !s.includes('inativo') && !s.includes('falecido')
+      }
+      if (abaAtiva === 'inativos') {
+        return (s.includes('inativo') || s.includes('afastado')) && !s.includes('falecido')
+      }
+      if (abaAtiva === 'in_memoria') {
+        return s.includes('falecido')
+      }
+      return true
+    })
+    .filter((c) => {
+      // Filtro por Congregação / Unidade
+      if (congregacaoFiltro !== 'todas') {
+        const congC = (c.congregacao || '').trim().toLowerCase()
+        const congF = congregacaoFiltro.trim().toLowerCase()
+        if (congF === 'sede') {
+          if (congC !== 'sede' && congC !== '') return false
+        } else {
+          if (congC !== congF) return false
+        }
+      }
 
-    if (!search.trim()) return true
-    const term = search.toLowerCase()
-    return (
-      c.nome.toLowerCase().includes(term) ||
-      c.congregacao.toLowerCase().includes(term) ||
-      (c.telefone && c.telefone.includes(term))
-    )
-  })
+      // Busca textual
+      if (!search.trim()) return true
+      const term = search.toLowerCase()
+      return (
+        (c.nome || '').toLowerCase().includes(term) ||
+        (c.congregacao && c.congregacao.toLowerCase().includes(term)) ||
+        (c.telefone && c.telefone.includes(term))
+      )
+    })
 
   // Contadores
   const totalAtivos = congregados.filter((c) => {
@@ -369,7 +391,52 @@ export const AdminCongregados: React.FC = () => {
     (c.status || '').toLowerCase().includes('falecido'),
   ).length
 
-  const handleBaixarPdf = () => {
+  // Gerar Ficha de Cadastro em Branco para Imprimir e Preencher à Mão (Item 4)
+  const handleImprimirFichaBranco = async () => {
+    setGerandoFichaBranco(true)
+    try {
+      const logoDataUri = await getLogoAsDataUri(config.logoUrl || ADTC_LOGO_URL)
+      const htmlFicha = buildFichaCongregadoBrancoHtml({
+        logoDataUri,
+        churchIdentity: {
+          nomeIgreja: config.nomeIgreja,
+          denominacao: config.denominacao,
+          subtituloIgreja: config.subtituloIgreja,
+          enderecoIgreja: config.enderecoIgreja || config.enderecoSede,
+          cidadeUf: config.cidadeUf || config.cidadeEstado,
+          siglaIgreja: config.siglaIgreja,
+        },
+        unidades: unidadesLista.length > 0 ? unidadesLista : ['Sede'],
+      })
+
+      const printWindow = window.open('', '_blank', 'width=950,height=800')
+      if (!printWindow) {
+        toast({
+          variant: 'destructive',
+          title: 'Bloqueio de pop-up',
+          description: 'Habilite pop-ups para imprimir a ficha de cadastro.',
+        })
+        return
+      }
+      printWindow.document.write(htmlFicha)
+      printWindow.document.close()
+
+      toast({
+        title: 'Ficha em Branco Gerada',
+        description: 'Ficha de congregado pronta para impressão e preenchimento à mão.',
+      })
+    } catch (e: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gerar ficha',
+        description: e?.message || 'Tente novamente.',
+      })
+    } finally {
+      setGerandoFichaBranco(false)
+    }
+  }
+
+  const handleBaixarRelatorioPdf = () => {
     setGerandoPdf(true)
     try {
       const lista = congregadosFiltrados
@@ -501,20 +568,36 @@ export const AdminCongregados: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Baixar Planilha (PDF) */}
+          {/* Ficha de Cadastro em Branco (Item 4) */}
           <Button
-            onClick={handleBaixarPdf}
+            onClick={handleImprimirFichaBranco}
+            disabled={gerandoFichaBranco}
+            variant="outline"
+            className="border-[#C9A227] text-[#1E3A5F] bg-amber-50/40 hover:bg-[#C9A227]/15 text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+            title="Imprimir ficha de cadastro em branco para preenchimento à mão"
+          >
+            {gerandoFichaBranco ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C9A227]" />
+            ) : (
+              <Printer className="w-3.5 h-3.5 text-[#C9A227]" />
+            )}
+            Ficha em Branco (PDF)
+          </Button>
+
+          {/* Relação / Relatório PDF */}
+          <Button
+            onClick={handleBaixarRelatorioPdf}
             disabled={gerandoPdf}
             variant="outline"
             className="border-[#1E3A5F] text-[#1E3A5F] hover:bg-[#1E3A5F]/10 text-xs font-semibold flex items-center gap-1.5 shadow-2xs"
-            title="Baixar relatório timbrado de congregados em PDF"
+            title="Baixar relatório timbrado da listagem de congregados em PDF"
           >
             {gerandoPdf ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
               <FileText className="w-3.5 h-3.5 text-[#1E3A5F]" />
             )}
-            Baixar Planilha (PDF)
+            Relatório de Congregados (PDF)
           </Button>
 
           {/* Novo Congregado */}
@@ -570,17 +653,59 @@ export const AdminCongregados: React.FC = () => {
           </TabsList>
         </Tabs>
 
-        {/* Busca */}
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5A5A]" />
-          <Input
-            placeholder="Buscar congregado por nome ou congregação..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white border-[#E6E2D8] text-xs sm:text-sm rounded-xl"
-          />
+        {/* Filtro por Congregação / Sede e Busca */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          {/* Seletor de Congregação */}
+          <div className="w-full sm:w-56">
+            <select
+              value={congregacaoFiltro}
+              onChange={(e) => setCongregacaoFiltro(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl border border-[#E6E2D8] bg-white text-xs sm:text-sm font-medium text-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-[#C9A227] shadow-2xs"
+              title="Filtrar congregados por congregação ou Sede"
+            >
+              <option value="todas">Todas as Unidades (Geral)</option>
+              {unidadesLista.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5A5A]" />
+            <Input
+              placeholder="Buscar congregado por nome..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-white border-[#E6E2D8] text-xs sm:text-sm rounded-xl h-10"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Banner de Contexto de Congregação Ativa */}
+      {congregacaoFiltro !== 'todas' && (
+        <div className="bg-gradient-to-r from-[#1E3A5F]/10 via-[#C9A227]/10 to-transparent p-3 sm:p-4 rounded-xl border border-[#C9A227]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C9A227] animate-pulse" />
+            <span className="text-xs sm:text-sm font-semibold text-[#1E3A5F]">
+              Gerenciando congregados da unidade: <strong>{congregacaoFiltro}</strong>
+            </span>
+            <Badge className="bg-[#1E3A5F] text-white text-[10px] font-bold">
+              {congregadosFiltrados.length} congregado(s) exibido(s)
+            </Badge>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCongregacaoFiltro('todas')}
+            className="text-xs text-[#1E3A5F] hover:bg-white/60 h-7 self-start sm:self-auto font-medium"
+          >
+            Limpar filtro (Ver todas)
+          </Button>
+        </div>
+      )}
 
       {/* Conteúdo */}
       {/* LISTAGEM DE CONGREGADOS (ATIVOS / INATIVOS / IN MEMÓRIA) */}

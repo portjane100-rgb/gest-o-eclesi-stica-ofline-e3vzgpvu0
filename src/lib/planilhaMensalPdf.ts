@@ -77,6 +77,7 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
   const linhasDizimosCompletas: Array<{
     numero: number
     nome: string
+    origem?: string
     valor1: number
     valor2: number
     valor3: number
@@ -89,6 +90,7 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
       linhasDizimosCompletas.push({
         numero: i,
         nome: item.nome || '',
+        origem: item.origem || '',
         valor1: item.valor1 || 0,
         valor2: item.valor2 || 0,
         valor3: item.valor3 || 0,
@@ -98,6 +100,7 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
       linhasDizimosCompletas.push({
         numero: i,
         nome: '',
+        origem: '',
         valor1: 0,
         valor2: 0,
         valor3: 0,
@@ -166,9 +169,22 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
       const v3 = formatarMoedaOuVazio(l.valor3)
       const tot = l.total > 0 ? formatarMoeda(l.total) : ''
 
+      // Identificação da origem do lançamento na planilha
+      let origemBadge = ''
+      if (l.origem && l.origem.trim()) {
+        const origLimpa = l.origem.trim()
+        const isSede = origLimpa.toLowerCase() === 'sede'
+        const labelOrigem = isSede
+          ? 'Sede'
+          : origLimpa.toLowerCase().startsWith('congrega')
+            ? origLimpa
+            : `Congregação ${origLimpa}`
+        origemBadge = `<span class="tag-origem ${isSede ? 'tag-sede' : 'tag-cong'}">${escapeHtml(labelOrigem)}</span>`
+      }
+
       return `<tr>
         <td class="col-num">${l.numero}</td>
-        <td class="col-nome">${escapeHtml(l.nome)}</td>
+        <td class="col-nome"><div class="nome-origem-wrap"><span>${escapeHtml(l.nome)}</span>${origemBadge}</div></td>
         <td class="col-val">${v1}</td>
         <td class="col-val">${v2}</td>
         <td class="col-val">${v3}</td>
@@ -383,7 +399,38 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 165px;
+      max-width: 175px;
+    }
+    .nome-origem-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 3px;
+      width: 100%;
+    }
+    .nome-origem-wrap > span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tag-origem {
+      font-size: 6.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 0.5px 3px;
+      border-radius: 2px;
+      letter-spacing: 0.2px;
+      flex-shrink: 0;
+    }
+    .tag-sede {
+      background: #e8e8e8;
+      color: #333;
+      border: 0.5px solid #bbb;
+    }
+    .tag-cong {
+      background: #fef3c7;
+      color: #78350f;
+      border: 0.5px solid #d97706;
     }
     .col-val {
       width: 38px;

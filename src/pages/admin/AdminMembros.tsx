@@ -66,6 +66,7 @@ export const AdminMembros: React.FC = () => {
     }
     return 'ativos'
   })
+  const [congregacaoFiltro, setCongregacaoFiltro] = useState<string>('todas')
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -281,6 +282,10 @@ export const AdminMembros: React.FC = () => {
   const handleOpenCreate = () => {
     resetForm()
     setNumeroFicha(calcularProximaFicha())
+    // Se estiver filtrando por congregação específica (diferente de 'todas'), já inicializa nela
+    if (congregacaoFiltro !== 'todas') {
+      setCongregacao(congregacaoFiltro)
+    }
     setIsModalOpen(true)
   }
 
@@ -421,35 +426,50 @@ export const AdminMembros: React.FC = () => {
   }
 
   // Filtragem por aba e busca
-  const membrosFiltrados = membros.filter((m) => {
-    const s = (m.status || 'Ativo').toLowerCase()
-    if (abaAtiva === 'ativos') {
-      return s.includes('ativo') && !s.includes('inativo') && !s.includes('falecido')
-    }
-    if (abaAtiva === 'inativos') {
-      return (
-        (s.includes('inativo') ||
-          s.includes('afastado') ||
-          s.includes('mudança') ||
-          s.includes('transferido')) &&
-        !s.includes('falecido')
-      )
-    }
-    if (abaAtiva === 'in_memoria') {
-      return s.includes('falecido')
-    }
+  const membrosFiltrados = membros
+    .filter((m) => {
+      const s = (m.status || 'Ativo').toLowerCase()
+      if (abaAtiva === 'ativos') {
+        return s.includes('ativo') && !s.includes('inativo') && !s.includes('falecido')
+      }
+      if (abaAtiva === 'inativos') {
+        return (
+          (s.includes('inativo') ||
+            s.includes('afastado') ||
+            s.includes('mudança') ||
+            s.includes('transferido')) &&
+          !s.includes('falecido')
+        )
+      }
+      if (abaAtiva === 'in_memoria') {
+        return s.includes('falecido')
+      }
+      return true
+    })
+    .filter((m) => {
+      // Filtro por Congregação / Unidade
+      if (congregacaoFiltro !== 'todas') {
+        const congM = (m.congregacao || '').trim().toLowerCase()
+        const congF = congregacaoFiltro.trim().toLowerCase()
+        if (congF === 'sede') {
+          if (congM !== 'sede' && congM !== '') return false
+        } else {
+          if (congM !== congF) return false
+        }
+      }
 
-    if (!search.trim()) return true
-    const term = search.toLowerCase()
-    return (
-      m.nome.toLowerCase().includes(term) ||
-      (m.numero_ficha && m.numero_ficha.includes(term)) ||
-      (m.cpf && m.cpf.includes(term)) ||
-      (m.rg && m.rg.toLowerCase().includes(term)) ||
-      m.congregacao.toLowerCase().includes(term) ||
-      (m.numero_registro && m.numero_registro.toLowerCase().includes(term))
-    )
-  })
+      // Busca textual
+      if (!search.trim()) return true
+      const term = search.toLowerCase()
+      return (
+        (m.nome || '').toLowerCase().includes(term) ||
+        (m.numero_ficha && m.numero_ficha.includes(term)) ||
+        (m.cpf && m.cpf.includes(term)) ||
+        (m.rg && m.rg.toLowerCase().includes(term)) ||
+        (m.congregacao && m.congregacao.toLowerCase().includes(term)) ||
+        (m.numero_registro && m.numero_registro.toLowerCase().includes(term))
+      )
+    })
 
   // Contadores por aba
   const totalAtivos = membros.filter((m) => {
@@ -615,17 +635,60 @@ export const AdminMembros: React.FC = () => {
           </TabsList>
         </Tabs>
 
-        {/* Barra de Busca */}
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5A5A]" />
-          <Input
-            placeholder="Buscar membro por nome, ficha ou doc..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-white border-[#E6E2D8] text-xs sm:text-sm rounded-xl"
-          />
+        {/* Filtro por Congregação / Sede e Barra de Busca */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          {/* Seletor de Congregação */}
+          <div className="w-full sm:w-56">
+            <select
+              value={congregacaoFiltro}
+              onChange={(e) => setCongregacaoFiltro(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl border border-[#E6E2D8] bg-white text-xs sm:text-sm font-medium text-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-[#C9A227] shadow-2xs"
+              title="Filtrar rol de membros por congregação ou Sede"
+            >
+              <option value="todas">Todas as Unidades (Geral)</option>
+              {unidadesLista.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Barra de Busca */}
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5A5A5A]" />
+            <Input
+              placeholder="Buscar por nome, ficha ou doc..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-white border-[#E6E2D8] text-xs sm:text-sm rounded-xl h-10"
+            />
+          </div>
         </div>
       </div>
+
+      {/* Banner de Contexto de Congregação Ativa */}
+      {congregacaoFiltro !== 'todas' && (
+        <div className="bg-gradient-to-r from-[#1E3A5F]/10 via-[#C9A227]/10 to-transparent p-3 sm:p-4 rounded-xl border border-[#C9A227]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C9A227] animate-pulse" />
+            <span className="text-xs sm:text-sm font-semibold text-[#1E3A5F]">
+              Gerenciando cadastros da unidade: <strong>{congregacaoFiltro}</strong>
+            </span>
+            <Badge className="bg-[#1E3A5F] text-white text-[10px] font-bold">
+              {membrosFiltrados.length} membro(s) exibido(s)
+            </Badge>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCongregacaoFiltro('todas')}
+            className="text-xs text-[#1E3A5F] hover:bg-white/60 h-7 self-start sm:self-auto font-medium"
+          >
+            Limpar filtro (Ver todas)
+          </Button>
+        </div>
+      )}
 
       {/* Conteúdo da Aba Selecionada */}
       {abaAtiva === 'aniversariantes' ? (

@@ -265,11 +265,13 @@ export const PlanilhaMensalView: React.FC = () => {
         const linhasIniciaisDizimos: LinhaDizimoPlanilha[] = []
         dizimistasAtivos.forEach((d, idx) => {
           const nomeDizimista = d.expand?.membro?.nome || d.nome || ''
+          const origemDizimista = d.congregacao || congregacao || 'Sede'
           linhasIniciaisDizimos.push({
             id: `diz_${Date.now()}_${idx}`,
             numero: idx + 1,
             nome: nomeDizimista,
             membroId: d.membro || undefined,
+            origem: origemDizimista,
             valor1: 0,
             valor2: 0,
             valor3: 0,
@@ -284,6 +286,7 @@ export const PlanilhaMensalView: React.FC = () => {
             id: `diz_extra_${i}_${Date.now()}`,
             numero: i + 1,
             nome: '',
+            origem: congregacao || 'Sede',
             valor1: 0,
             valor2: 0,
             valor3: 0,
@@ -439,7 +442,7 @@ export const PlanilhaMensalView: React.FC = () => {
   // ========================================================
   const atualizarLinhaDizimo = (
     id: string,
-    campo: 'nome' | 'valor1' | 'valor2' | 'valor3',
+    campo: 'nome' | 'origem' | 'valor1' | 'valor2' | 'valor3',
     valorRaw: string,
   ) => {
     setLinhasDizimos((prev) =>
@@ -448,6 +451,10 @@ export const PlanilhaMensalView: React.FC = () => {
 
         if (campo === 'nome') {
           return { ...l, nome: valorRaw }
+        }
+
+        if (campo === 'origem') {
+          return { ...l, origem: valorRaw }
         }
 
         const numVal = parseMoedaInput(valorRaw)
@@ -472,6 +479,7 @@ export const PlanilhaMensalView: React.FC = () => {
         id: `diz_manual_${Date.now()}_${prev.length}`,
         numero: prev.length + 1,
         nome: '',
+        origem: congregacao || 'Sede',
         valor1: 0,
         valor2: 0,
         valor3: 0,
@@ -1087,7 +1095,8 @@ export const PlanilhaMensalView: React.FC = () => {
                     <thead className="sticky top-0 bg-[#F7F5F0] z-10 border-b border-[#E6E2D8]">
                       <tr className="text-[#1E3A5F] font-bold text-[11px]">
                         <th className="py-2 px-2 text-center w-10">Nº</th>
-                        <th className="py-2 px-3 min-w-[200px]">Nome do Dizimista</th>
+                        <th className="py-2 px-3 min-w-[170px]">Nome do Dizimista</th>
+                        <th className="py-2 px-2 w-32">Origem</th>
                         <th className="py-2 px-2 text-right w-24">R$ (1)</th>
                         <th className="py-2 px-2 text-right w-24">R$ (2)</th>
                         <th className="py-2 px-2 text-right w-24">R$ (3)</th>
@@ -1112,6 +1121,28 @@ export const PlanilhaMensalView: React.FC = () => {
                               placeholder="Nome do dizimista..."
                               className="h-8 text-xs border-slate-200 focus:border-[#C9A227] bg-white"
                             />
+                          </td>
+
+                          {/* Origem (Sede ou Congregação) */}
+                          <td className="py-1.5 px-2">
+                            <select
+                              value={linha.origem || congregacao || 'Sede'}
+                              onChange={(e) =>
+                                atualizarLinhaDizimo(linha.id, 'origem', e.target.value)
+                              }
+                              className={`h-8 w-full px-2 rounded-md border text-[11px] font-semibold ${
+                                (linha.origem || '').toLowerCase() === 'sede' || !linha.origem
+                                  ? 'bg-slate-50 text-slate-700 border-slate-200'
+                                  : 'bg-amber-50 text-amber-900 border-amber-300'
+                              }`}
+                              title="Origem do lançamento (Sede ou Congregação)"
+                            >
+                              {(nomesCongregacoes || ['Sede']).map((c) => (
+                                <option key={c} value={c}>
+                                  {c === 'Sede' ? 'Sede' : `Congregação ${c}`}
+                                </option>
+                              ))}
+                            </select>
                           </td>
 
                           {/* Valor 1 */}
@@ -1177,7 +1208,7 @@ export const PlanilhaMensalView: React.FC = () => {
                     </tbody>
                     <tfoot className="border-t-2 border-[#1E3A5F] bg-[#F7F5F0] font-bold">
                       <tr>
-                        <td colSpan={5} className="py-2.5 px-3 text-right text-xs text-[#1E3A5F]">
+                        <td colSpan={6} className="py-2.5 px-3 text-right text-xs text-[#1E3A5F]">
                           <div className="flex items-center justify-end gap-2">
                             {totalDizimosManual !== null && (
                               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">

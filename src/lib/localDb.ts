@@ -41,6 +41,7 @@ export const LOCAL_COLLECTIONS = [
   'cartas_recebidas',
   'solicitacoes_cadastro',
   'congregacoes',
+  'financeiro_congregacoes',
   'planilhas_mensais',
   'modelos_documentos',
   'metadata',

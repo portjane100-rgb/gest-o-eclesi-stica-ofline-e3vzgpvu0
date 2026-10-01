@@ -18,22 +18,24 @@ import {
 import {
   Church,
   Plus,
-  Edit2,
-  Trash2,
+  Search,
+  Building2,
   MapPin,
   Clock,
   UserCheck,
-  Search,
-  Building2,
+  Edit2,
+  Trash2,
   ArrowUpDown,
   Loader2,
   AlertTriangle,
+  DollarSign,
 } from 'lucide-react'
-
+import { FinanceiroCongregacoes } from '@/components/FinanceiroCongregacoes'
 export const AdminCongregacoes: React.FC = () => {
   const { toast } = useToast()
   const { congregacoes, loading, reload } = useCongregacoes()
 
+  const [abaAtiva, setAbaAtiva] = useState<'unidades' | 'financeiro'>('unidades')
   const [busca, setBusca] = useState('')
   const [modalAberto, setModalAberto] = useState(false)
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false)
@@ -253,170 +255,212 @@ export const AdminCongregacoes: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          onClick={abrirModalNovo}
-          className="bg-[#1E3A5F] hover:bg-[#16304F] text-white font-bold text-xs gap-2 shadow-sm self-start sm:self-auto"
+        {abaAtiva === 'unidades' && (
+          <Button
+            onClick={abrirModalNovo}
+            className="bg-[#1E3A5F] hover:bg-[#16304F] text-white font-bold text-xs gap-2 shadow-sm self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4 text-[#C9A227]" />
+            Nova Congregação / Unidade
+          </Button>
+        )}
+      </div>
+
+      {/* ABAS: CADASTRO DE UNIDADES vs FINANCEIRO POR CONGREGAÇÃO */}
+      <div className="flex border-b border-[#E6E2D8] gap-2">
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('unidades')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition ${
+            abaAtiva === 'unidades'
+              ? 'border-[#C9A227] text-[#1E3A5F] bg-white rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
         >
-          <Plus className="w-4 h-4 text-[#C9A227]" />
-          Nova Congregação / Unidade
-        </Button>
-      </div>
-
-      {/* Barra de Busca e Métricas */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            type="text"
-            placeholder="Buscar por nome, bairro, cidade ou dirigente..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            className="pl-9 h-10 bg-white border-[#E6E2D8] text-xs sm:text-sm rounded-xl"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 text-xs text-slate-600 bg-white px-3 py-2 rounded-xl border border-[#E6E2D8]">
           <Building2 className="w-4 h-4 text-[#C9A227]" />
-          <span>
-            Total cadastrado: <strong>{congregacoes.length}</strong>{' '}
-            {congregacoes.length === 1 ? 'unidade' : 'unidades'}
-          </span>
-        </div>
+          Unidades Cadastradas ({congregacoes.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('financeiro')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition ${
+            abaAtiva === 'financeiro'
+              ? 'border-[#C9A227] text-[#1E3A5F] bg-white rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <DollarSign className="w-4 h-4 text-[#C9A227]" />
+          Financeiro por Congregação (Entradas, Saídas e Repasse)
+        </button>
       </div>
 
-      {/* Conteúdo: Lista / Cards */}
-      {loading ? (
-        <div className="p-12 text-center bg-white rounded-2xl border border-[#E6E2D8] flex flex-col items-center justify-center gap-3">
-          <Loader2 className="w-6 h-6 animate-spin text-[#C9A227]" />
-          <span className="text-xs text-slate-500">Carregando congregações do banco local...</span>
-        </div>
-      ) : listaFiltrada.length === 0 ? (
-        <Card className="border-[#E6E2D8] bg-white rounded-2xl">
-          <CardContent className="p-10 text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 text-[#C9A227] flex items-center justify-center mx-auto">
-              <Church className="w-7 h-7" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-serif font-bold text-base text-[#1E3A5F]">
-                {busca ? 'Nenhuma congregação encontrada' : 'Nenhuma congregação cadastrada'}
-              </h3>
-              <p className="text-xs text-[#5A5A5A] max-w-md mx-auto">
-                {busca
-                  ? 'Nenhum resultado corresponde aos termos da pesquisa.'
-                  : 'Comece adicionando a Sede ou congregações/filiais da sua igreja. O sistema é 100% dinâmico.'}
-              </p>
-            </div>
-            {!busca && (
-              <Button
-                onClick={abrirModalNovo}
-                className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-bold gap-2"
-              >
-                <Plus className="w-4 h-4 text-[#C9A227]" />
-                Cadastrar Primeira Unidade
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+      {abaAtiva === 'financeiro' ? (
+        <FinanceiroCongregacoes />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {listaFiltrada.map((item) => {
-            const dirigenteNome = item.dirigenteGeral || item.dirigente_geral || ''
-            const cultos = item.diasCulto || item.dias_culto || ''
-            const localizacao = [item.endereco, item.bairro, item.cidade].filter(Boolean).join(', ')
+        <>
+          {/* Barra de Busca e Métricas */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                type="text"
+                placeholder="Buscar por nome, bairro, cidade ou dirigente..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="pl-9 h-10 bg-white border-[#E6E2D8] text-xs sm:text-sm rounded-xl"
+              />
+            </div>
 
-            return (
-              <Card
-                key={item.id}
-                className="border-[#E6E2D8] bg-white rounded-2xl shadow-xs hover:border-[#C9A227]/50 transition-all flex flex-col justify-between overflow-hidden"
-              >
-                <div>
-                  <div className="p-4 sm:p-5 pb-3 border-b border-[#F0ECE1] bg-[#F7F5F0]/60 flex items-start justify-between gap-3">
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className="font-mono text-[10px] bg-white text-slate-700 border-[#E6E2D8]"
-                        >
-                          #{item.ordem ?? 1}
-                        </Badge>
-                        {item.ativo === false && (
-                          <Badge className="bg-slate-200 text-slate-700 text-[10px]">Inativa</Badge>
-                        )}
-                      </div>
-                      <h3 className="font-serif text-lg font-bold text-[#1E3A5F] truncate">
-                        {item.nome}
-                      </h3>
-                    </div>
+            <div className="flex items-center gap-2 text-xs text-slate-600 bg-white px-3 py-2 rounded-xl border border-[#E6E2D8]">
+              <Building2 className="w-4 h-4 text-[#C9A227]" />
+              <span>
+                Total cadastrado: <strong>{congregacoes.length}</strong>{' '}
+                {congregacoes.length === 1 ? 'unidade' : 'unidades'}
+              </span>
+            </div>
+          </div>
 
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => abrirModalEditar(item)}
-                        className="h-8 w-8 p-0 text-slate-600 hover:text-[#1E3A5F] hover:bg-white"
-                        title="Editar congregação"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => abrirModalExcluir(item)}
-                        className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
-                        title="Excluir congregação"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <CardContent className="p-4 sm:p-5 space-y-3 text-xs text-slate-600">
-                    {localizacao ? (
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-3.5 h-3.5 text-[#C9A227] flex-shrink-0 mt-0.5" />
-                        <span className="line-clamp-2">{localizacao}</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-slate-400 italic">
-                        <MapPin className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
-                        <span>Endereço não informado</span>
-                      </div>
-                    )}
-
-                    {dirigenteNome ? (
-                      <div className="flex items-center gap-2">
-                        <UserCheck className="w-3.5 h-3.5 text-[#C9A227] flex-shrink-0" />
-                        <span className="truncate">
-                          <strong>Liderança:</strong> {dirigenteNome}
-                        </span>
-                      </div>
-                    ) : null}
-
-                    {cultos ? (
-                      <div className="flex items-start gap-2">
-                        <Clock className="w-3.5 h-3.5 text-[#C9A227] flex-shrink-0 mt-0.5" />
-                        <span className="line-clamp-2">
-                          <strong>Cultos:</strong> {cultos}
-                        </span>
-                      </div>
-                    ) : null}
-                  </CardContent>
+          {/* Conteúdo: Lista / Cards */}
+          {loading ? (
+            <div className="p-12 text-center bg-white rounded-2xl border border-[#E6E2D8] flex flex-col items-center justify-center gap-3">
+              <Loader2 className="w-6 h-6 animate-spin text-[#C9A227]" />
+              <span className="text-xs text-slate-500">
+                Carregando congregações do banco local...
+              </span>
+            </div>
+          ) : listaFiltrada.length === 0 ? (
+            <Card className="border-[#E6E2D8] bg-white rounded-2xl">
+              <CardContent className="p-10 text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 text-[#C9A227] flex items-center justify-center mx-auto">
+                  <Church className="w-7 h-7" />
                 </div>
-
-                <div className="p-3 bg-[#F7F5F0]/40 border-t border-[#F0ECE1] flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Cadastrada no banco local</span>
-                  <button
-                    type="button"
-                    onClick={() => abrirModalEditar(item)}
-                    className="text-[#1E3A5F] font-semibold hover:underline"
+                <div className="space-y-1">
+                  <h3 className="font-serif font-bold text-base text-[#1E3A5F]">
+                    {busca ? 'Nenhuma congregação encontrada' : 'Nenhuma congregação cadastrada'}
+                  </h3>
+                  <p className="text-xs text-[#5A5A5A] max-w-md mx-auto">
+                    {busca
+                      ? 'Nenhum resultado corresponde aos termos da pesquisa.'
+                      : 'Comece adicionando a Sede ou congregações/filiais da sua igreja. O sistema é 100% dinâmico.'}
+                  </p>
+                </div>
+                {!busca && (
+                  <Button
+                    onClick={abrirModalNovo}
+                    className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-bold gap-2"
                   >
-                    Editar detalhes →
-                  </button>
-                </div>
-              </Card>
-            )
-          })}
-        </div>
+                    <Plus className="w-4 h-4 text-[#C9A227]" />
+                    Cadastrar Primeira Unidade
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {listaFiltrada.map((item) => {
+                const dirigenteNome = item.dirigenteGeral || item.dirigente_geral || ''
+                const cultos = item.diasCulto || item.dias_culto || ''
+                const localizacao = [item.endereco, item.bairro, item.cidade]
+                  .filter(Boolean)
+                  .join(', ')
+
+                return (
+                  <Card
+                    key={item.id}
+                    className="border-[#E6E2D8] bg-white rounded-2xl shadow-xs hover:border-[#C9A227]/50 transition-all flex flex-col justify-between overflow-hidden"
+                  >
+                    <div>
+                      <div className="p-4 sm:p-5 pb-3 border-b border-[#F0ECE1] bg-[#F7F5F0]/60 flex items-start justify-between gap-3">
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className="font-mono text-[10px] bg-white text-slate-700 border-[#E6E2D8]"
+                            >
+                              #{item.ordem ?? 1}
+                            </Badge>
+                            {item.ativo === false && (
+                              <Badge className="bg-slate-200 text-slate-700 text-[10px]">
+                                Inativa
+                              </Badge>
+                            )}
+                          </div>
+                          <h3 className="font-serif text-lg font-bold text-[#1E3A5F] truncate">
+                            {item.nome}
+                          </h3>
+                        </div>
+
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => abrirModalEditar(item)}
+                            className="h-8 w-8 p-0 text-slate-600 hover:text-[#1E3A5F] hover:bg-white"
+                            title="Editar congregação"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => abrirModalExcluir(item)}
+                            className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50"
+                            title="Excluir congregação"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <CardContent className="p-4 sm:p-5 space-y-3 text-xs text-slate-600">
+                        {localizacao ? (
+                          <div className="flex items-start gap-2">
+                            <MapPin className="w-3.5 h-3.5 text-[#C9A227] flex-shrink-0 mt-0.5" />
+                            <span className="line-clamp-2">{localizacao}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-slate-400 italic">
+                            <MapPin className="w-3.5 h-3.5 text-slate-300 flex-shrink-0" />
+                            <span>Endereço não informado</span>
+                          </div>
+                        )}
+
+                        {dirigenteNome ? (
+                          <div className="flex items-center gap-2">
+                            <UserCheck className="w-3.5 h-3.5 text-[#C9A227] flex-shrink-0" />
+                            <span className="truncate">
+                              <strong>Liderança:</strong> {dirigenteNome}
+                            </span>
+                          </div>
+                        ) : null}
+
+                        {cultos ? (
+                          <div className="flex items-start gap-2">
+                            <Clock className="w-3.5 h-3.5 text-[#C9A227] flex-shrink-0 mt-0.5" />
+                            <span className="line-clamp-2">
+                              <strong>Cultos:</strong> {cultos}
+                            </span>
+                          </div>
+                        ) : null}
+                      </CardContent>
+                    </div>
+
+                    <div className="p-3 bg-[#F7F5F0]/40 border-t border-[#F0ECE1] flex items-center justify-between text-[11px] text-slate-500">
+                      <span>Cadastrada no banco local</span>
+                      <button
+                        type="button"
+                        onClick={() => abrirModalEditar(item)}
+                        className="text-[#1E3A5F] font-semibold hover:underline"
+                      >
+                        Editar detalhes →
+                      </button>
+                    </div>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* Modal Criar / Editar Congregação */}
