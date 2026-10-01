@@ -15,6 +15,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 import { useToast } from '@/hooks/use-toast'
 import { compressImage } from '@/lib/imageCompressor'
+import { isOfflineOnly } from '@/lib/offlineMode'
+import { fileToDataUrl } from '@/lib/dataClient'
+import { localDb } from '@/lib/localDb'
 import {
   Store,
   Palette,

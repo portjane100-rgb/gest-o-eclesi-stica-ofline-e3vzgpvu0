@@ -262,19 +262,26 @@ export function gerarPacoteZip() {
 
   console.log(`[ZIP BUILDER] Verificando arquivos para empacotar em ${zipName}...`)
 
-  let sourceDir = distDir
-  if (!fs.existsSync(distDir) || fs.readdirSync(distDir).length === 0) {
+  const devDistDir = path.resolve(cwd, 'dev-dist')
+  let effectiveDistDir = fs.existsSync(distDir) && fs.readdirSync(distDir).length > 0 ? distDir : null
+  if (!effectiveDistDir && fs.existsSync(devDistDir) && fs.readdirSync(devDistDir).length > 0) {
+    effectiveDistDir = devDistDir
+  }
+
+  let sourceDir = effectiveDistDir || publicDir
+  if (!effectiveDistDir) {
     console.log('[ZIP BUILDER] dist/ ainda não existe, empacotando arquivos de public/...')
-    sourceDir = publicDir
+  } else {
+    console.log(`[ZIP BUILDER] Usando diretório de build: ${sourceDir}`)
   }
 
   // 1. Tentar gerar o index.html auto-contido / standalone
   let standaloneHtml = null
-  if (fs.existsSync(path.join(distDir, 'index.html'))) {
+  if (effectiveDistDir && fs.existsSync(path.join(effectiveDistDir, 'index.html'))) {
     console.log(
       '[ZIP BUILDER] Gerando index.html auto-contido (inline JS/CSS) para execução em file://...',
     )
-    standaloneHtml = buildStandaloneHtml(distDir)
+    standaloneHtml = buildStandaloneHtml(effectiveDistDir)
   }
 
   const arquivos = coletarArquivos(sourceDir)
@@ -283,8 +290,14 @@ export function gerarPacoteZip() {
     return
   }
 
-  // Garantir scripts .bat, .command e LEIA-ME atualizados de public caso não estejam no dist
-  const arquivosObrigatorios = ['ABRIR_SISTEMA.bat', 'ABRIR_SISTEMA.command', 'LEIA-ME.txt']
+  // Garantir scripts .bat, .command, LEIA-ME, INSTALAR.bat e favicon atualizados de public caso não estejam no dist
+  const arquivosObrigatorios = [
+    'ABRIR_SISTEMA.bat',
+    'INSTALAR.bat',
+    'ABRIR_SISTEMA.command',
+    'LEIA-ME.txt',
+    'favicon.ico',
+  ]
   for (const arq of arquivosObrigatorios) {
     const arqPublic = path.join(publicDir, arq)
     if (fs.existsSync(arqPublic) && !arquivos.some((a) => a.relativePath === arq)) {
@@ -323,8 +336,9 @@ export function gerarPacoteZip() {
   // Salvar em public/ (para que o Vite copie para dist durante o build ou sirva em dev)
   const targetPublic = path.join(publicDir, zipName)
   fs.writeFileSync(targetPublic, zipBuf)
+  const statPublic = fs.statSync(targetPublic)
   console.log(
-    `[ZIP BUILDER] Criado com sucesso em: ${targetPublic} (${(zipBuf.length / (1024 * 1024)).toFixed(2)} MB)`,
+    `[ZIP BUILDER] Criado e gravado com sucesso em: ${targetPublic} (${statPublic.size} bytes / ${(statPublic.size / (1024 * 1024)).toFixed(2)} MB)`,
   )
 
   if (fs.existsSync(distDir)) {

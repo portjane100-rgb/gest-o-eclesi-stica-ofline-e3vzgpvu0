@@ -2,8 +2,6 @@ import { useEffect, useRef } from 'react'
 import type { RecordModel, RecordSubscription } from 'pocketbase'
 
 import pb from '@/lib/pocketbase/client'
-import { isOfflineOnly } from '@/lib/offlineMode'
-import { localDb } from '@/lib/localDb'
 
 /**
  * Hook for real-time subscriptions to a PocketBase collection.
@@ -25,19 +23,6 @@ export function useRealtime<TRecord extends RecordModel = RecordModel>(
 
   useEffect(() => {
     if (!enabled) return
-
-    // Em modo 100% Offline (file:// ou pacote PC), escuta eventos locais do IndexedDB
-    // sem tentar abrir SSE / WebSocket com a nuvem PocketBase
-    if (isOfflineOnly()) {
-      const unsub = localDb.subscribe((collection, action, record) => {
-        if (collection === collectionName) {
-          callbackRef.current({ action, record } as any)
-        }
-      })
-      return () => {
-        unsub()
-      }
-    }
 
     let unsubscribeFn: (() => Promise<void>) | undefined
     let cancelled = false

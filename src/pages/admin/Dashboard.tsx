@@ -142,14 +142,18 @@ export const Dashboard: React.FC = () => {
   // Carregamento geral do Dashboard
   const loadDashboardData = async () => {
     try {
-      const [todosMembros, todosCongregados, obreirosAtivos, todosDizimistas, eventosRes] =
+      const [todosMembros, todosCongregados, obreirosRes, todosDizimistas, eventosRes] =
         await Promise.all([
           getItems<Membro>('membros'),
           getItems<Congregado>('congregados'),
-          getItems<Obreiro>('obreiros', { filter: "status='Ativo'" }),
+          getItems<Obreiro>('obreiros'),
           getItems<Dizimista>('dizimistas'),
           getItems<CalendarioEvento>('calendario', { sort: 'data_inicio' }),
         ])
+
+      const obreirosAtivos = obreirosRes.filter((ob) =>
+        (ob.status || 'Ativo').toLowerCase().includes('ativo'),
+      )
 
       // Membros ativos
       const membrosAtivos = todosMembros.filter((m) => {
