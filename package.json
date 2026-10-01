@@ -15,7 +15,8 @@
     "format:check": "oxfmt --check",
     "preview": "vite preview",
     "package:zip": "node scripts/generate-pc-zip.mjs",
-    "test": "echo \"there are no tests for this project\" && exit 0",
+    "build:package": "vite build && node scripts/generate-pc-zip.mjs && node scripts/check-zip.mjs && node scripts/verify-zip-contents.mjs && node scripts/inspect-zip-evidence.mjs",
+    "test": "node scripts/check-zip.mjs && node scripts/verify-zip-contents.mjs && node scripts/inspect-zip-evidence.mjs",
     "test:watch": "echo \"there are no tests for this project\" && exit 0"
   },
   "dependencies": {

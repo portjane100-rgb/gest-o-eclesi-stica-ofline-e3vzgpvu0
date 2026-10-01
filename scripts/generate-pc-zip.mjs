@@ -360,6 +360,31 @@ export function gerarPacoteZip() {
     }
   }
 
+  // Gravar arquivo de metadados do pacote (versão do app e timestamp)
+  let packageVersion = '0.0.28'
+  try {
+    const pkgJson = JSON.parse(fs.readFileSync(path.resolve(cwd, 'package.json'), 'utf-8'))
+    if (pkgJson.version) packageVersion = pkgJson.version
+  } catch {
+    /* ignore */
+  }
+
+  const infoPacote = JSON.stringify(
+    {
+      app: 'Gestão Eclesiástica',
+      version: packageVersion,
+      buildTimestamp: new Date().toISOString(),
+      offlineOnly: true,
+      filesCount: arquivosNoZip.length,
+    },
+    null,
+    2,
+  )
+  arquivosNoZip.push({
+    relativePath: pastaRaiz + 'versao-pacote.json',
+    content: Buffer.from(infoPacote, 'utf-8'),
+  })
+
   const zipBuf = buildZipBuffer(arquivosNoZip)
 
   // Salvar em public/ (para que o Vite copie para dist durante o build ou sirva em dev)

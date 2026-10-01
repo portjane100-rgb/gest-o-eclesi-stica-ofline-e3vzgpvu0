@@ -63,3 +63,35 @@ if (missing.length > 0) {
 } else {
   console.log('[ZIP VERIFY] Todos os arquivos obrigatórios estão presentes com sucesso!')
 }
+
+// Extrair e inspecionar o index.html contido no ZIP para confirmar compilação real (não public/ cru)
+let indexOffset = -1
+let indexCompressedSize = 0
+let indexUncompressedSize = 0
+let pEntry = cdOffset
+for (let i = 0; i < totalEntries; i++) {
+  const nameLen = buf.readUInt16LE(pEntry + 28)
+  const extraLen = buf.readUInt16LE(pEntry + 30)
+  const commentLen = buf.readUInt16LE(pEntry + 32)
+  const cSize = buf.readUInt32LE(pEntry + 20)
+  const uSize = buf.readUInt32LE(pEntry + 24)
+  const offset = buf.readUInt32LE(pEntry + 42)
+  const name = buf.toString('utf-8', pEntry + 46, pEntry + 46 + nameLen)
+  if (name === 'Gestao_Eclesiastica_PC/index.html') {
+    indexOffset = offset
+    indexCompressedSize = cSize
+    indexUncompressedSize = uSize
+    break
+  }
+  pEntry += 46 + nameLen + extraLen + commentLen
+}
+
+if (indexOffset !== -1) {
+  console.log(`[ZIP VERIFY] index.html tamanho descomprimido: ${indexUncompressedSize} bytes`)
+  if (indexUncompressedSize < 5000) {
+    console.error(
+      '[ZIP VERIFY] ERRO: index.html é pequeno demais, parece arquivo cru sem build inlined!',
+    )
+    process.exit(1)
+  }
+}

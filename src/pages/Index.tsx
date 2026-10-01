@@ -134,9 +134,7 @@ export const Index: React.FC = () => {
     config.homeHeroSubtitle ||
       'Um lugar de adoração, comunhão fraternal e proclamação da genuína Palavra de Deus para toda a família.',
   )
-  const [heroEndereco, setHeroEndereco] = useState(
-    config.homeHeroEndereco || 'Sede da Igreja',
-  )
+  const [heroEndereco, setHeroEndereco] = useState(config.homeHeroEndereco || 'Sede da Igreja')
   const [pixBannerVerso, setPixBannerVerso] = useState(
     '"Cada um dê conforme determinou em seu coração, não com tristeza ou por obrigação, pois Deus ama quem dá com alegria." (2 Co 9:7).',
   )
@@ -484,7 +482,8 @@ export const Index: React.FC = () => {
   }, [hojeNome])
 
   const handleCopyVersiculo = () => {
-    const texto = `📖 Reflexão Diária — ${config.churchName || 'Igreja'}\n\n"${versiculoDia.texto}"\n— ${versiculoDia.livro} ${versiculoDia.capitulo}:${versiculoDia.versiculo} (Almeida Revista e Corrigida - ARC)\n\n${versiculoDia.reflexao || ''}`
+    const churchTitle = (config as any).churchName || config.nomeIgreja || 'Igreja'
+    const texto = `📖 Reflexão Diária — ${churchTitle}\n\n"${versiculoDia.texto}"\n— ${versiculoDia.livro} ${versiculoDia.capitulo}:${versiculoDia.versiculo} (Almeida Revista e Corrigida - ARC)\n\n${versiculoDia.reflexao || ''}`
     navigator.clipboard.writeText(texto)
     setVersiculoCopiado(true)
     toast({
@@ -1038,7 +1037,10 @@ export const Index: React.FC = () => {
                                 )}
                               </div>
                               <p className="text-[11px] text-slate-500 truncate">
-                                {m.congregacao || config.churchName || 'Sede'}
+                                {m.congregacao ||
+                                  (config as any).churchName ||
+                                  config.nomeIgreja ||
+                                  'Sede'}
                               </p>
                             </div>
                           </div>

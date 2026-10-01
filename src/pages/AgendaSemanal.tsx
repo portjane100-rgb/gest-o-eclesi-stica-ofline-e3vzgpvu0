@@ -256,9 +256,7 @@ export const AgendaSemanal: React.FC = () => {
                   <p className="text-xs text-[#5A5A5A] flex items-center gap-1.5 mt-1">
                     <MapPin className="w-3.5 h-3.5 text-[#C9A227]" />
                     {congregacaoInfo?.endereco ||
-                      (unidade === 'Sede'
-                        ? 'Templo Sede'
-                        : `Campo congregacional da igreja`)}
+                      (unidade === 'Sede' ? 'Templo Sede' : `Campo congregacional da igreja`)}
                   </p>
                 </div>
 

@@ -774,7 +774,8 @@ export const KitImplantacaoSection: React.FC = () => {
 
               <p className="text-xs text-rose-950 leading-relaxed">
                 Ao clicar no botão de implantação, este sistema{' '}
-                <strong>APAGARÁ PERMANENTEMENTE</strong> todos os dados operacionais e registros anteriores nesta instância:
+                <strong>APAGARÁ PERMANENTEMENTE</strong> todos os dados operacionais e registros
+                anteriores nesta instância:
               </p>
 
               <ul className="text-[11px] text-rose-900 list-disc list-inside space-y-0.5 bg-white/70 p-3 rounded-lg border border-rose-200">

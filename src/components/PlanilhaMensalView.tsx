@@ -174,11 +174,13 @@ export const PlanilhaMensalView: React.FC = () => {
     const carregarConfigAssinaturas = async () => {
       try {
         const settings = await getChurchSettings()
-        if (settings.nomePastorPresidente) {
-          setNomePastor(settings.nomePastorPresidente)
+        const pastor = (settings as any).nomePastorPresidente || settings.nomePastor
+        if (pastor) {
+          setNomePastor(pastor)
         }
-        if (settings.assinaturaPastorUrl) {
-          setAssinaturaPastorUrl(settings.assinaturaPastorUrl)
+        const sig = (settings as any).assinaturaPastorUrl || null
+        if (sig) {
+          setAssinaturaPastorUrl(sig)
         }
       } catch {
         /* ignore */
