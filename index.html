@@ -8,8 +8,8 @@
     <meta name="theme-color" content="#1E3A5F" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="ADTC Desktop" />
-    <title>Gestão Eclesiástica — Versão Local</title>
+    <meta name="apple-mobile-web-app-title" content="Gestão Eclesiástica" />
+    <title>Gestão Eclesiástica — Versão Local Desktop</title>
     <meta
       name="description"
       content="Sistema integrado de gestão eclesiástica: membros, congregados, obreiros, dízimos, escalas e congregações."
@@ -34,7 +34,15 @@ Até que ele venha..."
   <body>
     <div id="root"></div>
     <!-- @skip-protected: Do not remove. Required for app features. -->
-    <script src="https://goskip.dev/skip.js"></script>
+    <script>
+      // No modo file:// ou sem internet, evita travar se o skip.js externo não carregar
+      if (window.location.protocol.startsWith('http')) {
+        var s = document.createElement('script');
+        s.src = 'https://goskip.dev/skip.js';
+        s.async = true;
+        document.body.appendChild(s);
+      }
+    </script>
     <!-- @skip-protected: Do not remove. App entrypoint. -->
     <script type="module" src="/src/main.tsx"></script>
   </body>

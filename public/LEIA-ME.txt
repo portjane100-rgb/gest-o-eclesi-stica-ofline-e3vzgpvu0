@@ -1,42 +1,79 @@
 ====================================================================
-           GESTÃO ECLESIÁSTICA — VERSÃO LOCAL VITALÍCIA (OFFLINE)
+           GESTÃO ECLESIÁSTICA — VERSÃO LOCAL DESKTOP (100% OFFLINE)
 ====================================================================
 
 Parabéns por adquirir o Sistema de Gestão Eclesiástica!
-Este software foi desenvolvido para funcionar 100% OFFLINE no computador da sua igreja, com banco de dados local seguro (IndexedDB), sem mensalidades e sem dependência de internet.
+Este software foi desenvolvido para funcionar 100% OFFLINE diretamente no computador da sua igreja, com banco de dados local seguro (IndexedDB), sem mensalidades, sem dependência de internet e com velocidade instantânea.
 
 --------------------------------------------------------------------
-1. COMO ABRIR E USAR NO COMPUTADOR
+1. COMO INSTALAR E ABRIR NO SEU COMPUTADOR
 --------------------------------------------------------------------
-- No Windows: dê DUPLO CLIQUE no arquivo "ABRIR_SISTEMA.bat".
-  (Ele abrirá uma janela limpa em modo aplicativo no Microsoft Edge ou Google Chrome).
-  Se preferir, você também pode dar duplo clique direto no arquivo "index.html".
+Passo 1: EXTRAIR O ARQUIVO ZIP
+  - Clique com o botão direito no arquivo ZIP baixado.
+  - Selecione "Extrair Tudo..." (ou "Extrair Aqui" com WinRAR/7-Zip).
+  - Escolha uma pasta segura no seu computador (por exemplo: C:\GestaoEclesiastica ou em Documentos/Área de Trabalho).
+  - IMPORTANTE: NÃO execute o sistema de dentro do arquivo ZIP sem extrair. Sempre extraia todos os arquivos antes de abrir.
 
-- No Mac (macOS): dê duplo clique no arquivo "ABRIR_SISTEMA.command" ou abra "index.html" no Google Chrome / Safari.
+Passo 2: ABRIR O SISTEMA
+  - NO WINDOWS:
+    Dê DUPLO CLIQUE no arquivo "ABRIR_SISTEMA.bat".
+    Ele abrirá uma janela limpa e dedicada em modo aplicativo (Edge ou Chrome), sem barra de navegação, parecendo um programa nativo instalado.
+    Alternativamente, você também pode dar duplo clique direto no arquivo "index.html".
 
-- Navegadores recomendados: Microsoft Edge ou Google Chrome (ambos possuem suporte completo e de alta performance ao banco de dados offline).
+  - NO MAC (macOS):
+    Dê duplo clique no arquivo "ABRIR_SISTEMA.command" ou abra o "index.html" no Google Chrome / Microsoft Edge.
+    (Caso o macOS bloqueie a execução do .command na primeira vez, vá em Preferências do Sistema > Segurança e Privacidade > Permitir).
+
+  - NAVEGADORES RECOMENDADOS:
+    Microsoft Edge ou Google Chrome (possuem o melhor suporte ao banco de dados offline IndexedDB e maior performance gráfica).
 
 --------------------------------------------------------------------
 2. PRIMEIRO ACESSO (CONFIGURAÇÃO INICIAL)
 --------------------------------------------------------------------
-- Ao abrir o sistema pela primeira vez, você verá a tela de "Configurar Administrador Geral".
-- Crie o seu Usuário (ex.: admin) e defina sua Senha segura.
-- Guarde essa senha com cuidado.
-- Uma vez cadastrado, você terá acesso total a todas as áreas: Membros, Congregados, Obreiros, Dízimos e Planilhas, Escalas, Calendário, Documentos Oficiais e Configurações.
+- Ao abrir o sistema pela primeira vez no seu computador, o banco de dados estará pronto para iniciar.
+- Na tela de boas-vindas, cadastre o seu Administrador Geral (Nome, Usuário e Senha).
+- Essa senha fica criptografada e gravada exclusivamente no navegador do seu computador.
+- Uma vez cadastrado, você terá acesso imediato e total a todos os módulos:
+  • Painel Geral (Dashboard com estatísticas e aniversariantes)
+  • Rol de Membros e Congregados (com foto, dados e impressão de carteirinhas)
+  • Corpo de Obreiros e Liderança
+  • Congregações / Unidades filiais
+  • Financeiro por Congregação (com controle de porcentagem do dirigente)
+  • Dizimistas e Ofertas
+  • Planilha Mensal Financeira com exportação para PDF (preenchida ou em branco)
+  • Escalas de Trabalho e Calendário de Eventos
+  • Emissão de Documentos e Certificados Oficiais
+  • Configurações completas da igreja (nome, logo, cores e personalização)
 
 --------------------------------------------------------------------
-3. IMPORTANTE: SEGURANÇA E BACKUP DOS SEUS DADOS
+3. SEGURANÇA E BACKUP REGULAR DOS SEUS DADOS (MUITO IMPORTANTE!)
 --------------------------------------------------------------------
-- Seus dados ficam salvos de forma 100% segura no banco de dados local (IndexedDB) do navegador deste computador. Nenhuma informação vai para a nuvem de terceiros.
-- ATENÇÃO: NÃO utilize opções como "Limpar dados de navegação / Limpar armazenamento de sites" do navegador, pois isso pode apagar o banco local.
-- RECOMENDAÇÃO DE OURO — FAÇA BACKUP REGULAR:
-  No menu "Configurações" -> seção "Backup e Restauração", clique no botão "Exportar Backup Completo (.adtcbackup)".
-  Salve esse arquivo semanalmente em um Pen Drive, HD externo ou pasta na nuvem (Google Drive, OneDrive).
-  Com esse arquivo, você nunca perde nada e pode restaurar todo o sistema com 1 clique caso troque de computador.
+- ONDE FICAM OS DADOS?
+  Todos os dados ficam armazenados de forma 100% segura no banco local (IndexedDB) do navegador deste computador.
+  Nenhuma informação da sua igreja sai do seu PC ou vai para a nuvem de terceiros.
+
+- CUIDADO COM LIMPEZA DE NAVEGADOR:
+  Evite usar ferramentas automáticas como CCleaner ou selecionar a opção "Limpar todos os dados de sites / cookies / armazenamento" nas configurações do navegador, pois isso pode apagar o banco local.
+
+- RECOMENDAÇÃO DE OURO — FAÇA BACKUP SEMANAL:
+  1. No menu lateral, acesse "Configurações".
+  2. Na seção "Backup e Restauração", clique no botão "Exportar Backup Completo".
+  3. Salve o arquivo gerado (.json ou .adtcbackup) em um Pen Drive, HD externo ou pasta de nuvem particular (Google Drive, OneDrive, etc.).
+  4. Com esse backup, caso você troque de computador ou formate a máquina, basta entrar em "Configurações" > "Restaurar Dados" e carregar o arquivo: tudo volta instantaneamente!
 
 --------------------------------------------------------------------
-4. SUPORTE E DÚVIDAS
+4. PREPARAR PARA NOVO CLIENTE / MODO REVENDA
 --------------------------------------------------------------------
-Em caso de dúvidas sobre o uso ou necessidade de auxílio, consulte os modelos e o guia incluído no painel de Configurações do sistema.
+Se você adquiriu a licença para revenda e implantação em outras congregações:
+- Acesse "Configurações" > "Modo Revenda" para alterar em tempo real o nome da igreja, a logo, as cores primárias/destaque e os rótulos litúrgicos.
+- Use a opção "Preparar para Novo Cliente" para zerar os dados operacionais antigos com total segurança e entregar uma cópia limpa e personalizada para a congregação compradora.
 
-Deus abençoe grandemente a sua congregação e ministério!
+--------------------------------------------------------------------
+5. SUPORTE E CONTATO
+--------------------------------------------------------------------
+Em caso de dúvidas sobre a instalação ou utilização:
+- Consulte as instruções na aba "Configurações" do próprio sistema.
+- Todos os relatórios e carteirinhas podem ser impressos em PDF em qualquer impressora instalada no Windows ou Mac.
+
+Desejamos muito sucesso na gestão e no ministério da sua igreja!
+Que este sistema seja uma ferramenta de grande bênção para a obra do Senhor.
