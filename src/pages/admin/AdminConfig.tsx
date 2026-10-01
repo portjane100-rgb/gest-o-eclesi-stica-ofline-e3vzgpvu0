@@ -169,9 +169,7 @@ export const AdminConfig: React.FC = () => {
   const fetchPerfisUsers = async () => {
     setIsLoadingPerfis(true)
     try {
-      const records = await pb.collection('users').getFullList<any>({
-        sort: 'created',
-      })
+      const records = await localDb.getFullList<any>('users')
       const filtered: PerfilUserRecord[] = records
         .filter((r) => r.email !== 'assistente@adtc.local' && r.name !== 'Visitante Assistente')
         .map((r) => ({
@@ -204,7 +202,7 @@ export const AdminConfig: React.FC = () => {
   useEffect(() => {
     const fetchConfiguracoes = async () => {
       try {
-        const records = await pb.collection('configuracoes').getFullList<Configuracao>()
+        const records = await localDb.getFullList<Configuracao>('configuracoes')
         records.forEach((conf) => {
           if (conf.chave === 'lideranca_nome_pastor' && conf.valor) setNomePastor(conf.valor)
           if (conf.chave === 'lideranca_cargo_pastor' && conf.valor) setCargoPastor(conf.valor)
@@ -226,12 +224,17 @@ export const AdminConfig: React.FC = () => {
 
   const saveConfigChave = async (chave: string, valor: string) => {
     try {
-      const existing = await pb
-        .collection('configuracoes')
-        .getFirstListItem<Configuracao>(`chave='${chave}'`)
-      await pb.collection('configuracoes').update(existing.id, { valor })
-    } catch {
-      await pb.collection('configuracoes').create({ chave, valor })
+      const existing = await localDb.findFirst<Configuracao>(
+        'configuracoes',
+        (c) => c.chave === chave,
+      )
+      if (existing) {
+        await localDb.update('configuracoes', existing.id, { valor } as any)
+      } else {
+        await localDb.create('configuracoes', { chave, valor } as any)
+      }
+    } catch (err) {
+      console.warn('Erro ao salvar configuração local:', err)
     }
   }
 

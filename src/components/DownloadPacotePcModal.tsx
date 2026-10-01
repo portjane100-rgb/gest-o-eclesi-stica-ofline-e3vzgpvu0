@@ -48,29 +48,25 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
     try {
       // 1. Tentar primeiro baixar o arquivo pré-gerado /Gestao_Eclesiastica_Versao_PC.zip
       // que está na raiz de public/dist
-      let achouArquivo = false
+      let baixouEstatico = false
       try {
-        const resp = await fetch(`./${nomeArquivoZip}`, { method: 'HEAD' })
+        // Verifica se consegue dar fetch no arquivo estático
+        const resp = await fetch(`./${nomeArquivoZip}`)
         if (resp.ok) {
-          achouArquivo = true
+          setProgressoPct(70)
+          setProgressoTexto('Baixando pacote (.zip)...')
+          const blob = await resp.blob()
+          if (blob && blob.size > 1000) {
+            dispararDownloadBlob(blob, nomeArquivoZip)
+            baixouEstatico = true
+          }
         }
       } catch (_) {
-        achouArquivo = false
+        baixouEstatico = false
       }
 
-      if (achouArquivo) {
-        setProgressoPct(70)
-        setProgressoTexto('Baixando pacote (.zip)...')
-        const a = document.createElement('a')
-        a.href = `./${nomeArquivoZip}`
-        a.download = nomeArquivoZip
-        document.body.appendChild(a)
-        a.click()
-        setTimeout(() => {
-          document.body.removeChild(a)
-        }, 1000)
-      } else {
-        // Fallback: se o arquivo estático não estiver pré-construído, constrói via client
+      if (!baixouEstatico) {
+        // Fallback: se o arquivo estático não estiver acessível, constrói via client
         setProgressoPct(40)
         setProgressoTexto('Montando arquivos do sistema offline...')
         const blob = await gerarPacoteZipNoCliente((msg, pct) => {

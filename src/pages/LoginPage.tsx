@@ -30,7 +30,6 @@ import {
   type MigrationProgress,
 } from '@/lib/migrationService'
 import { toast } from '@/hooks/use-toast'
-import AdtcLogo from '@/components/AdtcLogo'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
