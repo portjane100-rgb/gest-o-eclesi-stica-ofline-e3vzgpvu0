@@ -29,12 +29,16 @@ import {
   isMigrationAlreadyDone,
   type MigrationProgress,
 } from '@/lib/migrationService'
+import { isOfflineOnly } from '@/lib/offlineMode'
 import { toast } from '@/hooks/use-toast'
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate()
   const { user, login, createInitialAdmin, hasAnyUser, checkUsersExist, loadingAuth } = useAuth()
   const { config } = useChurchConfig()
+
+  // Detecta se está em modo 100% offline (file://, pacote PC ou flag injetada)
+  const [isOfflineEnvironment] = useState<boolean>(() => isOfflineOnly())
 
   // Estados de formulário
   const [identificador, setIdentificador] = useState('')
@@ -50,7 +54,7 @@ export const LoginPage: React.FC = () => {
   const [setupSenha, setSetupSenha] = useState('')
   const [setupConfirmarSenha, setSetupConfirmarSenha] = useState('')
 
-  // Estados de Migração de Dados
+  // Estados de Migração de Dados (usados apenas no modo nuvem/online)
   const [migrando, setMigrando] = useState(false)
   const [migrationStatus, setMigrationStatus] = useState<MigrationProgress | null>(null)
   const [migracaoJaFeita, setMigracaoJaFeita] = useState(true)
@@ -75,11 +79,15 @@ export const LoginPage: React.FC = () => {
       const exists = await checkUsersExist()
       setIsSetupMode(!exists)
 
-      const done = await isMigrationAlreadyDone()
-      setMigracaoJaFeita(done)
+      if (!isOfflineEnvironment) {
+        const done = await isMigrationAlreadyDone()
+        setMigracaoJaFeita(done)
+      } else {
+        setMigracaoJaFeita(true)
+      }
     }
     initCheck()
-  }, [checkUsersExist])
+  }, [checkUsersExist, isOfflineEnvironment])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -376,58 +384,60 @@ export const LoginPage: React.FC = () => {
               </form>
             )}
 
-            {/* Seção Opcional: Importar / Migrar dados atuais da nuvem */}
-            <div className="pt-3 border-t border-slate-100">
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-2">
-                <div className="flex items-center justify-between text-slate-700 font-medium">
-                  <span className="flex items-center gap-1.5">
-                    <DownloadCloud className="h-4 w-4 text-[#1E3A5F]" />
-                    Migrar Dados da Nuvem
-                  </span>
-                  {migracaoJaFeita && (
-                    <span className="flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      Sincronizado
+            {/* Seção Opcional de Migração de Dados: Ocultada 100% no pacote PC / modo offline */}
+            {!isOfflineEnvironment && (
+              <div className="pt-3 border-t border-slate-100">
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-2">
+                  <div className="flex items-center justify-between text-slate-700 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <DownloadCloud className="h-4 w-4 text-[#1E3A5F]" />
+                      Migrar Dados da Nuvem
                     </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-500 leading-normal">
-                  Transfere todos os membros, dízimos, obreiros, patrimônio e configurações para o
-                  banco local deste computador.
-                </p>
-
-                {migrando && migrationStatus && (
-                  <div className="space-y-1 py-1">
-                    <div className="flex justify-between text-[11px] text-slate-600 font-mono">
-                      <span>Importando: {migrationStatus.collection}</span>
-                      <span>{migrationStatus.percent}%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="bg-[#1E3A5F] h-full transition-all duration-300"
-                        style={{ width: `${migrationStatus.percent}%` }}
-                      />
-                    </div>
+                    {migracaoJaFeita && (
+                      <span className="flex items-center gap-1 text-[11px] text-emerald-700 font-medium">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                        Sincronizado
+                      </span>
+                    )}
                   </div>
-                )}
+                  <p className="text-[11px] text-slate-500 leading-normal">
+                    Transfere todos os membros, dízimos, obreiros, patrimônio e configurações para o
+                    banco local deste computador.
+                  </p>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExecutarMigracao}
-                  disabled={migrando}
-                  className="w-full text-xs h-8 text-slate-700 border-slate-300 hover:bg-white"
-                >
-                  {migrando ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                  ) : (
-                    <DownloadCloud className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+                  {migrando && migrationStatus && (
+                    <div className="space-y-1 py-1">
+                      <div className="flex justify-between text-[11px] text-slate-600 font-mono">
+                        <span>Importando: {migrationStatus.collection}</span>
+                        <span>{migrationStatus.percent}%</span>
+                      </div>
+                      <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="bg-[#1E3A5F] h-full transition-all duration-300"
+                          style={{ width: `${migrationStatus.percent}%` }}
+                        />
+                      </div>
+                    </div>
                   )}
-                  {migracaoJaFeita ? 'Reimportar Dados da Nuvem' : 'Importar Dados Agora'}
-                </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExecutarMigracao}
+                    disabled={migrando}
+                    className="w-full text-xs h-8 text-slate-700 border-slate-300 hover:bg-white"
+                  >
+                    {migrando ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                    ) : (
+                      <DownloadCloud className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+                    )}
+                    {migracaoJaFeita ? 'Reimportar Dados da Nuvem' : 'Importar Dados Agora'}
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

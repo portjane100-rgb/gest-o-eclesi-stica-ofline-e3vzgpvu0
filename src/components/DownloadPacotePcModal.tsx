@@ -38,7 +38,7 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
   open,
   onOpenChange,
 }) => {
-  const [baixando, setBaixando] = useState(false)
+  const [gerandoFallback, setGerandoFallback] = useState(false)
   const [progressoTexto, setProgressoTexto] = useState('')
   const [progressoPct, setProgressoPct] = useState(0)
   const [downloadConcluido, setDownloadConcluido] = useState(false)
@@ -46,97 +46,45 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
   const nomeArquivoZip = 'Gestao_Eclesiastica_Versao_PC.zip'
   const urlDownloadDireto = getStaticAssetUrl(nomeArquivoZip)
 
-  const handleDownload = async () => {
-    setBaixando(true)
+  // Disparo nativo síncrono registrado no clique do usuário
+  const handleAvisoDownloadNativo = () => {
+    setDownloadConcluido(true)
+    toast({
+      title: 'Download iniciado!',
+      description: `O arquivo ${nomeArquivoZip} foi enviado para a sua pasta de downloads.`,
+    })
+  }
+
+  // Fallback manual apenas se o usuário optar por gerar no navegador
+  const handleFallbackGerarNoCliente = async () => {
+    setGerandoFallback(true)
     setDownloadConcluido(false)
-    setProgressoPct(20)
-    setProgressoTexto('Iniciando download do pacote...')
+    setProgressoPct(10)
+    setProgressoTexto('Iniciando montagem do pacote no navegador...')
 
     try {
-      // 1. Caminho principal exigido: tentar download REAL e direto do arquivo estático
-      // Gestao_Eclesiastica_Versao_PC.zip via âncora HTML nativa (respeitando base de preview/iframe)
-      setProgressoPct(60)
-      setProgressoTexto('Baixando pacote estático (.zip)...')
-
-      // Checa se o arquivo estático está acessível
-      let staticOk = false
-      try {
-        const resp = await fetch(urlDownloadDireto, { method: 'HEAD' })
-        if (resp.ok) {
-          const contentType = resp.headers.get('content-type') || ''
-          // Garante que não é um HTML retornado por fallback SPA de 404
-          if (!contentType.includes('text/html')) {
-            staticOk = true
-          }
-        }
-      } catch {
-        // se HEAD falhar (CORS/rede), prossegue tentando direto
-      }
-
-      // Dispara download via âncora nativa direta
-      const disparou = dispararDownloadUrl(urlDownloadDireto, nomeArquivoZip)
-
-      if (disparou && staticOk) {
-        setProgressoPct(100)
-        setProgressoTexto('Download iniciado!')
-        setDownloadConcluido(true)
-        toast({
-          title: 'Download iniciado!',
-          description: `O arquivo ${nomeArquivoZip} foi baixado diretamente.`,
-        })
-        return
-      }
-
-      // Se static não foi garantido ou falhou na verificação rápida, tenta buscar o fetch/blob ou gerar
-      try {
-        const respGet = await fetch(urlDownloadDireto)
-        if (respGet.ok) {
-          const cType = respGet.headers.get('content-type') || ''
-          if (!cType.includes('text/html')) {
-            const blob = await respGet.blob()
-            if (blob && blob.size > 2000) {
-              dispararDownloadBlob(blob, nomeArquivoZip)
-              setProgressoPct(100)
-              setProgressoTexto('Download concluído!')
-              setDownloadConcluido(true)
-              toast({
-                title: 'Download concluído!',
-                description: `O pacote ${nomeArquivoZip} foi baixado com sucesso.`,
-              })
-              return
-            }
-          }
-        }
-      } catch {
-        // Fallback pro gerador
-      }
-
-      // Fallback final: se o arquivo estático não estiver no path esperado, gera pelo cliente
-      setProgressoPct(40)
-      setProgressoTexto('Montando arquivos do sistema offline...')
       const blob = await gerarPacoteZipNoCliente((msg, pct) => {
         setProgressoTexto(msg)
         setProgressoPct(pct)
       })
       dispararDownloadBlob(blob, nomeArquivoZip)
       setProgressoPct(100)
-      setProgressoTexto('Download concluído!')
+      setProgressoTexto('Pacote gerado e download disparado!')
       setDownloadConcluido(true)
 
       toast({
-        title: 'Download iniciado!',
-        description: `O arquivo ${nomeArquivoZip} foi gerado e enviado para download.`,
+        title: 'Download gerado!',
+        description: `O pacote ${nomeArquivoZip} foi gerado e enviado para a sua pasta de downloads.`,
       })
     } catch (err: any) {
-      console.error('Erro no download do pacote:', err)
+      console.error('Erro no fallback de geração de pacote:', err)
       toast({
         variant: 'destructive',
-        title: 'Erro ao baixar pacote',
-        description:
-          err?.message || 'Não foi possível baixar o arquivo. Tente pelo link alternativo direto.',
+        title: 'Erro ao gerar pacote',
+        description: err?.message || 'Falha na geração do pacote pelo cliente.',
       })
     } finally {
-      setBaixando(false)
+      setGerandoFallback(false)
     }
   }
 
@@ -231,11 +179,14 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
             </ol>
           </div>
 
-          {/* Barra de progresso se estiver baixando */}
-          {baixando && (
+          {/* Barra de progresso se estiver gerando pelo fallback manual */}
+          {gerandoFallback && (
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-xs text-slate-600">
-                <span className="font-medium">{progressoTexto}</span>
+                <span className="font-medium flex items-center gap-1.5">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1E3A5F]" />
+                  {progressoTexto}
+                </span>
                 <span className="font-mono">{progressoPct}%</span>
               </div>
               <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
@@ -251,24 +202,36 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
             <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-900 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
               <span>
-                <strong>Pronto!</strong> O arquivo <strong>{nomeArquivoZip}</strong> foi baixado.
-                Agora basta extrair e abrir no seu computador!
+                <strong>Download iniciado com sucesso!</strong> O arquivo{' '}
+                <strong>{nomeArquivoZip}</strong> foi enviado para a sua pasta de downloads.
               </span>
             </div>
           )}
 
-          {/* Opção alternativa de clique direto/nova aba garantido em iframes */}
+          {/* Opção alternativa de clique direto/nova aba garantido em iframes com sandbox */}
           <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
             <a
               href={urlDownloadDireto}
               download={nomeArquivoZip}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={handleAvisoDownloadNativo}
               className="inline-flex items-center gap-1.5 text-xs text-[#1E3A5F] hover:text-[#C9A227] font-semibold underline"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Link direto: abrir/salvar em nova aba (se o navegador bloquear popup)
+              Abrir/Baixar em Nova Aba (link estático direto)
             </a>
+
+            <button
+              type="button"
+              onClick={handleFallbackGerarNoCliente}
+              disabled={gerandoFallback}
+              className="text-[11px] text-slate-500 hover:text-slate-700 underline"
+            >
+              {gerandoFallback
+                ? 'Gerando...'
+                : 'Problemas no download? Gerar pacote offline no cliente'}
+            </button>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100">
@@ -283,13 +246,9 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
             <a
               href={urlDownloadDireto}
               download={nomeArquivoZip}
-              onClick={() => {
-                setDownloadConcluido(true)
-                toast({
-                  title: 'Download iniciado!',
-                  description: `O arquivo ${nomeArquivoZip} foi enviado para a sua pasta de downloads.`,
-                })
-              }}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleAvisoDownloadNativo}
               className="inline-flex items-center justify-center rounded-md font-bold text-xs h-9 px-4 bg-[#1E3A5F] hover:bg-[#152a45] text-white gap-2 shadow-sm transition-colors"
             >
               <Download className="w-4 h-4 text-[#C9A227]" />

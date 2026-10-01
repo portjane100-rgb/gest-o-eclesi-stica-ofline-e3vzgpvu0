@@ -213,11 +213,12 @@ export function buildStandaloneHtml(distDir) {
   // 4. Garantir caminhos estáticos relativos (./ em vez de /)
   html = html.replace(/(href|src)=["']\/([^"']+)["']/g, '$1="./$2"')
 
-  // 5. Adicionar polyfill/fallback de segurança para file:// no topo do head
+  // 5. Injetar a flag global window.__ADTC_OFFLINE_ONLY__ = true e polyfill/fallback de segurança para file:// no topo do head
   const headStartTag = '<head>'
   const fileProtocolPatch = `<head>
     <script>
-      // ADTC Local - Proteção contra bloqueios de protocolo file://
+      // ADTC Gestão Eclesiástica - Versão PC 100% Offline (blindagem à nuvem)
+      window.__ADTC_OFFLINE_ONLY__ = true;
       if (window.location.protocol === 'file:') {
         console.log('ADTC Gestão Eclesiástica: Executando em modo 100% Offline (file://)');
       }

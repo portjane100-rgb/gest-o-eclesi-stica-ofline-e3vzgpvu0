@@ -37,6 +37,13 @@ export const MIGRATION_COLLECTIONS: string[] = [
 ]
 
 export async function isMigrationAlreadyDone(): Promise<boolean> {
+  // Se for versão offline-only (pacote PC compilado ou file://), nunca tenta migração
+  if (typeof window !== 'undefined') {
+    if (window.__ADTC_OFFLINE_ONLY__ || window.location.protocol === 'file:') {
+      return true
+    }
+  }
+
   try {
     const meta = await localDb.getOne('metadata', 'migration_status')
     if (meta && meta.completed) return true
@@ -76,6 +83,16 @@ async function fetchFileAsBase64(record: any, fileName: string): Promise<string 
 export async function runPocketBaseMigration(
   onProgress?: (info: MigrationProgress) => void,
 ): Promise<{ success: boolean; totalRecords: number; error?: string }> {
+  // Se for ambiente 100% offline-only, aborta imediatamente sem qualquer requisição de rede
+  if (typeof window !== 'undefined') {
+    if (window.__ADTC_OFFLINE_ONLY__ || window.location.protocol === 'file:') {
+      return {
+        success: true,
+        totalRecords: 0,
+      }
+    }
+  }
+
   let totalRecords = 0
 
   const report = (
