@@ -220,7 +220,7 @@ export const LoginPage: React.FC = () => {
               <AdtcLogo className="h-16 w-auto drop-shadow-md" />
             </div>
             <CardTitle className="text-xl font-bold text-slate-900 tracking-tight">
-              {config.nomeIgreja || 'ADTC Campanário'}
+              {config.nomeIgreja || 'Gestão Eclesiástica'}
             </CardTitle>
             <CardDescription className="text-slate-600 text-xs">
               {isSetupMode

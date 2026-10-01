@@ -109,7 +109,7 @@ export const ModalFelicitarAniversariante: React.FC<ModalFelicitarAniversariante
                 Felicitar {aniversariante.nome}
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 truncate">
-                {aniversariante.congregacao || 'ADTC Campanário'}
+                {aniversariante.congregacao || 'Templo Sede'}
                 {contatoRaw ? ` • Contato: ${contatoRaw}` : ' • Sem número cadastrado'}
               </DialogDescription>
             </div>

@@ -22,35 +22,23 @@ export function useRealtime<TRecord extends RecordModel = RecordModel>(
   callbackRef.current = callback
 
   useEffect(() => {
-    // Se desativado explicitamente ou se estiver rodando em ambiente offline-only
-    // (pacote PC, protocolo file:// ou flag window.__ADTC_OFFLINE_ONLY__),
-    // aborta imediatamente qualquer tentativa de abrir SSE/WebSocket com servidor remoto.
     if (!enabled) return
-    if (typeof window !== 'undefined') {
-      if (window.__ADTC_OFFLINE_ONLY__ || window.location.protocol === 'file:') {
-        return
-      }
-    }
 
     let unsubscribeFn: (() => Promise<void>) | undefined
     let cancelled = false
 
-    try {
-      pb.collection<TRecord>(collectionName)
-        .subscribe('*', (e) => {
-          callbackRef.current(e)
-        })
-        .then((fn) => {
-          if (cancelled) {
-            fn().catch(() => {})
-          } else {
-            unsubscribeFn = fn
-          }
-        })
-        .catch(() => {})
-    } catch {
-      // noop em caso de falha de conexão no cliente
-    }
+    pb.collection<TRecord>(collectionName)
+      .subscribe('*', (e) => {
+        callbackRef.current(e)
+      })
+      .then((fn) => {
+        if (cancelled) {
+          fn().catch(() => {})
+        } else {
+          unsubscribeFn = fn
+        }
+      })
+      .catch(() => {})
 
     return () => {
       cancelled = true

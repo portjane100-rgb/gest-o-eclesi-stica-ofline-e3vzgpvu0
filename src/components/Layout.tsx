@@ -76,7 +76,7 @@ export const Layout: React.FC = () => {
             <AdtcLogo className="w-11 h-11 border-2 border-[#C9A227]/80 transition-transform duration-300 group-hover:scale-105 bg-white" />
             <div className="min-w-0">
               <span className="font-serif font-bold text-lg tracking-wide text-white flex items-center gap-1.5 truncate">
-                {config.nomeIgreja || 'ADTC Campanário'}
+                {config.nomeIgreja || 'Gestão Eclesiástica'}
               </span>
               <span className="block text-[10px] tracking-widest uppercase text-[#C9A227] font-medium truncate">
                 {config.subtituloIgreja || 'Assembleia de Deus • Templo Central'}
@@ -159,7 +159,7 @@ export const Layout: React.FC = () => {
                   <AdtcLogo className="w-8 h-8 border border-[#C9A227] bg-white" />
                   <div className="min-w-0">
                     <span className="font-serif font-bold text-sm text-white truncate block">
-                      {config.nomeIgreja || 'ADTC Campanário'}
+                      {config.nomeIgreja || 'Gestão Eclesiástica'}
                     </span>
                     <span className="block text-[9px] uppercase tracking-wider text-[#C9A227] truncate">
                       {config.siglaIgreja || 'Comunhão'}
@@ -238,7 +238,7 @@ export const Layout: React.FC = () => {
                 <AdtcLogo className="w-10 h-10 border-2 border-[#C9A227] bg-white" />
                 <div>
                   <h3 className="font-serif font-bold text-lg text-white leading-tight">
-                    {config.nomeIgreja || 'ADTC Campanário'}
+                    {config.nomeIgreja || 'Gestão Eclesiástica'}
                   </h3>
                   <span className="text-[10px] text-[#C9A227] font-semibold uppercase tracking-wider">
                     {config.siglaIgreja || 'Templo Central'}

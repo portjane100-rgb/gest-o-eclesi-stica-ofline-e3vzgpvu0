@@ -8,30 +8,42 @@ Este software foi desenvolvido para funcionar 100% OFFLINE diretamente no comput
 --------------------------------------------------------------------
 1. COMO INSTALAR E ABRIR NO SEU COMPUTADOR
 --------------------------------------------------------------------
+
 Passo 1: EXTRAIR O ARQUIVO ZIP
   - Clique com o botão direito no arquivo ZIP baixado.
-  - Selecione "Extrair Tudo..." (ou "Extrair Aqui" com WinRAR/7-Zip).
-  - Escolha uma pasta segura no seu computador (por exemplo: C:\GestaoEclesiastica ou em Documentos/Área de Trabalho).
-  - IMPORTANTE: NÃO execute o sistema de dentro do arquivo ZIP sem extrair. Sempre extraia todos os arquivos antes de abrir.
+  - Selecione "Extrair Tudo..." (ou "Extrair Aqui" com WinRAR ou 7-Zip).
+  - IMPORTANTE: NUNCA execute o sistema diretamente de dentro do arquivo ZIP sem extrair. Sempre extraia antes de usar.
 
-Passo 2: ABRIR O SISTEMA
-  - NO WINDOWS:
-    Dê DUPLO CLIQUE no arquivo "ABRIR_SISTEMA.bat".
-    Ele abrirá uma janela limpa e dedicada em modo aplicativo (Edge ou Chrome), sem barra de navegação, parecendo um programa nativo instalado.
-    Alternativamente, você também pode dar duplo clique direto no arquivo "index.html".
+Passo 2: INSTALAÇÃO OU EXECUÇÃO
+  OPÇÃO A (RECOMENDADA NO WINDOWS — INSTALAÇÃO AUTOMÁTICA):
+    - Dê duplo clique em "INSTALAR.bat".
+    - O instalador copiará o sistema para C:\GestaoEclesiastica e criará os atalhos automáticos na sua Área de Trabalho e no Menu Iniciar com ícone próprio.
+    - O sistema abrirá imediatamente em modo dedicado.
 
-  - NO MAC (macOS):
-    Dê duplo clique no arquivo "ABRIR_SISTEMA.command" ou abra o "index.html" no Google Chrome / Microsoft Edge.
-    (Caso o macOS bloqueie a execução do .command na primeira vez, vá em Preferências do Sistema > Segurança e Privacidade > Permitir).
+  OPÇÃO B (EXECUÇÃO DIRETA / PORTÁTIL):
+    - Dê DUPLO CLIQUE no arquivo "ABRIR_SISTEMA.bat".
+    - Ele abrirá uma janela limpa e dedicada em modo aplicativo (Edge ou Chrome), sem barra de navegação, como um programa nativo instalado.
 
-  - NAVEGADORES RECOMENDADOS:
-    Microsoft Edge ou Google Chrome (possuem o melhor suporte ao banco de dados offline IndexedDB e maior performance gráfica).
+  OPÇÃO C (NOVO NAVEGADOR / ALTERNATIVA UNIVERSAL):
+    - Dê duplo clique diretamente no arquivo "index.html".
+    - O sistema abrirá em qualquer navegador moderno (Edge, Chrome, Brave, Opera, Firefox).
+
+  OPÇÃO D (NO MAC / macOS):
+    - Dê duplo clique no arquivo "ABRIR_SISTEMA.command" ou abra "index.html" no Google Chrome / Microsoft Edge.
+
+ATENÇÃO: AVISO MUITO IMPORTANTE SOBRE ARQUIVOS DO SISTEMA:
+  - NUNCA dê duplo clique no arquivo "sw.js" (Service Worker). O arquivo sw.js é um componente interno de suporte técnico e não deve ser executado pelo usuário.
+  - Os únicos arquivos para abrir o sistema são:
+      1. INSTALAR.bat (para instalar e criar atalhos)
+      2. ABRIR_SISTEMA.bat (para abrir no Windows)
+      3. index.html (como alternativa universal)
+      4. ABRIR_SISTEMA.command (no Mac)
 
 --------------------------------------------------------------------
 2. PRIMEIRO ACESSO (ACESSO LIVRE E CONFIGURAÇÃO INICIAL)
 --------------------------------------------------------------------
-- O sistema abre sem exigir nenhuma senha pré-definida de terceiros. Não existe nenhuma conta padrão embutida ou de revendedor gravada no código.
-- Na primeira entrada (quando nenhum usuário estiver cadastrado neste computador), o sistema abre diretamente o passo guiado de PRIMEIRO ACESSO.
+- O sistema abre sem exigir nenhuma senha pré-definida de terceiros. O banco inicial vem limpo, sem membros, sem obreiros e sem dados de terceiros.
+- Na primeira entrada, o sistema abre diretamente o passo guiado de PRIMEIRO ACESSO.
 - Nesse passo guiado, você cria o seu próprio login de Administrador Geral:
   1. Nome Completo (ex.: Pr. João da Silva)
   2. Usuário de Acesso (ex.: admin ou o usuário de sua preferência)
@@ -40,25 +52,18 @@ Passo 2: ABRIR O SISTEMA
 - Nas entradas seguintes no mesmo computador, o sistema solicitará o usuário e senha que você acabou de criar.
 - Dentro do sistema (menu "Configurações" > "Perfis e Logins de Acesso"), você pode cadastrar outros usuários adicionais (Secretários, Tesoureiro) a qualquer momento.
 - Essa senha fica criptografada e gravada exclusivamente no banco local (IndexedDB) do seu computador.
-- Uma vez cadastrado, você terá acesso imediato e total a todos os módulos:
-  • Painel Geral (Dashboard com estatísticas e aniversariantes)
-  • Rol de Membros e Congregados (com foto, dados e impressão de carteirinhas)
-  • Corpo de Obreiros e Liderança
-  • Congregações / Unidades filiais
-  • Financeiro por Congregação (com controle de porcentagem do dirigente)
-  • Dizimistas e Ofertas
-  • Planilha Mensal Financeira com exportação para PDF (preenchida ou em branco)
-  • Escalas de Trabalho e Calendário de Eventos
-  • Emissão de Documentos e Certificados Oficiais
-  • Configurações completas da igreja (nome, logo, cores e personalização)
 
 --------------------------------------------------------------------
-3. SEGURANÇA E BACKUP REGULAR DOS SEUS DADOS (MUITO IMPORTANTE!)
+3. BANCO DE DADOS 100% LOCAL E ISOLADO
 --------------------------------------------------------------------
 - ONDE FICAM OS DADOS?
-  Todos os dados ficam armazenados de forma 100% segura no banco local (IndexedDB) do navegador deste computador.
-  Nenhuma informação da sua igreja sai do seu PC ou vai para a nuvem de terceiros.
+  Todos os dados (membros, congregados, obreiros, dízimos, ofertas, fotos e relatórios) ficam armazenados com total privacidade no banco local (IndexedDB) do navegador deste computador.
+  Nenhuma informação da sua igreja sai do seu computador nem vai para a nuvem.
+  O banco inicial é entregue limpo e nada é gravado sem a sua ação.
 
+--------------------------------------------------------------------
+4. SEGURANÇA E BACKUP REGULAR DOS SEUS DADOS (MUITO IMPORTANTE!)
+--------------------------------------------------------------------
 - CUIDADO COM LIMPEZA DE NAVEGADOR:
   Evite usar ferramentas automáticas como CCleaner ou selecionar a opção "Limpar todos os dados de sites / cookies / armazenamento" nas configurações do navegador, pois isso pode apagar o banco local.
 
@@ -69,14 +74,14 @@ Passo 2: ABRIR O SISTEMA
   4. Com esse backup, caso você troque de computador ou formate a máquina, basta entrar em "Configurações" > "Restaurar Dados" e carregar o arquivo: tudo volta instantaneamente!
 
 --------------------------------------------------------------------
-4. PREPARAR PARA NOVO CLIENTE / MODO REVENDA
+5. PREPARAR PARA NOVO CLIENTE / MODO REVENDA
 --------------------------------------------------------------------
 Se você adquiriu a licença para revenda e implantação em outras congregações:
 - Acesse "Configurações" > "Modo Revenda" para alterar em tempo real o nome da igreja, a logo, as cores primárias/destaque e os rótulos litúrgicos.
 - Use a opção "Preparar para Novo Cliente" para zerar os dados operacionais antigos com total segurança e entregar uma cópia limpa e personalizada para a congregação compradora.
 
 --------------------------------------------------------------------
-5. SUPORTE E CONTATO
+6. SUPORTE E CONTATO
 --------------------------------------------------------------------
 Em caso de dúvidas sobre a instalação ou utilização:
 - Consulte as instruções na aba "Configurações" do próprio sistema.

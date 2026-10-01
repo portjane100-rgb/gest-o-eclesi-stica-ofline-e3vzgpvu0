@@ -150,11 +150,11 @@ export const AdminDocumentos: React.FC = () => {
   // ==========================================
   // CONFIGURAÇÕES PERSISTENTES DE ASSINATURA / LIDERANÇA
   // ==========================================
-  const [nomePastor, setNomePastor] = useState('José Francisco Portela Fontenele')
+  const [nomePastor, setNomePastor] = useState(() => config.nomePastor || 'Pastor Presidente')
   const [cargoPastor, setCargoPastor] = useState('Pastor')
-  const [nome1Secretario, setNome1Secretario] = useState('Valderlanio Carneiro Araújo')
+  const [nome1Secretario, setNome1Secretario] = useState('1º Secretário')
   const [cargo1Secretario, setCargo1Secretario] = useState('1ºSecretário')
-  const [nome2Secretario, setNome2Secretario] = useState('Antonio de Vasconcelos')
+  const [nome2Secretario, setNome2Secretario] = useState('2º Secretário')
   const [cargo2Secretario, setCargo2Secretario] = useState('2ºSecretário')
   const [isSalvandoLiderancaRapida, setIsSalvandoLiderancaRapida] = useState(false)
 
@@ -164,7 +164,9 @@ export const AdminDocumentos: React.FC = () => {
   const [carteiraMembroId, setCarteiraMembroId] = useState('')
   const [carteiraCargo, setCarteiraCargo] = useState('Membro em Comunhão')
   const [carteiraEmissao, setCarteiraEmissao] = useState(new Date().toLocaleDateString('pt-BR'))
-  const [carteiraPastor, setCarteiraPastor] = useState('Pr José Francisco Portela Fontenele')
+  const [carteiraPastor, setCarteiraPastor] = useState(
+    () => config.nomePastor || 'Pastor Presidente',
+  )
 
   // ==========================================
   // 2. ESTADO: CARTA DE RECOMENDAÇÃO (NOVO MODELO OFICIAL)
@@ -240,7 +242,9 @@ export const AdminDocumentos: React.FC = () => {
   const [aprDataApresentacao, setAprDataApresentacao] = useState(
     new Date().toISOString().slice(0, 10),
   )
-  const [aprPastorOficiante, setAprPastorOficiante] = useState('José Francisco Portela Fontenele')
+  const [aprPastorOficiante, setAprPastorOficiante] = useState(
+    () => config.nomePastor || 'Pastor Presidente',
+  )
 
   // ==========================================
   // ESTADOS DO ARQUIVO DE CARTAS RECEBIDAS (ENTRADA)
@@ -299,12 +303,12 @@ export const AdminDocumentos: React.FC = () => {
         }
       })
 
-      // Fallbacks somente se não houver no banco
-      const finalPastorNome = pNome || 'José Francisco Portela Fontenele'
+      // Fallbacks lidos do config da igreja ou neutros
+      const finalPastorNome = pNome || config.nomePastor || 'Pastor Presidente'
       const finalPastorCargo = pCargo || 'Pastor'
-      const final1SecNome = s1Nome || 'Valderlanio Carneiro Araújo'
+      const final1SecNome = s1Nome || '1º Secretário'
       const final1SecCargo = s1Cargo || '1ºSecretário'
-      const final2SecNome = s2Nome || 'Antonio de Vasconcelos'
+      const final2SecNome = s2Nome || '2º Secretário'
       const final2SecCargo = s2Cargo || '2ºSecretário'
 
       setNomePastor(finalPastorNome)
@@ -609,10 +613,11 @@ export const AdminDocumentos: React.FC = () => {
 
   const selectedCarteiraMembro = membros.find((m) => m.id === carteiraMembroId)
 
-  // Impressão / Exportação PDF usando modelos dedicados A4 com nova logo embutida (Data URI)
+  // Impressão / Exportação PDF usando modelos dedicados A4 com logo do comprador (Data URI)
   const handlePrintOrDownload = async () => {
     try {
-      const logoDataUri = await getLogoAsDataUri(ADTC_LOGO_URL)
+      const currentLogoUrl = config.logoUrl || ADTC_LOGO_URL
+      const logoDataUri = await getLogoAsDataUri(currentLogoUrl)
 
       let htmlCompleto = ''
 
@@ -851,11 +856,11 @@ export const AdminDocumentos: React.FC = () => {
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-full p-0.5 bg-[#072348] border-2 border-[#C9A227] shadow-sm flex-shrink-0 flex items-center justify-center">
             <img
-              src={ADTC_LOGO_URL}
-              alt="Logo Oficial ADTC"
+              src={config.logoUrl || ADTC_LOGO_URL}
+              alt={config.nomeIgreja || 'Logo Oficial'}
               className="w-full h-full object-cover rounded-full"
               onError={(e) => {
-                ;(e.target as HTMLImageElement).src = '/logo-oficial.png'
+                ;(e.target as HTMLImageElement).src = ADTC_LOGO_URL
               }}
             />
           </div>
@@ -1938,7 +1943,7 @@ export const AdminDocumentos: React.FC = () => {
                       <Input
                         value={carteiraPastor}
                         onChange={(e) => setCarteiraPastor(e.target.value)}
-                        placeholder="Pr José Francisco Portela Fontenele"
+                        placeholder="Nome do Pastor Presidente"
                         className="text-xs sm:text-sm"
                       />
                     </div>
@@ -2159,7 +2164,7 @@ export const AdminDocumentos: React.FC = () => {
                       <Input
                         value={aprPastorOficiante}
                         onChange={(e) => setAprPastorOficiante(e.target.value)}
-                        placeholder="Ex: José Francisco Portela Fontenele"
+                        placeholder="Ex: Pr. Nome do Pastor"
                         className="text-xs sm:text-sm"
                       />
                     </div>
@@ -2479,7 +2484,7 @@ export const AdminDocumentos: React.FC = () => {
                   <Input
                     value={nomePastor}
                     onChange={(e) => setNomePastor(e.target.value)}
-                    placeholder="Ex: José Francisco Portela Fontenele"
+                    placeholder="Ex: Pr. Nome do Pastor"
                     className="text-xs sm:text-sm bg-white"
                     required
                   />
@@ -2510,7 +2515,7 @@ export const AdminDocumentos: React.FC = () => {
                   <Input
                     value={nome1Secretario}
                     onChange={(e) => setNome1Secretario(e.target.value)}
-                    placeholder="Ex: Valderlanio Carneiro Araújo"
+                    placeholder="Ex: 1º Secretário Oficial"
                     className="text-xs sm:text-sm bg-white"
                     required
                   />
@@ -2541,7 +2546,7 @@ export const AdminDocumentos: React.FC = () => {
                   <Input
                     value={nome2Secretario}
                     onChange={(e) => setNome2Secretario(e.target.value)}
-                    placeholder="Ex: Antonio de Vasconcelos"
+                    placeholder="Ex: 2º Secretário Oficial"
                     className="text-xs sm:text-sm bg-white"
                     required
                   />
@@ -2834,11 +2839,11 @@ export const AdminDocumentos: React.FC = () => {
                 {/* Timbrado Padrão ADTC com Faixa Azul-Marinho e Nova Logo 3D */}
                 <div className="rounded-xl bg-gradient-to-r from-[#072348] via-[#0F325E] to-[#163B6E] p-4 border-b-3 border-[#C9A227] shadow-md flex items-center justify-center gap-3.5 text-white">
                   <img
-                    src={ADTC_LOGO_URL}
-                    alt="Logo ADTC"
+                    src={config.logoUrl || ADTC_LOGO_URL}
+                    alt={config.nomeIgreja || 'Logo'}
                     className="w-14 h-14 rounded-full object-cover border-2 border-[#C9A227] shadow-md bg-[#072348] flex-shrink-0"
                     onError={(e) => {
-                      ;(e.target as HTMLImageElement).src = '/logo-oficial.png'
+                      ;(e.target as HTMLImageElement).src = ADTC_LOGO_URL
                     }}
                   />
                   <div className="text-left">
@@ -2939,11 +2944,11 @@ export const AdminDocumentos: React.FC = () => {
                 {/* Timbrado Padrão ADTC com Faixa Azul-Marinho e Nova Logo 3D */}
                 <div className="rounded-xl bg-gradient-to-r from-[#072348] via-[#0F325E] to-[#163B6E] p-4 border-b-3 border-[#C9A227] shadow-md flex items-center justify-center gap-3.5 text-white">
                   <img
-                    src={ADTC_LOGO_URL}
-                    alt="Logo ADTC"
+                    src={config.logoUrl || ADTC_LOGO_URL}
+                    alt={config.nomeIgreja || 'Logo'}
                     className="w-14 h-14 rounded-full object-cover border-2 border-[#C9A227] shadow-md bg-[#072348] flex-shrink-0"
                     onError={(e) => {
-                      ;(e.target as HTMLImageElement).src = '/logo-oficial.png'
+                      ;(e.target as HTMLImageElement).src = ADTC_LOGO_URL
                     }}
                   />
                   <div className="text-left">

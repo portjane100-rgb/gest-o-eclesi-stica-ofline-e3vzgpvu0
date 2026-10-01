@@ -101,7 +101,7 @@ export const AdminLayout: React.FC = () => {
           <AdtcLogo className="w-10 h-10 border border-[#C9A227] bg-white flex-shrink-0" />
           <div className="min-w-0">
             <span className="font-serif font-bold text-sm text-white block truncate">
-              {config.nomeIgreja || 'ADTC Campanário'}
+              {config.nomeIgreja || 'Gestão Eclesiástica'}
             </span>
             <span className="text-[10px] uppercase tracking-wider text-[#C9A227] font-semibold">
               Painel de Gestão
@@ -169,7 +169,7 @@ export const AdminLayout: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <AdtcLogo className="w-7 h-7 border border-[#C9A227] bg-white" />
                   <span className="font-serif font-bold text-sm truncate">
-                    {config.nomeIgreja || 'ADTC Campanário'}
+                    {config.nomeIgreja || 'Gestão Eclesiástica'}
                   </span>
                 </div>
                 <button

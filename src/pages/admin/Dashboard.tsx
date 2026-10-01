@@ -432,32 +432,43 @@ export const Dashboard: React.FC = () => {
         <div className="absolute -left-12 -bottom-12 w-64 h-64 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-          <div className="space-y-2.5 max-w-2xl">
-            {/* Saudação com horário e nome */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold text-amber-200">
-              <SaudacaoIcone className={`w-4 h-4 ${saudacaoHorario.cor}`} />
-              <span>
-                {saudacaoHorario.texto}, <strong className="text-white">{primeiroNome}</strong>!
-              </span>
-              <span className="text-white/40">•</span>
-              <span className="text-emerald-300 flex items-center gap-1 text-[11px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                100% Offline
-              </span>
+          <div className="flex items-start sm:items-center gap-4">
+            {config.logoUrl && (
+              <img
+                src={config.logoUrl}
+                alt={config.nomeIgreja || 'Logo da Igreja'}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover bg-white p-1 border-2 border-[#C9A227] shadow-lg flex-shrink-0"
+                onError={(e) => {
+                  ;(e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
+            )}
+            <div className="space-y-2 max-w-2xl">
+              {/* Saudação com horário e nome */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold text-amber-200">
+                <SaudacaoIcone className={`w-4 h-4 ${saudacaoHorario.cor}`} />
+                <span>
+                  {saudacaoHorario.texto}, <strong className="text-white">{primeiroNome}</strong>!
+                </span>
+                <span className="text-white/40">•</span>
+                <span className="text-emerald-300 flex items-center gap-1 text-[11px]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  100% Offline
+                </span>
+              </div>
+
+              <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
+                Painel de Gestão da{' '}
+                <span className="text-[#E7C768]">
+                  {config.siglaIgreja || config.nomeIgreja || 'Gestão Eclesiástica'}
+                </span>
+              </h1>
+
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                {config.denominacao || 'Sistema de Gestão Eclesiástica Integrado'} — Rol de membros,
+                congregações, dizimistas, escalas e emissão oficial de documentos.
+              </p>
             </div>
-
-            <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
-              Painel de Gestão da{' '}
-              <span className="text-[#E7C768]">
-                {config.siglaIgreja || config.nomeIgreja || 'ADTC Campanário'}
-              </span>
-            </h1>
-
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              {config.denominacao || 'Igreja Evangélica Assembleia de Deus Templo Central'} —
-              Sistema integrado de membros, congregações, dizimistas, escalas e emissão oficial de
-              documentos.
-            </p>
           </div>
 
           {/* Ações Rápidas em Destaque */}

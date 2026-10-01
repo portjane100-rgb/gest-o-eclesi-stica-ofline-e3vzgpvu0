@@ -280,7 +280,7 @@ export const ModoRevendaSection: React.FC = () => {
                   value={nomeIgreja}
                   disabled={!isTesoureiro}
                   onChange={(e) => setNomeIgreja(e.target.value)}
-                  placeholder="Ex: ADTC Campanário ou Primeira Igreja Batista"
+                  placeholder="Ex: Gestão Eclesiástica ou Primeira Igreja Batista"
                   className="bg-white border-[#E6E2D8] text-xs sm:text-sm"
                   required
                 />

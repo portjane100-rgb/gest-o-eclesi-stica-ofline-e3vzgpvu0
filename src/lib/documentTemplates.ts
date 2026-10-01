@@ -3,16 +3,33 @@
  * e templates completos autocontidos de impressão A4 para todos os documentos da ADTC.
  */
 
-// Armazena cache da logo em Data URI (base64)
-let cachedLogoDataUri: string | null = null
+// Armazena cache da logo em Data URI (base64) indexado por URL original
+const logoDataUriCache = new Map<string, string>()
+
+/**
+ * Invalida todo o cache de logos ou uma URL especifica quando a logo for alterada
+ */
+export function invalidateLogoCache(imageUrl?: string): void {
+  if (imageUrl) {
+    logoDataUriCache.delete(imageUrl)
+  } else {
+    logoDataUriCache.clear()
+  }
+}
 
 /**
  * Converte uma URL de imagem (como o import Vite / asset) para Data URI Base64.
- * Isso garante que ao abrir a janela de impressão em sobreposição ou nova guia,
- * a imagem nunca falhe ao carregar e não dependa de caminhos relativos.
+ * Se imageUrl já for um Data URI (data:image/...), retorna diretamente sem fetch.
+ * Mantém cache por URL e invalida automaticamente quando a URL/conteúdo muda.
  */
 export async function getLogoAsDataUri(imageUrl: string): Promise<string> {
-  if (cachedLogoDataUri) return cachedLogoDataUri
+  if (!imageUrl) return ''
+  if (imageUrl.startsWith('data:')) {
+    return imageUrl
+  }
+
+  const cached = logoDataUriCache.get(imageUrl)
+  if (cached) return cached
 
   try {
     const res = await fetch(imageUrl)
@@ -20,8 +37,8 @@ export async function getLogoAsDataUri(imageUrl: string): Promise<string> {
     return new Promise((resolve) => {
       const reader = new FileReader()
       reader.onloadend = () => {
-        const result = reader.result as string
-        cachedLogoDataUri = result
+        const result = (reader.result as string) || imageUrl
+        logoDataUriCache.set(imageUrl, result)
         resolve(result)
       }
       reader.onerror = () => {

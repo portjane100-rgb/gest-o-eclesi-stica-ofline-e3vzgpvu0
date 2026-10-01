@@ -20,6 +20,6 @@ if [ -d "/Applications/Brave Browser.app" ]; then
   exit 0
 fi
 
-# 4. Fallback para o navegador padrão
+# 4. Fallback para o navegador padrao
 open "$HTML_FILE"
 exit 0
