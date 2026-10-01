@@ -137,8 +137,44 @@ const report = {
     batSecurityFlagsPresent,
     content: batContentSnippet,
   },
+  instalarBatCheck: null,
   rootFiles,
   allFiles: entries.map((e) => e.name),
+}
+
+// Extrair e inspecionar INSTALAR.bat dentro do ZIP
+const instalarBatEntry = entries.find((e) => e.name === 'Gestao_Eclesiastica_PC/INSTALAR.bat')
+if (instalarBatEntry) {
+  const locOff = instalarBatEntry.localOffset
+  const locNameLen = buf.readUInt16LE(locOff + 26)
+  const locExtraLen = buf.readUInt16LE(locOff + 28)
+  const dataStart = locOff + 30 + locNameLen + locExtraLen
+  const compressedData = buf.subarray(dataStart, dataStart + instalarBatEntry.compressedSize)
+  let rawContent = compressedData
+  if (instalarBatEntry.method === 8) {
+    rawContent = zlib.inflateRawSync(compressedData)
+  }
+  const str = rawContent.toString('utf-8')
+  const hasOldCDir = str.includes('C:\\GestaoEclesiastica')
+  const hasLocalAppData = str.includes('%LOCALAPPDATA%\\GestaoEclesiastica')
+  const hasXcopyErrorHandling =
+    str.includes('XCOPY_ERR') && str.includes('xcopy 1') && str.includes('xcopy 5')
+  const hasZipDetection =
+    str.includes('findstr /i "Temp') || str.includes('extraia a pasta completa')
+  const hasPhysicalCheck =
+    str.includes('index.html nao foi encontrado') &&
+    str.includes('favicon.ico') &&
+    str.includes('ABRIR_SISTEMA.bat')
+  const hasNoPrematureExit = !str.match(/^exit\s*$/m)
+  report.instalarBatCheck = {
+    hasOldCDir,
+    hasLocalAppData,
+    hasXcopyErrorHandling,
+    hasZipDetection,
+    hasPhysicalCheck,
+    hasNoPrematureExit,
+    contentLength: str.length,
+  }
 }
 
 console.log('=== EVIDENCE REPORT START ===')
@@ -148,6 +184,28 @@ console.log('=== EVIDENCE REPORT END ===')
 // Garantir que asserções de segurança e conformidade não passem se violadas
 if (batSecurityFlagsPresent) {
   console.error('ERRO FATAL: flags inseguras detectadas no BAT do pacote!')
+  process.exit(1)
+}
+if (!report.instalarBatCheck) {
+  console.error('ERRO FATAL: INSTALAR.bat não encontrado no ZIP!')
+  process.exit(1)
+}
+if (report.instalarBatCheck.hasOldCDir) {
+  console.error('ERRO FATAL: INSTALAR.bat ainda contém C:\\GestaoEclesiastica!')
+  process.exit(1)
+}
+if (!report.instalarBatCheck.hasLocalAppData) {
+  console.error('ERRO FATAL: INSTALAR.bat não contém %LOCALAPPDATA%\\GestaoEclesiastica!')
+  process.exit(1)
+}
+if (!report.instalarBatCheck.hasXcopyErrorHandling) {
+  console.error(
+    'ERRO FATAL: INSTALAR.bat não contém o tratamento explícito dos códigos de erro do xcopy!',
+  )
+  process.exit(1)
+}
+if (!report.instalarBatCheck.hasPhysicalCheck) {
+  console.error('ERRO FATAL: INSTALAR.bat não contém a verificação física dos arquivos essenciais!')
   process.exit(1)
 }
 if (hasHardcodedAdtcCampanarioInIndex) {

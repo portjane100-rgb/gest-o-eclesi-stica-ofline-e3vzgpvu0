@@ -234,12 +234,23 @@ Como usar:
 
   onProgresso?.('Empacotando scripts e estilos da aplicação...', 40)
 
+  let instalarBat = ''
+  try {
+    const res = await fetch('./INSTALAR.bat')
+    if (res.ok) instalarBat = await res.text()
+  } catch (_) {
+    // fallback
+  }
+
   // Coleta os scripts e estilos da página atual para inclusão com URLs relativas
   const files: ZipFileInfo[] = [
     { relativePath: 'Gestao_Eclesiastica_PC/ABRIR_SISTEMA.bat', content: abrirBat },
     { relativePath: 'Gestao_Eclesiastica_PC/ABRIR_SISTEMA.command', content: abrirCommand },
     { relativePath: 'Gestao_Eclesiastica_PC/LEIA-ME.txt', content: leiaMe },
   ]
+  if (instalarBat) {
+    files.push({ relativePath: 'Gestao_Eclesiastica_PC/INSTALAR.bat', content: instalarBat })
+  }
 
   // Clonar o HTML atual e ajustar os caminhos para relativos e auto-contidos
   try {

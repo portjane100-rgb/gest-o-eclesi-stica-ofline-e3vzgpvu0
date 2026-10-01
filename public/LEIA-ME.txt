@@ -17,7 +17,7 @@ Passo 1: EXTRAIR O ARQUIVO ZIP
 Passo 2: INSTALAÇÃO OU EXECUÇÃO
   OPÇÃO A (RECOMENDADA NO WINDOWS — INSTALAÇÃO AUTOMÁTICA):
     - Dê duplo clique em "INSTALAR.bat".
-    - O instalador copiará o sistema para C:\GestaoEclesiastica e criará os atalhos automáticos na sua Área de Trabalho e no Menu Iniciar com ícone próprio.
+    - O instalador copiará o sistema para %LOCALAPPDATA%\GestaoEclesiastica e criará os atalhos automáticos na sua Área de Trabalho e no Menu Iniciar com ícone próprio.
     - O sistema abrirá imediatamente em modo dedicado.
 
   OPÇÃO B (EXECUÇÃO DIRETA / PORTÁTIL):

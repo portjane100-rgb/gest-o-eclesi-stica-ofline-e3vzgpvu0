@@ -359,6 +359,24 @@ export function gerarPacoteZip() {
     }
   }
 
+  // Validar explicitamente o conteúdo de INSTALAR.bat no pacote
+  const instalarEntry = arquivosNoZip.find((a) => a.relativePath === pastaRaiz + 'INSTALAR.bat')
+  if (!instalarEntry) {
+    console.error('ERRO: INSTALAR.bat ausente no pacote final!')
+    process.exit(1)
+  }
+  const instalarContent = instalarEntry.content.toString('utf-8')
+  if (instalarContent.includes('C:\\GestaoEclesiastica')) {
+    console.error('ERRO: INSTALAR.bat ainda contém referência a C:\\GestaoEclesiastica!')
+    process.exit(1)
+  }
+  if (!instalarContent.includes('%LOCALAPPDATA%\\GestaoEclesiastica')) {
+    console.error(
+      'ERRO: INSTALAR.bat não contém o destino esperado %LOCALAPPDATA%\\GestaoEclesiastica!',
+    )
+    process.exit(1)
+  }
+
   // Gravar arquivo de metadados do pacote (versão do app e timestamp)
   let packageVersion = '0.0.33'
   try {
