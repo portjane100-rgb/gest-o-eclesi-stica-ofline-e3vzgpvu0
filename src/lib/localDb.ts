@@ -22,7 +22,7 @@ export interface LocalUser {
 }
 
 const DB_NAME = 'adtc_local_db'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 export const LOCAL_COLLECTIONS = [
   'users',
@@ -79,6 +79,11 @@ class LocalDatabase {
               store.createIndex('idx_chave', 'chave', { unique: true })
             } else if (col === 'users') {
               store.createIndex('idx_email', 'email', { unique: false })
+            } else if (col === 'financeiro_congregacoes') {
+              store.createIndex('idx_congregacao', 'congregacao', { unique: false })
+              store.createIndex('idx_data', 'data', { unique: false })
+            } else if (col === 'planilhas_mensais') {
+              store.createIndex('idx_periodo_chave', 'periodo_chave', { unique: false })
             }
           }
         }

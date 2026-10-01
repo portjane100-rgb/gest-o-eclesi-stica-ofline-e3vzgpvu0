@@ -219,9 +219,16 @@ export const FinanceiroCongregacoes: React.FC = () => {
 
   const parseValor = (txt: string): number => {
     if (!txt) return 0
-    const limpo = txt.trim().replace(/\./g, '').replace(',', '.')
-    const n = parseFloat(limpo)
-    return isNaN(n) ? 0 : Math.max(0, n)
+    const str = txt.trim()
+    // Se possui vírgula como decimal (ex: "1.250,50" ou "50,00")
+    if (str.includes(',')) {
+      const limpo = str.replace(/\./g, '').replace(',', '.')
+      const n = parseFloat(limpo)
+      return isNaN(n) ? 0 : Math.max(0, Math.round(n * 100) / 100)
+    }
+    // Caso contrário (ex: "50" ou "50.50")
+    const n = parseFloat(str)
+    return isNaN(n) ? 0 : Math.max(0, Math.round(n * 100) / 100)
   }
 
   const handleSalvar = async (e: React.FormEvent) => {
@@ -826,10 +833,12 @@ export const FinanceiroCongregacoes: React.FC = () => {
                 </label>
                 <Input
                   type="text"
+                  inputMode="decimal"
                   placeholder="0,00"
                   value={valorTexto}
                   onChange={(e) => setValorTexto(e.target.value)}
                   className="font-mono text-base font-bold text-[#1E3A5F]"
+                  autoFocus
                   required
                 />
               </div>

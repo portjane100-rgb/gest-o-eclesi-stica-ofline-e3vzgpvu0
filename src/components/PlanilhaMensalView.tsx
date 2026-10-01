@@ -124,8 +124,23 @@ export const PlanilhaMensalView: React.FC = () => {
   // Linhas do Verso: Contabilidade (Descrição | Tipo | Valor)
   const [linhasContabilidade, setLinhasContabilidade] = useState<LinhaContabilidadePlanilha[]>([])
 
+  // Identifica se a congregação atual é a Sede
+  const isSede = useMemo(() => {
+    return (congregacao || '').trim().toLowerCase() === 'sede'
+  }, [congregacao])
+
+  // Lista dinâmica de congregações filiais cadastradas (excluindo a Sede)
+  const congregacoesFiliais = useMemo(() => {
+    return (nomesCongregacoes || []).filter((n) => n.trim().toLowerCase() !== 'sede')
+  }, [nomesCongregacoes])
+
+  // Saldos Recebidos das congregações (usado quando a Sede estiver selecionada)
+  const [saldosRecebidos, setSaldosRecebidos] = useState<Record<string, number>>({})
+
   // Campos de cálculo e controle
-  // Percentual para a SEDE: default 20% apenas como sugestão inicial, editável para 20%, 30%, 40% etc.
+  // Porcentagem do DIRIGENTE na filial: 20%, 30% ou 40% (editável, default 20%)
+  const [porcentagemDirigente, setPorcentagemDirigente] = useState<number>(20)
+  // Percentual para a SEDE (mantido para compatibilidade)
   const [percentualSede, setPercentualSede] = useState<number>(20)
 
   // Sobrescritas manuais fluidas para qualquer total calculado
@@ -135,18 +150,18 @@ export const PlanilhaMensalView: React.FC = () => {
   const [totalSaidasManual, setTotalSaidasManual] = useState<number | null>(null)
   const [saldoSedeManual, setSaldoSedeManual] = useState<number | null>(null)
   const [saldoCongregacaoManual, setSaldoCongregacaoManual] = useState<number | null>(null)
+  const [saldoRestanteManual, setSaldoRestanteManual] = useState<number | null>(null)
+  const [valorDirigenteManual, setValorDirigenteManual] = useState<number | null>(null)
 
   const [saldoMesAnteriorManual, setSaldoMesAnteriorManual] = useState<number | null>(null)
   const [saldoMesAnteriorCalculado, setSaldoMesAnteriorCalculado] = useState<number>(0)
   const [ofertaEspecial, setOfertaEspecial] = useState<number>(0)
   const [observacoes, setObservacoes] = useState<string>('')
 
-  // Assinaturas configuradas
+  // Assinaturas configuradas: mantidas apenas Pastor Presidente e Tesoureiro
   const [nomePastor, setNomePastor] = useState('Pr. José Francisco Portela Fontenele')
   const [assinaturaPastorUrl, setAssinaturaPastorUrl] = useState<string | null>(null)
   const [nomeTesoureiro, setNomeTesoureiro] = useState('')
-  const [nomeFiscal, setNomeFiscal] = useState('')
-  const [nomeSupervisor, setNomeSupervisor] = useState('')
 
   // Histórico de planilhas já criadas
   const [historicoPlanilhas, setHistoricoPlanilhas] = useState<PlanilhaMensalRecord[]>([])
@@ -212,6 +227,14 @@ export const PlanilhaMensalView: React.FC = () => {
         setPercentualSede(
           typeof existente.percentual_sede === 'number' ? existente.percentual_sede : 20,
         )
+        const pctDir =
+          typeof existente.porcentagem_dirigente === 'number'
+            ? existente.porcentagem_dirigente
+            : typeof existente.percentual_sede === 'number'
+              ? existente.percentual_sede
+              : 20
+        setPorcentagemDirigente(pctDir)
+        setSaldosRecebidos(existente.saldos_recebidos_congregacoes || {})
 
         // Carrega valores manuais se existirem
         const man = existente.valores_manuais || {}
@@ -221,12 +244,12 @@ export const PlanilhaMensalView: React.FC = () => {
         setTotalSaidasManual(man.total_saidas ?? null)
         setSaldoSedeManual(man.saldo_sede ?? null)
         setSaldoCongregacaoManual(man.saldo_congregacao ?? null)
+        setSaldoRestanteManual(man.saldo_restante_apos_despesas ?? null)
+        setValorDirigenteManual(man.valor_dirigente ?? null)
 
         setObservacoes(existente.observacoes || '')
         if (existente.assinaturas) {
           setNomeTesoureiro(existente.assinaturas.tesoureiro || '')
-          setNomeFiscal(existente.assinaturas.fiscal || '')
-          setNomeSupervisor(existente.assinaturas.supervisor || '')
         }
         setUltimoSalvo(new Date(existente.updated || existente.created))
       } else {
@@ -234,12 +257,16 @@ export const PlanilhaMensalView: React.FC = () => {
         setRecordId(null)
         setSaldoMesAnteriorManual(null)
         setPercentualSede(20)
+        setPorcentagemDirigente(20)
+        setSaldosRecebidos({})
         setTotalOfertasManual(null)
         setTotalDizimosManual(null)
         setTotalEntradasManual(null)
         setTotalSaidasManual(null)
         setSaldoSedeManual(null)
         setSaldoCongregacaoManual(null)
+        setSaldoRestanteManual(null)
+        setValorDirigenteManual(null)
         setOfertaEspecial(0)
         setObservacoes('')
         setUltimoSalvo(null)
@@ -392,47 +419,88 @@ export const PlanilhaMensalView: React.FC = () => {
   const saldoMesAnteriorEfetivo =
     saldoMesAnteriorManual !== null ? saldoMesAnteriorManual : saldoMesAnteriorCalculado
 
-  // 5. Total das Entradas calculado automaticamente: dízimos + ofertas + oferta especial + outras entradas
-  const totalEntradasAuto = useMemo(() => {
+  // 4.1. Total de saldos recebidos das congregações filiais (SEDE)
+  const totalSaldosRecebidosAuto = useMemo(() => {
+    if (!isSede) return 0
     return (
       Math.round(
-        (totalDizimos + totalOfertas + (ofertaEspecial || 0) + totalOutrasEntradas) * 100,
+        Object.values(saldosRecebidos).reduce((acc, v) => acc + (Number(v) || 0), 0) * 100,
       ) / 100
     )
-  }, [totalDizimos, totalOfertas, ofertaEspecial, totalOutrasEntradas])
+  }, [isSede, saldosRecebidos])
+
+  // 5. Total das Entradas calculado automaticamente:
+  // Na Sede: Dízimos + Ofertas + Oferta Especial + Outras Entradas + Saldos Recebidos das Filiais
+  // Na Filial: Dízimos + Ofertas + Oferta Especial + Outras Entradas
+  const totalEntradasAuto = useMemo(() => {
+    const base = totalDizimos + totalOfertas + (ofertaEspecial || 0) + totalOutrasEntradas
+    const total = isSede ? base + totalSaldosRecebidosAuto : base
+    return Math.round(total * 100) / 100
+  }, [
+    isSede,
+    totalDizimos,
+    totalOfertas,
+    ofertaEspecial,
+    totalOutrasEntradas,
+    totalSaldosRecebidosAuto,
+  ])
 
   const totalEntradas = totalEntradasManual !== null ? totalEntradasManual : totalEntradasAuto
 
-  // 6. Base de cálculo do repasse: bruto que sobrou APÓS retirar as despesas (energia, água, etc.)
-  // Regra definida pelo usuário: (Total de Dízimos − despesas lançadas), sem deixar negativo
-  const baseCalculoRepasse = useMemo(() => {
-    const sobra = totalDizimos - totalDespesas
-    return sobra > 0 ? Math.round(sobra * 100) / 100 : 0
-  }, [totalDizimos, totalDespesas])
+  // 6. LÓGICA ECLESIÁSTICA REAL PARA CONGREGAÇÕES FILIAIS:
+  // a) Entradas (Dízimos + Ofertas) − Despesas da Congregação = Saldo Restante
+  const totalDizimosOfertasFilial = useMemo(() => {
+    return Math.round((totalDizimos + totalOfertas) * 100) / 100
+  }, [totalDizimos, totalOfertas])
 
-  // Total das Saídas (Repasse para SEDE) calculado automaticamente:
-  // percentual × sobra após despesas (ex.: 20%, 30%, 40%)
-  const totalSaidasAuto = useMemo(() => {
-    const pct = Math.max(0, percentualSede || 0) / 100
-    return Math.round(baseCalculoRepasse * pct * 100) / 100
-  }, [baseCalculoRepasse, percentualSede])
+  const saldoRestanteAuto = useMemo(() => {
+    const diff = totalDizimosOfertasFilial - totalDespesas
+    return Math.round(diff * 100) / 100
+  }, [totalDizimosOfertasFilial, totalDespesas])
 
+  const saldoRestante = saldoRestanteManual !== null ? saldoRestanteManual : saldoRestanteAuto
+
+  // b) Do saldo restante retira-se a porcentagem do dirigente (20%, 30% ou 40%)
+  const valorDirigenteAuto = useMemo(() => {
+    if (saldoRestante <= 0) return 0
+    const pct = Math.max(0, porcentagemDirigente || 0) / 100
+    return Math.round(saldoRestante * pct * 100) / 100
+  }, [saldoRestante, porcentagemDirigente])
+
+  const valorDirigente = valorDirigenteManual !== null ? valorDirigenteManual : valorDirigenteAuto
+
+  // c) O valor restante após a porcentagem do dirigente é o SALDO ENVIADO À SEDE
+  const saldoEnviadoSedeAuto = useMemo(() => {
+    const enviado = Math.max(0, saldoRestante - valorDirigente)
+    return Math.round(enviado * 100) / 100
+  }, [saldoRestante, valorDirigente])
+
+  // Base de cálculo e Saídas para manter compatibilidade de relatório
+  const baseCalculoRepasse = saldoRestante
+  const totalSaidasAuto = isSede ? totalDespesas : valorDirigente
   const totalSaidas = totalSaidasManual !== null ? totalSaidasManual : totalSaidasAuto
-  // Compatibilidade com o campo total_saidas_20 legado
   const totalSaidas20 = totalSaidas
 
-  // 7. Saldo para a SEDE: Total de Dízimos − Saídas/Repasse SEDE + Oferta Especial ou Voto
+  // 7. Saldo para a SEDE:
+  // Se for a Sede: Total de Receitas (incluindo saldos de congregações) − Despesas Gerais + Saldo Anterior
+  // Se for Filial: Saldo Enviado à Sede calculado pela regra eclesiástica
   const saldoSedeAuto = useMemo(() => {
-    const valor = totalDizimos - totalSaidas + (ofertaEspecial || 0)
-    return Math.round(valor * 100) / 100
-  }, [totalDizimos, totalSaidas, ofertaEspecial])
+    if (isSede) {
+      const geral = totalEntradas - totalDespesas + saldoMesAnteriorEfetivo
+      return Math.round(geral * 100) / 100
+    }
+    return saldoEnviadoSedeAuto
+  }, [isSede, totalEntradas, totalDespesas, saldoMesAnteriorEfetivo, saldoEnviadoSedeAuto])
 
   const saldoSede = saldoSedeManual !== null ? saldoSedeManual : saldoSedeAuto
 
-  // 8. Saldo para a Congregação: Saldo Anterior + Ofertas − Despesas
+  // 8. Saldo da Congregação:
+  // Na SEDE: NÃO EXISTE saldo de congregação (é zero / oculto)
+  // Na FILIAL: Saldo Anterior + Oferta Especial (ou sobra em caixa de caixa pequeno)
   const saldoCongregacaoAuto = useMemo(() => {
-    return Math.round((saldoMesAnteriorEfetivo + totalOfertas - totalDespesas) * 100) / 100
-  }, [saldoMesAnteriorEfetivo, totalOfertas, totalDespesas])
+    if (isSede) return 0
+    return Math.round((saldoMesAnteriorEfetivo + (ofertaEspecial || 0)) * 100) / 100
+  }, [isSede, saldoMesAnteriorEfetivo, ofertaEspecial])
 
   const saldoCongregacao =
     saldoCongregacaoManual !== null ? saldoCongregacaoManual : saldoCongregacaoAuto
@@ -580,7 +648,9 @@ export const PlanilhaMensalView: React.FC = () => {
       | 'totalSaidas'
       | 'saldoSede'
       | 'saldoCongregacao'
-      | 'saldoMesAnterior',
+      | 'saldoMesAnterior'
+      | 'saldoRestante'
+      | 'valorDirigente',
   ) => {
     switch (campo) {
       case 'totalOfertas':
@@ -604,6 +674,12 @@ export const PlanilhaMensalView: React.FC = () => {
       case 'saldoMesAnterior':
         setSaldoMesAnteriorManual(null)
         break
+      case 'saldoRestante':
+        setSaldoRestanteManual(null)
+        break
+      case 'valorDirigente':
+        setValorDirigenteManual(null)
+        break
     }
   }
 
@@ -626,8 +702,10 @@ export const PlanilhaMensalView: React.FC = () => {
         total_entradas: totalEntradasManual,
         total_saidas: totalSaidasManual,
         saldo_sede: saldoSedeManual,
-        saldo_congregacao: saldoCongregacaoManual,
+        saldo_congregacao: isSede ? null : saldoCongregacaoManual,
         saldo_mes_anterior: saldoMesAnteriorManual,
+        saldo_restante_apos_despesas: saldoRestanteManual,
+        valor_dirigente: valorDirigenteManual,
       }
 
       const payload = {
@@ -645,14 +723,15 @@ export const PlanilhaMensalView: React.FC = () => {
         total_entradas: totalEntradas,
         total_saidas_20: totalSaidas20,
         total_saidas: totalSaidas,
-        percentual_sede: percentualSede,
+        percentual_sede: isSede ? undefined : porcentagemDirigente || percentualSede,
+        porcentagem_dirigente: isSede ? undefined : porcentagemDirigente,
+        saldos_recebidos_congregacoes: isSede ? saldosRecebidos : undefined,
+        total_saldos_recebidos: isSede ? totalSaldosRecebidosAuto : undefined,
         valores_manuais: valoresManuaisObj,
         saldo_sede: saldoSede,
-        saldo_congregacao: saldoCongregacao,
+        saldo_congregacao: isSede ? 0 : saldoCongregacao,
         assinaturas: {
           tesoureiro: nomeTesoureiro.trim(),
-          fiscal: nomeFiscal.trim(),
-          supervisor: nomeSupervisor.trim(),
           pastorPresidente: nomePastor.trim(),
         },
         observacoes: observacoes.trim(),
@@ -710,16 +789,20 @@ export const PlanilhaMensalView: React.FC = () => {
         totalEntradas,
         totalSaidas20,
         totalSaidas,
-        percentualSede,
+        percentualSede: isSede ? undefined : porcentagemDirigente,
+        porcentagemDirigente: isSede ? undefined : porcentagemDirigente,
+        valorDirigente: isSede ? undefined : valorDirigente,
+        saldoRestanteFilial: isSede ? undefined : saldoRestante,
+        saldoEnviadoSede: isSede ? undefined : saldoEnviadoSedeAuto,
+        saldosRecebidosCongregacoes: isSede ? saldosRecebidos : undefined,
+        totalSaldosRecebidos: isSede ? totalSaldosRecebidosAuto : undefined,
         totalDespesas,
         baseCalculoRepasse,
         saldoSede,
-        saldoCongregacao,
+        saldoCongregacao: isSede ? 0 : saldoCongregacao,
         assinaturaPastorUrl,
         nomePastor,
         nomeTesoureiro,
-        nomeFiscal,
-        nomeSupervisor,
         observacoes,
         church: {
           nomeIgreja: config.nomeIgreja,
@@ -1517,45 +1600,111 @@ export const PlanilhaMensalView: React.FC = () => {
                 </p>
               </div>
 
-              {/* Controle da Porcentagem da SEDE */}
-              <div className="flex items-center gap-2 bg-[#F7F5F0] border border-[#E6E2D8] px-3 py-1.5 rounded-xl">
-                <span className="text-xs font-bold text-[#1E3A5F] whitespace-nowrap">
-                  Porcentagem para a SEDE:
-                </span>
-                <div className="flex items-center gap-1">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={percentualSede}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value)
-                      setPercentualSede(isNaN(v) ? 0 : v)
-                    }}
-                    className="h-8 w-16 text-center font-bold text-xs bg-white border-[#C9A227]"
-                  />
-                  <span className="text-xs font-bold text-slate-600">%</span>
+              {/* Controle da Porcentagem do DIRIGENTE (SOMENTE NAS CONGREGAÇÕES FILIAIS) */}
+              {!isSede && (
+                <div className="flex items-center gap-2 bg-[#F7F5F0] border border-[#E6E2D8] px-3 py-1.5 rounded-xl">
+                  <span className="text-xs font-bold text-[#1E3A5F] whitespace-nowrap">
+                    Porcentagem do Dirigente:
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={porcentagemDirigente}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value)
+                        setPorcentagemDirigente(isNaN(v) ? 0 : v)
+                      }}
+                      className="h-8 w-16 text-center font-bold text-xs bg-white border-[#C9A227]"
+                    />
+                    <span className="text-xs font-bold text-slate-600">%</span>
+                  </div>
+                  {/* Atalhos rápidos pedidos: 20%, 30%, 40% */}
+                  <div className="hidden sm:flex items-center gap-1 border-l border-slate-300 pl-2">
+                    {[20, 30, 40].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPorcentagemDirigente(p)}
+                        className={`text-[10px] px-1.5 py-0.5 rounded font-bold transition ${
+                          porcentagemDirigente === p
+                            ? 'bg-[#1E3A5F] text-white'
+                            : 'bg-white text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {p}%
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                {/* Atalhos rápidos pedidos: 20%, 30%, 40% */}
-                <div className="hidden sm:flex items-center gap-1 border-l border-slate-300 pl-2">
-                  {[20, 30, 40].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPercentualSede(p)}
-                      className={`text-[10px] px-1.5 py-0.5 rounded font-bold transition ${
-                        percentualSede === p
-                          ? 'bg-[#1E3A5F] text-white'
-                          : 'bg-white text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      {p}%
-                    </button>
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
+
+            {/* SEÇÃO DINÂMICA NA PLANILHA DA SEDE: SALDOS RECEBIDOS DAS CONGREGAÇÕES FILIAIS */}
+            {isSede && (
+              <Card className="border-[#C9A227]/40 bg-linear-to-r from-amber-50/40 via-white to-blue-50/30 shadow-2xs p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E6E2D8] pb-2">
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-[#1E3A5F] flex items-center gap-1.5">
+                      <Building2 className="w-4 h-4 text-[#C9A227]" />
+                      Saldos Recebidos das Congregações Filiais
+                    </h4>
+                    <p className="text-[11px] text-slate-600">
+                      Espaço gerado automaticamente para cada congregação cadastrada. Anote o saldo
+                      repassado por cada uma no mês. O total integra as receitas gerais da Sede.
+                    </p>
+                  </div>
+                  <Badge className="bg-[#1E3A5F] text-white font-mono text-xs font-bold self-start sm:self-center">
+                    Total Recebido: R$ {formatarMoeda(totalSaldosRecebidosAuto)}
+                  </Badge>
+                </div>
+
+                {congregacoesFiliais.length === 0 ? (
+                  <p className="text-xs text-slate-500 py-2 italic">
+                    Nenhuma congregação filial cadastrada em Unidades/Congregações. Ao cadastrar uma
+                    nova congregação, sua linha surgirá aqui automaticamente.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                    {congregacoesFiliais.map((nomeCong) => {
+                      const valorAtual = saldosRecebidos[nomeCong] || 0
+                      return (
+                        <div
+                          key={nomeCong}
+                          className="p-2.5 rounded-lg border border-slate-200 bg-white space-y-1 shadow-2xs hover:border-[#C9A227] transition"
+                        >
+                          <label className="text-[11px] font-bold text-[#1E3A5F] flex items-center justify-between">
+                            <span className="truncate" title={nomeCong}>
+                              {nomeCong}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-normal">Filial</span>
+                          </label>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-500 font-mono">R$</span>
+                            <Input
+                              type="text"
+                              inputMode="decimal"
+                              placeholder="0,00"
+                              value={valorAtual ? String(valorAtual) : ''}
+                              onChange={(e) => {
+                                const parsed = parseMoedaInput(e.target.value)
+                                setSaldosRecebidos((prev) => ({
+                                  ...prev,
+                                  [nomeCong]: parsed,
+                                }))
+                              }}
+                              className="h-8 text-xs text-right font-mono font-bold bg-white text-[#1E3A5F]"
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </Card>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Coluna 1: Entradas e Base de Cálculo */}
@@ -1743,133 +1892,275 @@ export const PlanilhaMensalView: React.FC = () => {
                 </div>
               </Card>
 
-              {/* Coluna 2: Saídas, Saldo SEDE e Saldo Congregação */}
+              {/* Coluna 2: Lógica Específica da SEDE ou FILIAL */}
               <Card className="border-[#E6E2D8] bg-white shadow-2xs divide-y divide-slate-100">
-                {/* 6. Total das Saídas / Repasse SEDE com Percentual Editável */}
-                <div className="p-3.5 flex items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-rose-800">
-                        Total das Saídas ({percentualSede}% do Bruto após Despesas)
-                      </span>
-                      {totalSaidasManual !== null && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300">
-                          manual
+                {isSede ? (
+                  /* ============================================== */
+                  /* FECHAMENTO EXCLUSIVO DA SEDE:                  */
+                  /* SEM PORCENTAGENS E SEM SALDO DE CONGREGAÇÃO    */
+                  /* ============================================== */
+                  <>
+                    <div className="p-3.5 flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-slate-700">
+                          Total de Despesas Gerais da Sede (Verso)
                         </span>
-                      )}
+                        <p className="text-[10px] text-slate-500">
+                          Contas, manutenções e despesas operacionais da igreja mãe
+                        </p>
+                      </div>
+                      <div className="w-36">
+                        <Input
+                          type="text"
+                          readOnly
+                          value={formatarMoeda(totalDespesas)}
+                          className="h-8 text-xs text-right font-mono font-bold text-rose-700 bg-slate-50"
+                        />
+                      </div>
                     </div>
-                    <p className="text-[10px] text-slate-500">
-                      Fórmula: {percentualSede}% × (Dízimos R$ {formatarMoeda(totalDizimos)} −
-                      Despesas R$ {formatarMoeda(totalDespesas)}) = Sobra R${' '}
-                      {formatarMoeda(baseCalculoRepasse)}
-                    </p>
-                  </div>
-                  <div className="w-36 flex items-center gap-1">
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={
-                        totalSaidasManual !== null
-                          ? String(totalSaidasManual)
-                          : String(totalSaidasAuto)
-                      }
-                      onChange={(e) => setTotalSaidasManual(parseMoedaInput(e.target.value))}
-                      className="h-8 text-xs text-right font-mono font-bold text-rose-700 bg-white border-rose-200"
-                    />
-                    {totalSaidasManual !== null && (
-                      <button
-                        type="button"
-                        onClick={() => resetarManual('totalSaidas')}
-                        className="text-[10px] text-blue-600 hover:underline px-1"
-                        title="Restaurar cálculo automático com base na fórmula"
-                      >
-                        auto
-                      </button>
-                    )}
-                  </div>
-                </div>
 
-                {/* 7. Saldo para a SEDE */}
-                <div className="p-4 bg-amber-50/70 border-l-4 border-[#C9A227] flex items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-extrabold text-amber-950 block">
-                        Saldo para a SEDE
-                      </span>
-                      {saldoSedeManual !== null && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-200 text-amber-950 border border-amber-400">
-                          manual
-                        </span>
-                      )}
+                    <div className="p-4 bg-emerald-50/70 border-l-4 border-emerald-600 flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-extrabold text-emerald-950 block">
+                            Saldo Geral da Sede
+                          </span>
+                          {saldoSedeManual !== null && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-950 border border-emerald-400">
+                              manual
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-emerald-800">
+                          Receitas Gerais (Dízimos + Ofertas + Saldos Filiais) − Despesas + Saldo
+                          Anterior
+                        </p>
+                      </div>
+                      <div className="w-36 flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            saldoSedeManual !== null
+                              ? String(saldoSedeManual)
+                              : String(saldoSedeAuto)
+                          }
+                          onChange={(e) => setSaldoSedeManual(parseMoedaInput(e.target.value))}
+                          className="h-8 text-xs text-right font-mono font-black text-emerald-950 bg-white border-emerald-300"
+                        />
+                        {saldoSedeManual !== null && (
+                          <button
+                            type="button"
+                            onClick={() => resetarManual('saldoSede')}
+                            className="text-[10px] text-emerald-900 hover:underline px-1 font-bold"
+                            title="Restaurar cálculo automático da Sede"
+                          >
+                            auto
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-[10px] text-amber-800">
-                      Dízimos − Repasse SEDE ({percentualSede}%) + Oferta Especial
-                    </p>
-                  </div>
-                  <div className="w-36 flex items-center gap-1">
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={
-                        saldoSedeManual !== null ? String(saldoSedeManual) : String(saldoSedeAuto)
-                      }
-                      onChange={(e) => setSaldoSedeManual(parseMoedaInput(e.target.value))}
-                      className="h-8 text-xs text-right font-mono font-black text-amber-950 bg-white border-amber-300"
-                    />
-                    {saldoSedeManual !== null && (
-                      <button
-                        type="button"
-                        onClick={() => resetarManual('saldoSede')}
-                        className="text-[10px] text-amber-900 hover:underline px-1 font-bold"
-                        title="Restaurar cálculo automático do saldo da SEDE"
-                      >
-                        auto
-                      </button>
-                    )}
-                  </div>
-                </div>
+                  </>
+                ) : (
+                  /* ============================================== */
+                  /* FECHAMENTO EXCLUSIVO DA FILIAL:                */
+                  /* LÓGICA ECLESIÁSTICA REAL COM 20/30/40 DO DIRIGENTE */
+                  /* ============================================== */
+                  <>
+                    {/* 1. Despesas da Congregação */}
+                    <div className="p-3.5 flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <span className="text-xs font-bold text-slate-700">
+                          Despesas da Congregação (Contas e Manutenção)
+                        </span>
+                        <p className="text-[10px] text-slate-500">
+                          Soma das despesas listadas acima no verso
+                        </p>
+                      </div>
+                      <div className="w-36">
+                        <Input
+                          type="text"
+                          readOnly
+                          value={formatarMoeda(totalDespesas)}
+                          className="h-8 text-xs text-right font-mono font-bold text-rose-700 bg-slate-50"
+                        />
+                      </div>
+                    </div>
 
-                {/* 8. Saldo para a Congregação */}
-                <div className="p-4 bg-emerald-50/70 border-l-4 border-emerald-600 flex items-center justify-between gap-2">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-extrabold text-emerald-950 block">
-                        Saldo para Congregação
-                      </span>
-                      {saldoCongregacaoManual !== null && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-950 border border-emerald-400">
-                          manual
-                        </span>
-                      )}
+                    {/* 2. Saldo Restante após Despesas: (Dízimos + Ofertas) − Despesas */}
+                    <div className="p-3.5 flex items-center justify-between gap-2 bg-blue-50/40">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-[#1E3A5F]">
+                            Saldo Restante da Congregação
+                          </span>
+                          {saldoRestanteManual !== null && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                              manual
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500">
+                          Entradas (Dízimos R$ {formatarMoeda(totalDizimos)} + Ofertas R${' '}
+                          {formatarMoeda(totalOfertas)}) − Despesas R${' '}
+                          {formatarMoeda(totalDespesas)}
+                        </p>
+                      </div>
+                      <div className="w-36 flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            saldoRestanteManual !== null
+                              ? String(saldoRestanteManual)
+                              : String(saldoRestanteAuto)
+                          }
+                          onChange={(e) => setSaldoRestanteManual(parseMoedaInput(e.target.value))}
+                          className="h-8 text-xs text-right font-mono font-bold text-[#1E3A5F] bg-white border-blue-200"
+                        />
+                        {saldoRestanteManual !== null && (
+                          <button
+                            type="button"
+                            onClick={() => resetarManual('saldoRestante')}
+                            className="text-[10px] text-blue-600 hover:underline px-1"
+                            title="Restaurar cálculo automático do saldo restante"
+                          >
+                            auto
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-[10px] text-emerald-800">
-                      Saldo Anterior + Ofertas − Despesas
-                    </p>
-                  </div>
-                  <div className="w-36 flex items-center gap-1">
-                    <Input
-                      type="text"
-                      inputMode="decimal"
-                      value={
-                        saldoCongregacaoManual !== null
-                          ? String(saldoCongregacaoManual)
-                          : String(saldoCongregacaoAuto)
-                      }
-                      onChange={(e) => setSaldoCongregacaoManual(parseMoedaInput(e.target.value))}
-                      className="h-8 text-xs text-right font-mono font-black text-emerald-900 bg-white border-emerald-300"
-                    />
-                    {saldoCongregacaoManual !== null && (
-                      <button
-                        type="button"
-                        onClick={() => resetarManual('saldoCongregacao')}
-                        className="text-[10px] text-emerald-900 hover:underline px-1 font-bold"
-                        title="Restaurar cálculo automático do saldo da congregação"
-                      >
-                        auto
-                      </button>
-                    )}
-                  </div>
-                </div>
+
+                    {/* 3. Porcentagem do Dirigente retirada do Saldo Restante */}
+                    <div className="p-3.5 flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-purple-900">
+                            Porcentagem do Dirigente ({porcentagemDirigente}%)
+                          </span>
+                          {valorDirigenteManual !== null && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                              manual
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500">
+                          {porcentagemDirigente}% calculado sobre o Saldo Restante (R${' '}
+                          {formatarMoeda(saldoRestante)})
+                        </p>
+                      </div>
+                      <div className="w-36 flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            valorDirigenteManual !== null
+                              ? String(valorDirigenteManual)
+                              : String(valorDirigenteAuto)
+                          }
+                          onChange={(e) => setValorDirigenteManual(parseMoedaInput(e.target.value))}
+                          className="h-8 text-xs text-right font-mono font-bold text-purple-900 bg-white border-purple-200"
+                        />
+                        {valorDirigenteManual !== null && (
+                          <button
+                            type="button"
+                            onClick={() => resetarManual('valorDirigente')}
+                            className="text-[10px] text-purple-700 hover:underline px-1"
+                            title="Restaurar cálculo automático da porcentagem do dirigente"
+                          >
+                            auto
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 4. Saldo Enviado à Sede */}
+                    <div className="p-4 bg-amber-50/80 border-l-4 border-[#C9A227] flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-extrabold text-amber-950 block">
+                            Saldo Enviado à SEDE
+                          </span>
+                          {saldoSedeManual !== null && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-200 text-amber-950 border border-amber-400">
+                              manual
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-amber-800">
+                          Saldo Restante − Porcentagem do Dirigente ({porcentagemDirigente}%)
+                        </p>
+                      </div>
+                      <div className="w-36 flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            saldoSedeManual !== null
+                              ? String(saldoSedeManual)
+                              : String(saldoSedeAuto)
+                          }
+                          onChange={(e) => setSaldoSedeManual(parseMoedaInput(e.target.value))}
+                          className="h-8 text-xs text-right font-mono font-black text-amber-950 bg-white border-amber-300"
+                        />
+                        {saldoSedeManual !== null && (
+                          <button
+                            type="button"
+                            onClick={() => resetarManual('saldoSede')}
+                            className="text-[10px] text-amber-900 hover:underline px-1 font-bold"
+                            title="Restaurar cálculo automático do saldo enviado à SEDE"
+                          >
+                            auto
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 5. Saldo da Congregação para o Próximo Mês */}
+                    <div className="p-4 bg-emerald-50/70 border-l-4 border-emerald-600 flex items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-extrabold text-emerald-950 block">
+                            Saldo da Congregação (Caixa p/ Próximo Mês)
+                          </span>
+                          {saldoCongregacaoManual !== null && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-950 border border-emerald-400">
+                              manual
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-emerald-800">
+                          Saldo Anterior + Oferta Especial / Caixa Local
+                        </p>
+                      </div>
+                      <div className="w-36 flex items-center gap-1">
+                        <Input
+                          type="text"
+                          inputMode="decimal"
+                          value={
+                            saldoCongregacaoManual !== null
+                              ? String(saldoCongregacaoManual)
+                              : String(saldoCongregacaoAuto)
+                          }
+                          onChange={(e) =>
+                            setSaldoCongregacaoManual(parseMoedaInput(e.target.value))
+                          }
+                          className="h-8 text-xs text-right font-mono font-black text-emerald-900 bg-white border-emerald-300"
+                        />
+                        {saldoCongregacaoManual !== null && (
+                          <button
+                            type="button"
+                            onClick={() => resetarManual('saldoCongregacao')}
+                            className="text-[10px] text-emerald-900 hover:underline px-1 font-bold"
+                            title="Restaurar cálculo automático do saldo da congregação"
+                          >
+                            auto
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Observações da contabilidade */}
                 <div className="p-3.5 space-y-1">
@@ -1895,49 +2186,27 @@ export const PlanilhaMensalView: React.FC = () => {
                   Área de Assinaturas Oficiais do Verso
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Nomes que saem impressos abaixo do traço. A assinatura do Pastor utiliza a imagem
-                  gravada em Configurações.
+                  Assinaturas em 2 colunas equilibradas (Tesoureiro e Pastor Presidente). A
+                  assinatura do Pastor utiliza a imagem gravada em Configurações.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
                 {/* 1. Tesoureiro */}
-                <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
+                <div className="p-3.5 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
                   <span className="text-xs font-bold text-[#1E3A5F] block">1. Tesoureiro</span>
                   <Input
                     value={nomeTesoureiro}
                     onChange={(e) => setNomeTesoureiro(e.target.value)}
                     placeholder="Nome do tesoureiro..."
-                    className="h-8 text-xs bg-white"
+                    className="h-9 text-xs bg-white"
                   />
                 </div>
 
-                {/* 2. Fiscal */}
-                <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
-                  <span className="text-xs font-bold text-[#1E3A5F] block">2. Fiscal</span>
-                  <Input
-                    value={nomeFiscal}
-                    onChange={(e) => setNomeFiscal(e.target.value)}
-                    placeholder="Conselho fiscal..."
-                    className="h-8 text-xs bg-white"
-                  />
-                </div>
-
-                {/* 3. Supervisor */}
-                <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
-                  <span className="text-xs font-bold text-[#1E3A5F] block">3. Supervisor</span>
-                  <Input
-                    value={nomeSupervisor}
-                    onChange={(e) => setNomeSupervisor(e.target.value)}
-                    placeholder="Supervisor da congregação..."
-                    className="h-8 text-xs bg-white"
-                  />
-                </div>
-
-                {/* 4. Pastor Presidente */}
-                <div className="p-3 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
+                {/* 2. Pastor Presidente */}
+                <div className="p-3.5 bg-[#F7F5F0] rounded-xl border border-[#E6E2D8] space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#1E3A5F]">4. Pastor Presidente</span>
+                    <span className="text-xs font-bold text-[#1E3A5F]">2. Pastor Presidente</span>
                     {assinaturaPastorUrl && (
                       <span className="text-[10px] text-emerald-700 font-bold">
                         ✓ Rubrica ativa
@@ -1948,7 +2217,7 @@ export const PlanilhaMensalView: React.FC = () => {
                     value={nomePastor}
                     onChange={(e) => setNomePastor(e.target.value)}
                     placeholder="Pr. Presidente..."
-                    className="h-8 text-xs bg-white"
+                    className="h-9 text-xs bg-white"
                   />
                 </div>
               </div>

@@ -22,6 +22,12 @@ export interface PlanilhaPdfData {
   totalSaidas20?: number // compatibilidade
   totalSaidas?: number // novo total das saídas / repasse à SEDE
   percentualSede?: number // percentual dinâmico (ex.: 20, 30, 40)
+  porcentagemDirigente?: number // porcentagem do dirigente da filial (ex: 20, 30, 40)
+  valorDirigente?: number // valor calculado da porcentagem do dirigente
+  saldoRestanteFilial?: number // saldo restante após despesas (Entradas − Despesas)
+  saldoEnviadoSede?: number // valor enviado à Sede pela filial (saldoRestante - valorDirigente)
+  saldosRecebidosCongregacoes?: Record<string, number> // na Sede: lista de saldos recebidos de cada congregação
+  totalSaldosRecebidos?: number // total dos saldos recebidos na Sede
   totalDespesas?: number // total de despesas lançadas no verso
   baseCalculoRepasse?: number // bruto após despesas
   saldoSede: number
@@ -222,13 +228,59 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
     ? `<img src="${dados.assinaturaPastorUrl}" alt="Assinatura Pastor" class="sig-img" />`
     : ''
 
-  const pctSede = typeof dados.percentualSede === 'number' ? dados.percentualSede : 20
-  const valorTotalSaidas =
-    typeof dados.totalSaidas === 'number'
-      ? dados.totalSaidas
-      : typeof dados.totalSaidas20 === 'number'
-        ? dados.totalSaidas20
-        : 0
+  const isSede = (dados.congregacao || '').trim().toLowerCase() === 'sede'
+  const pctDirigente =
+    typeof dados.porcentagemDirigente === 'number'
+      ? dados.porcentagemDirigente
+      : typeof dados.percentualSede === 'number'
+        ? dados.percentualSede
+        : 20
+
+  const totalDizimosOfertas = Math.round((dados.totalDizimos + dados.totalOfertas) * 100) / 100
+  const despesasFilial = dados.totalDespesas || 0
+  const saldoRestanteCalc =
+    typeof dados.saldoRestanteFilial === 'number'
+      ? dados.saldoRestanteFilial
+      : Math.max(0, Math.round((totalDizimosOfertas - despesasFilial) * 100) / 100)
+  const valorDirigenteCalc =
+    typeof dados.valorDirigente === 'number'
+      ? dados.valorDirigente
+      : Math.round(saldoRestanteCalc * (pctDirigente / 100) * 100) / 100
+  const saldoEnviadoSedeCalc =
+    typeof dados.saldoEnviadoSede === 'number'
+      ? dados.saldoEnviadoSede
+      : Math.max(0, Math.round((saldoRestanteCalc - valorDirigenteCalc) * 100) / 100)
+
+  // Linhas HTML de Saldos Recebidos das Congregações para a Sede
+  let saldosRecebidosHtml = ''
+  if (isSede && dados.saldosRecebidosCongregacoes) {
+    const entries = Object.entries(dados.saldosRecebidosCongregacoes)
+    if (entries.length > 0) {
+      saldosRecebidosHtml = `
+        <div class="linha-contabil linha-destaque" style="background:#e8edf3 !important;">
+          <div class="rotulo" style="background:#e8edf3 !important; font-weight:900; color:#1E3A5F;">
+            Saldos Recebidos das Congregações Filiais
+          </div>
+          <div class="sufixo-rs">R$ =</div>
+          <div class="valor-box" style="background:#e8edf3 !important; color:#1E3A5F;">
+            ${formatarMoeda(dados.totalSaldosRecebidos || 0)}
+          </div>
+        </div>
+        ${entries
+          .map(
+            ([nomeCong, val]) => `
+          <div class="linha-contabil" style="font-size:8px;">
+            <div class="rotulo" style="padding-left:18px; color:#333;">
+              ↳ Saldo vindo de <strong>${escapeHtml(nomeCong)}</strong>
+            </div>
+            <div class="sufixo-rs">R$ =</div>
+            <div class="valor-box">${formatarMoeda(val)}</div>
+          </div>`,
+          )
+          .join('')}
+      `
+    }
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -613,14 +665,18 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
 
     /* LINHA DE ASSINATURAS DO VERSO */
     .area-assinaturas {
-      margin-top: 18px;
+      margin-top: 24px;
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding-top: 4px;
+      justify-content: space-around;
+      gap: 32px;
+      padding-top: 6px;
+      max-width: 650px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .box-assinatura {
       flex: 1;
+      max-width: 280px;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -816,33 +872,77 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
         </div>
 
         <div class="linha-contabil linha-destaque">
-          <div class="rotulo">Total das Entradas (Dízimos + Ofertas + Oferta Especial + Outras Entradas)</div>
+          <div class="rotulo">
+            ${
+              isSede
+                ? 'Total das Receitas da Sede (Dízimos + Ofertas + Oferta Especial + Outras Entradas' +
+                  (dados.totalSaldosRecebidos ? ' + Saldos Recebidos das Congregações' : '') +
+                  ')'
+                : 'Total das Entradas (Dízimos + Ofertas + Oferta Especial + Outras Entradas)'
+            }
+          </div>
           <div class="sufixo-rs">R$ =</div>
           <div class="valor-box">${formatarMoeda(dados.totalEntradas)}</div>
         </div>
 
+        ${
+          isSede
+            ? `
+        <!-- BLOCO DA SEDE: SEM PORCENTAGEM E SEM SALDO DE CONGREGAÇÃO -->
+        ${saldosRecebidosHtml}
         <div class="linha-contabil">
-          <div class="rotulo">
-            Total das Saídas (${pctSede}% sobre o bruto após despesas)
-          </div>
+          <div class="rotulo">Total de Despesas Gerais da Sede</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(valorTotalSaidas)}</div>
+          <div class="valor-box">${formatarMoeda(dados.totalDespesas || 0)}</div>
         </div>
-
         <div class="linha-contabil linha-destaque">
-          <div class="rotulo">Saldo para SEDE (Dízimos − Repasse SEDE + Oferta Especial ou Voto)</div>
+          <div class="rotulo">Saldo Geral da Sede (Receitas − Despesas + Saldo Anterior)</div>
           <div class="sufixo-rs">R$ =</div>
           <div class="valor-box">${formatarMoeda(dados.saldoSede)}</div>
         </div>
+        `
+            : `
+        <!-- BLOCO DE CONGREGAÇÃO FILIAL: LÓGICA ECLESIÁSTICA REAL -->
+        <div class="linha-contabil">
+          <div class="rotulo">Despesas da Congregação (Contas e Manutenção)</div>
+          <div class="sufixo-rs">R$ =</div>
+          <div class="valor-box">${formatarMoeda(despesasFilial)}</div>
+        </div>
 
         <div class="linha-contabil linha-destaque">
-          <div class="rotulo">Saldo para Congregação (Ofertas − Despesas + Saldo Anterior)</div>
+          <div class="rotulo">Saldo Restante da Congregação (Entradas [Dízimos + Ofertas] − Despesas)</div>
+          <div class="sufixo-rs">R$ =</div>
+          <div class="valor-box">${formatarMoeda(saldoRestanteCalc)}</div>
+        </div>
+
+        <div class="linha-contabil">
+          <div class="rotulo">
+            Porcentagem do Dirigente (${pctDirigente}% sobre o Saldo Restante)
+          </div>
+          <div class="sufixo-rs">R$ =</div>
+          <div class="valor-box">${formatarMoeda(valorDirigenteCalc)}</div>
+        </div>
+
+        <div class="linha-contabil linha-destaque" style="background:#fef3c7 !important;">
+          <div class="rotulo" style="background:#fef3c7 !important; font-weight:900; color:#78350f;">
+            Saldo Enviado à Sede (Saldo Restante − Porcentagem do Dirigente)
+          </div>
+          <div class="sufixo-rs">R$ =</div>
+          <div class="valor-box" style="background:#fef3c7 !important; font-weight:900; color:#78350f;">
+            ${formatarMoeda(saldoEnviadoSedeCalc)}
+          </div>
+        </div>
+
+        <div class="linha-contabil linha-destaque">
+          <div class="rotulo">Saldo da Congregação p/ Mês Seguinte (Saldo Anterior + Oferta Especial)</div>
           <div class="sufixo-rs">R$ =</div>
           <div class="valor-box">${formatarMoeda(dados.saldoCongregacao)}</div>
         </div>
+        `
+        }
       </div>
 
-      <!-- ÁREA DE ASSINATURAS DO VERSO -->
+      <!-- ÁREA DE ASSINATURAS DO VERSO: EXCLUSIVAMENTE TESOUREIRO E PASTOR PRESIDENTE EM 2 COLUNAS EQUILIBRADAS -->
       <div class="area-assinaturas">
         <!-- 1. Tesoureiro -->
         <div class="box-assinatura">
@@ -852,23 +952,7 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
           <div class="nome-assinatura">${escapeHtml(dados.nomeTesoureiro || 'Assinatura do Tesoureiro')}</div>
         </div>
 
-        <!-- 2. Fiscal -->
-        <div class="box-assinatura">
-          <div class="sig-img-container"></div>
-          <div class="linha-traco"></div>
-          <div class="cargo-assinatura">Fiscal</div>
-          <div class="nome-assinatura">${escapeHtml(dados.nomeFiscal || 'Conselho Fiscal')}</div>
-        </div>
-
-        <!-- 3. Supervisor -->
-        <div class="box-assinatura">
-          <div class="sig-img-container"></div>
-          <div class="linha-traco"></div>
-          <div class="cargo-assinatura">Supervisor</div>
-          <div class="nome-assinatura">${escapeHtml(dados.nomeSupervisor || 'Supervisor de Área')}</div>
-        </div>
-
-        <!-- 4. Pastor Presidente -->
+        <!-- 2. Pastor Presidente -->
         <div class="box-assinatura">
           <div class="sig-img-container">
             ${pastorImg}

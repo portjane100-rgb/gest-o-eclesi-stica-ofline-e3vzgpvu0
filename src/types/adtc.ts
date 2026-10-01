@@ -255,6 +255,9 @@ export interface ValoresManuaisPlanilha {
   saldo_sede?: number | null
   saldo_congregacao?: number | null
   saldo_mes_anterior?: number | null
+  porcentagem_dirigente?: number | null
+  saldo_restante_apos_despesas?: number | null
+  valor_dirigente?: number | null
 }
 
 export interface PlanilhaMensalRecord extends RecordModel {
@@ -272,7 +275,10 @@ export interface PlanilhaMensalRecord extends RecordModel {
   total_entradas: number
   total_saidas_20?: number // campo legado mantido para compatibilidade
   total_saidas?: number // novo campo com o percentual dinâmico
-  percentual_sede?: number // porcentagem repassada à sede (ex. 20, 30, 40)
+  percentual_sede?: number // porcentagem repassada à sede ou do dirigente (ex. 20, 30, 40)
+  porcentagem_dirigente?: number // porcentagem do dirigente na filial (ex: 20, 30, 40)
+  saldos_recebidos_congregacoes?: Record<string, number> // na Sede: mapa { nomeCongregacao: valor }
+  total_saldos_recebidos?: number // somatório na Sede
   valores_manuais?: ValoresManuaisPlanilha
   saldo_sede: number
   saldo_congregacao: number
