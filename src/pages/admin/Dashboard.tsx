@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import pb from '@/lib/pocketbase/client'
+import { getItems } from '@/lib/dataClient'
 import type { Membro, Congregado, Obreiro, Dizimista, CalendarioEvento } from '@/types/adtc'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -142,16 +142,13 @@ export const Dashboard: React.FC = () => {
   // Carregamento geral do Dashboard
   const loadDashboardData = async () => {
     try {
-      const [membrosRes, todosMembros, todosCongregados, obreirosRes, dizimistasRes, eventosRes] =
+      const [todosMembros, todosCongregados, obreirosAtivos, todosDizimistas, eventosRes] =
         await Promise.all([
-          pb.collection('membros').getList<Membro>(1, 1, {
-            filter: "status='Ativo'",
-          }),
-          pb.collection('membros').getFullList<Membro>(),
-          pb.collection('congregados').getFullList<Congregado>(),
-          pb.collection('obreiros').getFullList<Obreiro>({ filter: "status='Ativo'" }),
-          pb.collection('dizimistas').getList<Dizimista>(1, 1),
-          pb.collection('calendario').getFullList<CalendarioEvento>({ sort: 'data_inicio' }),
+          getItems<Membro>('membros'),
+          getItems<Congregado>('congregados'),
+          getItems<Obreiro>('obreiros', { filter: "status='Ativo'" }),
+          getItems<Dizimista>('dizimistas'),
+          getItems<CalendarioEvento>('calendario', { sort: 'data_inicio' }),
         ])
 
       // Membros ativos
@@ -259,10 +256,10 @@ export const Dashboard: React.FC = () => {
       })
 
       setStats({
-        totalMembros: membrosRes.totalItems || membrosAtivos.length,
+        totalMembros: membrosAtivos.length,
         totalCongregados: congregadosAtivos.length,
-        totalObreiros: obreirosRes.length,
-        totalDizimistasMes: dizimistasRes.totalItems,
+        totalObreiros: obreirosAtivos.length,
+        totalDizimistasMes: todosDizimistas.length,
         totalEventosFuturos: eventosRes.length,
         totalAniversariantesHoje: anivHojeCount,
         totalAniversariantesMes: listaMes.length,

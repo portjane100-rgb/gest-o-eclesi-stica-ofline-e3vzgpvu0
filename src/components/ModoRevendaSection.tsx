@@ -132,27 +132,46 @@ export const ModoRevendaSection: React.FC = () => {
 
     setIsUploadingLogo(true)
     try {
-      const formData = new FormData()
-      formData.append('arquivo', selectedLogoFile)
-      formData.append('valor', 'Logomarca oficial da igreja')
-
-      let recId = config.logoRecordId
-      if (!recId) {
-        try {
-          const existing = await pb
-            .collection('configuracoes')
-            .getFirstListItem("chave='igreja_logo'")
-          recId = existing.id
-        } catch {
-          /* ignore */
+      if (isOfflineOnly()) {
+        const logoDataUrl = await fileToDataUrl(selectedLogoFile)
+        const records = await localDb.getFullList<any>('configuracoes')
+        const existing = records.find((c) => c.chave === 'igreja_logo')
+        if (existing) {
+          await localDb.update('configuracoes', existing.id, {
+            valor: 'Logomarca oficial da igreja',
+            arquivo: logoDataUrl,
+          })
+        } else {
+          await localDb.create('configuracoes', {
+            id: localDb.generateId(),
+            chave: 'igreja_logo',
+            valor: 'Logomarca oficial da igreja',
+            arquivo: logoDataUrl,
+          })
         }
-      }
-
-      if (recId) {
-        await pb.collection('configuracoes').update(recId, formData)
       } else {
-        formData.append('chave', 'igreja_logo')
-        await pb.collection('configuracoes').create(formData)
+        const formData = new FormData()
+        formData.append('arquivo', selectedLogoFile)
+        formData.append('valor', 'Logomarca oficial da igreja')
+
+        let recId = config.logoRecordId
+        if (!recId) {
+          try {
+            const existing = await pb
+              .collection('configuracoes')
+              .getFirstListItem("chave='igreja_logo'")
+            recId = existing.id
+          } catch {
+            /* ignore */
+          }
+        }
+
+        if (recId) {
+          await pb.collection('configuracoes').update(recId, formData)
+        } else {
+          formData.append('chave', 'igreja_logo')
+          await pb.collection('configuracoes').create(formData)
+        }
       }
 
       await reloadConfig()

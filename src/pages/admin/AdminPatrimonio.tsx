@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { getItems, createItem, updateItem, deleteItem } from '@/lib/dataClient'
 import type { Patrimonio } from '@/types/adtc'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -52,7 +52,7 @@ export const AdminPatrimonio: React.FC = () => {
 
   const loadPatrimonio = async () => {
     try {
-      const records = await pb.collection('patrimonio').getFullList<Patrimonio>({
+      const records = await getItems<Patrimonio>('patrimonio', {
         sort: 'tipo,nome',
       })
       setPatrimonios(records)
@@ -118,10 +118,10 @@ export const AdminPatrimonio: React.FC = () => {
       }
 
       if (editingItem) {
-        await pb.collection('patrimonio').update(editingItem.id, payload)
+        await updateItem('patrimonio', editingItem.id, payload)
         toast({ title: 'Item de patrimônio atualizado!' })
       } else {
-        await pb.collection('patrimonio').create(payload)
+        await createItem('patrimonio', payload)
         toast({ title: 'Item de patrimônio cadastrado com sucesso!' })
       }
 
@@ -146,7 +146,7 @@ export const AdminPatrimonio: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingId) return
     try {
-      await pb.collection('patrimonio').delete(deletingId)
+      await deleteItem('patrimonio', deletingId)
       toast({ title: 'Patrimônio removido com sucesso.' })
       setIsDeleteModalOpen(false)
       setDeletingId(null)

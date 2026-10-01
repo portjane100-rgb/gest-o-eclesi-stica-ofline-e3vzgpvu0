@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { getItems, createItem, updateItem, deleteItem, getFileUrl } from '@/lib/dataClient'
 import type { Obreiro } from '@/types/adtc'
 import { UNIDADES, CARGOS_OBREIROS } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
@@ -63,7 +63,7 @@ export const AdminObreiros: React.FC = () => {
 
   const loadObreiros = async () => {
     try {
-      const records = await pb.collection('obreiros').getFullList<Obreiro>({
+      const records = await getItems<Obreiro>('obreiros', {
         sort: 'cargo,ordem,created',
       })
       setObreiros(records)
@@ -121,7 +121,7 @@ export const AdminObreiros: React.FC = () => {
     const currentOrdem = ob.ordem || 1
     const newOrdem = direction === 'up' ? Math.max(1, currentOrdem - 1) : currentOrdem + 1
     try {
-      await pb.collection('obreiros').update(ob.id, { ordem: newOrdem })
+      await updateItem('obreiros', ob.id, { ordem: newOrdem })
       toast({ title: 'Ordem ministerial atualizada.' })
       loadObreiros()
     } catch (err: any) {
@@ -155,10 +155,10 @@ export const AdminObreiros: React.FC = () => {
       if (fotoFile) formData.append('foto', fotoFile)
 
       if (editingObreiro) {
-        await pb.collection('obreiros').update(editingObreiro.id, formData)
+        await updateItem('obreiros', editingObreiro.id, formData)
         toast({ title: 'Obreiro atualizado com sucesso!' })
       } else {
-        await pb.collection('obreiros').create(formData)
+        await createItem('obreiros', formData)
         toast({ title: 'Obreiro cadastrado com sucesso!' })
       }
 
@@ -187,7 +187,7 @@ export const AdminObreiros: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingId) return
     try {
-      await pb.collection('obreiros').delete(deletingId)
+      await deleteItem('obreiros', deletingId)
       toast({ title: 'Obreiro excluído com sucesso.' })
       setIsDeleteModalOpen(false)
       setDeletingId(null)
@@ -489,7 +489,7 @@ export const AdminObreiros: React.FC = () => {
                       <div className="w-9 h-9 rounded-full bg-[#1E3A5F]/10 text-[#1E3A5F] border border-[#E6E2D8] flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden">
                         {ob.foto ? (
                           <img
-                            src={pb.files.getURL(ob, ob.foto)}
+                            src={getFileUrl(ob, ob.foto)}
                             alt={ob.nome}
                             className="w-full h-full object-cover"
                           />

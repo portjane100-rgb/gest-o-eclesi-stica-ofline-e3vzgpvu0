@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react'
-import pb from '@/lib/pocketbase/client'
+import {
+  getItems,
+  createItem,
+  updateItem,
+  deleteItem,
+  fileToDataUrl,
+  getFileUrl,
+} from '@/lib/dataClient'
+import { isOfflineOnly } from '@/lib/offlineMode'
+import { localDb } from '@/lib/localDb'
 import type { Membro, CartaRecebida, Configuracao, Obreiro } from '@/types/adtc'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -283,7 +292,7 @@ export const AdminDocumentos: React.FC = () => {
   // Carrega nomes e cargos oficiais e imagens de assinaturas persistidos no banco
   const loadLiderancaConfig = async () => {
     try {
-      const records = await pb.collection('configuracoes').getFullList<Configuracao>()
+      const records = await getItems<Configuracao>('configuracoes')
       let pNome = ''
       let pCargo = ''
       let s1Nome = ''
@@ -342,11 +351,11 @@ export const AdminDocumentos: React.FC = () => {
     try {
       setLoadingMembros(true)
       const [membrosRes, obreirosRes] = await Promise.all([
-        pb.collection('membros').getFullList<Membro>({
+        getItems<Membro>('membros', {
           filter: "status='Ativo'",
           sort: 'nome',
         }),
-        pb.collection('obreiros').getFullList<Obreiro>({
+        getItems<Obreiro>('obreiros', {
           filter: "status='Ativo'",
           sort: 'ordem,nome',
         }),
@@ -464,7 +473,7 @@ export const AdminDocumentos: React.FC = () => {
   const loadCartasRecebidas = async () => {
     try {
       setLoadingCartas(true)
-      const records = await pb.collection('cartas_recebidas').getFullList<CartaRecebida>({
+      const records = await getItems<CartaRecebida>('cartas_recebidas', {
         sort: '-data_recebimento,-created',
       })
       setCartasRecebidas(records)
@@ -477,12 +486,36 @@ export const AdminDocumentos: React.FC = () => {
 
   const saveConfigChave = async (chave: string, valor: string) => {
     try {
-      const existing = await pb
+      if (isOfflineOnly()) {
+        const records = await localDb.getFullList<Configuracao>('configuracoes')
+        const existing = records.find((c) => c.chave === chave)
+        if (existing) {
+          await localDb.update('configuracoes', existing.id, { valor })
+        } else {
+          await localDb.create('configuracoes', { id: localDb.generateId(), chave, valor })
+        }
+        return
+      }
+      const existing = await (
+        await import('@/lib/pocketbase/client')
+      ).default
         .collection('configuracoes')
         .getFirstListItem<Configuracao>(`chave='${chave}'`)
-      await pb.collection('configuracoes').update(existing.id, { valor })
+      await (
+        await import('@/lib/pocketbase/client')
+      ).default
+        .collection('configuracoes')
+        .update(existing.id, { valor })
     } catch {
-      await pb.collection('configuracoes').create({ chave, valor })
+      if (isOfflineOnly()) {
+        await localDb.create('configuracoes', { id: localDb.generateId(), chave, valor })
+      } else {
+        await (
+          await import('@/lib/pocketbase/client')
+        ).default
+          .collection('configuracoes')
+          .create({ chave, valor })
+      }
     }
   }
 
@@ -545,23 +578,45 @@ export const AdminDocumentos: React.FC = () => {
 
     try {
       setIsSalvandoCarta(true)
-      const formData = new FormData()
-      formData.append('nome', novoNome.trim())
-      formData.append('tipo_pessoa', novoTipoPessoa)
-      if (novoTipoPessoa === 'Obreiro') {
-        formData.append('funcao_obreiro', novaFuncaoObreiro)
-      }
-      formData.append('igreja_origem', novaIgrejaOrigem.trim())
-      formData.append('cidade_origem', novaCidadeOrigem.trim())
-      formData.append('data_recebimento', novaDataRecebimento)
-      formData.append('congregacao_destino', novaCongregacaoDestino)
-      formData.append('observacoes', novasObservacoes.trim())
+      if (isOfflineOnly()) {
+        let arquivoBase64 = ''
+        if (novoArquivo) {
+          try {
+            arquivoBase64 = await fileToDataUrl(novoArquivo)
+          } catch (e) {
+            console.warn('Falha ao converter arquivo da carta para base64:', e)
+          }
+        }
+        await createItem('cartas_recebidas', {
+          nome: novoNome.trim(),
+          tipo_pessoa: novoTipoPessoa,
+          funcao_obreiro: novoTipoPessoa === 'Obreiro' ? novaFuncaoObreiro : '',
+          igreja_origem: novaIgrejaOrigem.trim(),
+          cidade_origem: novaCidadeOrigem.trim(),
+          data_recebimento: novaDataRecebimento,
+          congregacao_destino: novaCongregacaoDestino,
+          observacoes: novasObservacoes.trim(),
+          arquivo_pdf: arquivoBase64,
+        })
+      } else {
+        const formData = new FormData()
+        formData.append('nome', novoNome.trim())
+        formData.append('tipo_pessoa', novoTipoPessoa)
+        if (novoTipoPessoa === 'Obreiro') {
+          formData.append('funcao_obreiro', novaFuncaoObreiro)
+        }
+        formData.append('igreja_origem', novaIgrejaOrigem.trim())
+        formData.append('cidade_origem', novaCidadeOrigem.trim())
+        formData.append('data_recebimento', novaDataRecebimento)
+        formData.append('congregacao_destino', novaCongregacaoDestino)
+        formData.append('observacoes', novasObservacoes.trim())
 
-      if (novoArquivo) {
-        formData.append('arquivo_pdf', novoArquivo)
-      }
+        if (novoArquivo) {
+          formData.append('arquivo_pdf', novoArquivo)
+        }
 
-      await pb.collection('cartas_recebidas').create(formData)
+        await createItem('cartas_recebidas', formData)
+      }
 
       toast({
         title: 'Carta Arquivada com Sucesso!',
@@ -595,7 +650,7 @@ export const AdminDocumentos: React.FC = () => {
       return
     }
     try {
-      await pb.collection('cartas_recebidas').delete(id)
+      await deleteItem('cartas_recebidas', id)
       toast({
         title: 'Arquivo removido',
         description: `O registro de ${nome} foi excluído do arquivo.`,
@@ -663,10 +718,7 @@ export const AdminDocumentos: React.FC = () => {
       } else if (selectedDocType === 'carteira' && selectedCarteiraMembro) {
         let fotoDataUri: string | null = null
         if (selectedCarteiraMembro.foto) {
-          const originalFotoUrl = pb.files.getURL(
-            selectedCarteiraMembro,
-            selectedCarteiraMembro.foto,
-          )
+          const originalFotoUrl = getFileUrl(selectedCarteiraMembro, selectedCarteiraMembro.foto)
           fotoDataUri = await convertImageUrlToDataUri(originalFotoUrl)
         }
         const { pai, mae } = extrairPaiMae(selectedCarteiraMembro.filiacao)
@@ -2329,7 +2381,7 @@ export const AdminDocumentos: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {cartasFiltradas.map((carta) => {
                 const isObreiro = carta.tipo_pessoa === 'Obreiro'
-                const fileUrl = carta.arquivo_pdf ? pb.files.getURL(carta, carta.arquivo_pdf) : null
+                const fileUrl = carta.arquivo_pdf ? getFileUrl(carta, carta.arquivo_pdf) : null
 
                 return (
                   <Card
@@ -2418,6 +2470,7 @@ export const AdminDocumentos: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <a
                               href={fileUrl}
+                              download={`Carta_${carta.nome.replace(/\s+/g, '_')}.pdf`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold shadow-xs transition"
@@ -2430,7 +2483,7 @@ export const AdminDocumentos: React.FC = () => {
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1.5 text-slate-500 hover:text-[#1E3A5F] rounded-lg border border-slate-200"
-                              title="Abrir em nova aba"
+                              title="Abrir documento"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>

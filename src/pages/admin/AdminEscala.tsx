@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { getItems, createItem, updateItem, deleteItem, fileToDataUrl } from '@/lib/dataClient'
+import { isOfflineOnly } from '@/lib/offlineMode'
 import type { EscalaSemanaItem, EscalaSemanaDia } from '@/types/adtc'
 import useRealtime from '@/hooks/use-realtime'
 import { Card } from '@/components/ui/card'
@@ -81,7 +82,7 @@ export const AdminEscala: React.FC = () => {
   // --------------------------------------------------------------------------
   const loadSemanas = async () => {
     try {
-      const records = await pb.collection('escala_semana').getFullList<EscalaSemanaItem>({
+      const records = await getItems<EscalaSemanaItem>('escala_semana', {
         sort: '-data_inicio',
       })
       setSemanas(records)
@@ -147,36 +148,67 @@ export const AdminEscala: React.FC = () => {
       data.append('observacoes', formData.observacoes?.trim() || '')
       data.append('ativa', String(formData.ativa ?? true))
 
-      if (editingSemana) {
-        // No PocketBase para campos file múltiplos, fotos existentes não incluídas em 'fotos' ou via fotos- são removidas.
-        // Adicionamos os arquivos novos:
+      if (isOfflineOnly()) {
+        const novasBase64: string[] = []
         for (const file of novasFotos) {
-          data.append('fotos', file)
+          try {
+            novasBase64.push(await fileToDataUrl(file))
+          } catch (e) {
+            console.warn('Falha ao converter foto da escala:', e)
+          }
+        }
+        const fotosFinais = [...fotosMantidas, ...novasBase64]
+        const payload: Record<string, any> = {
+          titulo: formData.titulo.trim(),
+          data_inicio: toUtcMiddayIso(formData.data_inicio),
+          data_fim: toUtcMiddayIso(formData.data_fim),
+          dias: formData.dias,
+          observacoes: formData.observacoes?.trim() || '',
+          ativa: formData.ativa ?? true,
+          fotos: fotosFinais,
         }
 
-        // Se fotos foram removidas em relação ao editingSemana.fotos:
-        const fotosOriginais = editingSemana.fotos || []
-        const fotosParaRemover = fotosOriginais.filter((f) => !fotosMantidas.includes(f))
-        for (const f of fotosParaRemover) {
-          data.append('fotos-', f)
+        if (editingSemana) {
+          await updateItem('escala_semana', editingSemana.id, payload)
+          toast({
+            title: 'Escala da semana atualizada!',
+            description: 'As alterações foram salvas com sucesso no banco local.',
+          })
+        } else {
+          await createItem('escala_semana', payload)
+          toast({
+            title: 'Nova escala da semana criada!',
+            description: 'A semana foi salva com sucesso no banco local.',
+          })
         }
-
-        await pb.collection('escala_semana').update(editingSemana.id, data)
-        toast({
-          title: 'Escala da semana atualizada!',
-          description: 'As alterações e fotos foram salvas com sucesso no banco de dados.',
-        })
       } else {
-        for (const file of novasFotos) {
-          data.append('fotos', file)
-        }
+        if (editingSemana) {
+          for (const file of novasFotos) {
+            data.append('fotos', file)
+          }
+          const fotosOriginais = editingSemana.fotos || []
+          const fotosParaRemover = fotosOriginais.filter((f) => !fotosMantidas.includes(f))
+          for (const f of fotosParaRemover) {
+            data.append('fotos-', f)
+          }
 
-        await pb.collection('escala_semana').create(data)
-        toast({
-          title: 'Nova escala da semana criada!',
-          description:
-            'A semana foi salva com sucesso e está disponível para download e compartilhamento.',
-        })
+          await updateItem('escala_semana', editingSemana.id, data)
+          toast({
+            title: 'Escala da semana atualizada!',
+            description: 'As alterações e fotos foram salvas com sucesso no banco de dados.',
+          })
+        } else {
+          for (const file of novasFotos) {
+            data.append('fotos', file)
+          }
+
+          await createItem('escala_semana', data)
+          toast({
+            title: 'Nova escala da semana criada!',
+            description:
+              'A semana foi salva com sucesso e está disponível para download e compartilhamento.',
+          })
+        }
       }
 
       setIsSemanaModalOpen(false)
@@ -197,7 +229,7 @@ export const AdminEscala: React.FC = () => {
   const handleDeleteSemanaConfirm = async () => {
     if (!deletingSemanaId) return
     try {
-      await pb.collection('escala_semana').delete(deletingSemanaId)
+      await deleteItem('escala_semana', deletingSemanaId)
       toast({ title: 'Escala da semana excluída com sucesso.' })
       setDeletingSemanaId(null)
       await loadSemanas()

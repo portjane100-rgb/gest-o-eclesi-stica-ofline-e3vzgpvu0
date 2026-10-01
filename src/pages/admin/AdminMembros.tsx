@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { getItems, createItem, updateItem, deleteItem, getFileUrl } from '@/lib/dataClient'
 import type { Membro, SituacaoEclesiastica, Congregado } from '@/types/adtc'
 import { UNIDADES } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
@@ -106,12 +106,8 @@ export const AdminMembros: React.FC = () => {
   const loadData = async () => {
     try {
       const [recordsMembros, recordsCongregados] = await Promise.all([
-        pb.collection('membros').getFullList<Membro>({
-          sort: 'nome',
-        }),
-        pb.collection('congregados').getFullList<Congregado>({
-          sort: 'nome',
-        }),
+        getItems<Membro>('membros', { sort: 'nome' }),
+        getItems<Congregado>('congregados', { sort: 'nome' }),
       ])
       setMembros(recordsMembros)
       setCongregados(recordsCongregados)
@@ -190,7 +186,7 @@ export const AdminMembros: React.FC = () => {
         whatsapp: m.whatsapp,
         telefone: m.telefone,
         numero_ficha: m.numero_ficha,
-        foto: m.foto ? pb.files.getURL(m, m.foto) : undefined,
+        foto: m.foto ? getFileUrl(m, m.foto) : undefined,
       })),
     ...congregados
       .filter((c) => {
@@ -354,14 +350,14 @@ export const AdminMembros: React.FC = () => {
       if (fotoFile) formData.append('foto', fotoFile)
 
       if (editingMembro) {
-        await pb.collection('membros').update(editingMembro.id, formData)
+        await updateItem('membros', editingMembro.id, formData)
         toast({ title: 'Membro atualizado com sucesso!' })
       } else {
         if (!numeroRegistro.trim() && !numeroFicha.trim()) {
           const nextNum = (membros.length + 1).toString().padStart(3, '0')
           formData.append('numero_registro', `${config.siglaIgreja || 'MBR'}-${nextNum}`)
         }
-        await pb.collection('membros').create(formData)
+        await createItem('membros', formData)
         toast({ title: 'Membro cadastrado com sucesso no rol oficial!' })
       }
 
@@ -390,7 +386,7 @@ export const AdminMembros: React.FC = () => {
   // Mudança rápida de situação (Ativo <-> Inativo/Afastado <-> Falecido)
   const handleChangeStatus = async (membro: Membro, novoStatus: SituacaoEclesiastica) => {
     try {
-      await pb.collection('membros').update(membro.id, { status: novoStatus })
+      await updateItem('membros', membro.id, { status: novoStatus })
       toast({
         title: `Situação de ${membro.nome} alterada para ${novoStatus}.`,
         description:
@@ -411,7 +407,7 @@ export const AdminMembros: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingId) return
     try {
-      await pb.collection('membros').delete(deletingId)
+      await deleteItem('membros', deletingId)
       toast({ title: 'Membro excluído com sucesso.' })
       setIsDeleteModalOpen(false)
       setDeletingId(null)
@@ -863,7 +859,7 @@ export const AdminMembros: React.FC = () => {
                           <div className="w-9 h-9 rounded-full bg-[#1E3A5F]/10 text-[#1E3A5F] border border-[#E6E2D8] flex items-center justify-center font-bold text-xs flex-shrink-0 overflow-hidden">
                             {m.foto ? (
                               <img
-                                src={pb.files.getURL(m, m.foto)}
+                                src={getFileUrl(m, m.foto)}
                                 alt={m.nome}
                                 className="w-full h-full object-cover"
                               />

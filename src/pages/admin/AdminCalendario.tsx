@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { getItems, createItem, updateItem, deleteItem } from '@/lib/dataClient'
 import type { CalendarioEvento } from '@/types/adtc'
 import useRealtime from '@/hooks/use-realtime'
 import { Card } from '@/components/ui/card'
@@ -65,7 +65,7 @@ export const AdminCalendario: React.FC = () => {
 
   const loadEventos = async () => {
     try {
-      const records = await pb.collection('calendario').getFullList<CalendarioEvento>({
+      const records = await getItems<CalendarioEvento>('calendario', {
         sort: 'data_inicio',
       })
       setEventos(records)
@@ -136,10 +136,10 @@ export const AdminCalendario: React.FC = () => {
       }
 
       if (editingItem) {
-        await pb.collection('calendario').update(editingItem.id, payload)
+        await updateItem('calendario', editingItem.id, payload)
         toast({ title: 'Evento atualizado com sucesso!' })
       } else {
-        await pb.collection('calendario').create(payload)
+        await createItem('calendario', payload)
         toast({ title: 'Evento cadastrado no calendário!' })
       }
 
@@ -206,7 +206,7 @@ export const AdminCalendario: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingId) return
     try {
-      await pb.collection('calendario').delete(deletingId)
+      await deleteItem('calendario', deletingId)
       toast({ title: 'Evento excluído do calendário.' })
       setIsDeleteModalOpen(false)
       setDeletingId(null)
