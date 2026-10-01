@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select'
 import {
   FileSpreadsheet,
+  FileText,
   Printer,
   Save,
   RotateCcw,
@@ -113,6 +114,7 @@ export const PlanilhaMensalView: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [salvando, setSalvando] = useState(false)
   const [gerandoPdf, setGerandoPdf] = useState(false)
+  const [gerandoPdfBranco, setGerandoPdfBranco] = useState(false)
   const [ultimoSalvo, setUltimoSalvo] = useState<Date | null>(null)
 
   // Linhas da Frente: Dízimos (Nome | R$ | R$ | R$ | Total)
@@ -766,7 +768,72 @@ export const PlanilhaMensalView: React.FC = () => {
   }
 
   // ========================================================
-  // GERAR PDF FRENTE E VERSO FIEL AO MODELO EM PAPEL
+  // GERAR PDF EM BRANCO (ESTRUTURA TIMBRADA PARA PREENCHIMENTO MANUAL NO PAPEL)
+  // ========================================================
+  const handleGerarPdfEmBranco = async () => {
+    setGerandoPdfBranco(true)
+    try {
+      const mesObj = MESES.find((m) => m.valor === mes)
+      const mesNome = mesObj ? mesObj.nome : String(mes)
+
+      const htmlCompleto = await buildPlanilhaMensalHtml({
+        mes,
+        mesNome,
+        ano,
+        congregacao,
+        emBranco: true,
+        linhasDizimos: [],
+        linhasOfertas: [],
+        linhasContabilidade: [],
+        nomesCongregacoesFiliais: congregacoesFiliais,
+        porcentagemDirigente: isSede ? undefined : porcentagemDirigente || 20,
+        percentualSede: isSede ? undefined : porcentagemDirigente || 20,
+        nomePastor: config.nomePastor || nomePastor,
+        cargoPastor: 'Pastor Presidente',
+        nomeTesoureiro: nomeTesoureiro || '',
+        assinaturaPastorUrl,
+        church: {
+          nomeIgreja: config.nomeIgreja,
+          subtituloIgreja: config.subtituloIgreja,
+          denominacao: config.denominacao,
+          siglaIgreja: config.siglaIgreja,
+          enderecoIgreja: config.enderecoIgreja || config.enderecoSede,
+          cidadeUf: config.cidadeUf || config.cidadeEstado,
+          logoUrl: config.logoUrl,
+        },
+      })
+
+      const printWindow = window.open('', '_blank', 'width=1100,height=900')
+      if (!printWindow) {
+        toast({
+          variant: 'destructive',
+          title: 'Bloqueio de pop-up',
+          description: 'Permita pop-ups no seu navegador para imprimir ou salvar em PDF.',
+        })
+        return
+      }
+
+      printWindow.document.write(htmlCompleto)
+      printWindow.document.close()
+
+      toast({
+        title: 'Planilha em Branco Pronta',
+        description: 'Imprima em frente e verso para preenchimento manual nas congregações.',
+      })
+    } catch (err: any) {
+      console.error('Erro ao gerar PDF em branco da planilha:', err)
+      toast({
+        variant: 'destructive',
+        title: 'Erro na geração do PDF',
+        description: err?.message || 'Tente novamente.',
+      })
+    } finally {
+      setGerandoPdfBranco(false)
+    }
+  }
+
+  // ========================================================
+  // GERAR PDF FRENTE E VERSO FIEL AO MODELO EM PAPEL COM DADOS
   // ========================================================
   const handleGerarPdf = async () => {
     setGerandoPdf(true)
@@ -795,6 +862,7 @@ export const PlanilhaMensalView: React.FC = () => {
         saldoRestanteFilial: isSede ? undefined : saldoRestante,
         saldoEnviadoSede: isSede ? undefined : saldoEnviadoSedeAuto,
         saldosRecebidosCongregacoes: isSede ? saldosRecebidos : undefined,
+        nomesCongregacoesFiliais: isSede ? congregacoesFiliais : undefined,
         totalSaldosRecebidos: isSede ? totalSaldosRecebidosAuto : undefined,
         totalDespesas,
         baseCalculoRepasse,
@@ -945,13 +1013,13 @@ export const PlanilhaMensalView: React.FC = () => {
               </div>
             </div>
 
-            {/* Ações: Salvar e Gerar PDF Frente/Verso */}
+            {/* Ações: Salvar, Gerar PDF com valores e Gerar Planilha em Branco */}
             <div className="flex flex-wrap items-center gap-2 pt-2 lg:pt-0 border-t lg:border-t-0 border-[#E6E2D8]">
               <Button
                 onClick={handleSalvarPlanilha}
                 disabled={salvando || loading}
                 size="sm"
-                className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-bold shadow-sm h-9 px-4"
+                className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-bold shadow-sm h-9 px-3.5"
               >
                 {salvando ? (
                   <>
@@ -971,8 +1039,8 @@ export const PlanilhaMensalView: React.FC = () => {
                 disabled={gerandoPdf || loading}
                 variant="outline"
                 size="sm"
-                className="border-[#C9A227] text-[#1E3A5F] hover:bg-[#C9A227]/10 text-xs font-bold h-9 px-3.5"
-                title="Gera PDF frente e verso fiel ao modelo em papel oficial da igreja"
+                className="border-[#C9A227] text-[#1E3A5F] hover:bg-[#C9A227]/10 text-xs font-bold h-9 px-3"
+                title="Gera PDF frente e verso preenchido com os valores atuais"
               >
                 {gerandoPdf ? (
                   <>
@@ -982,7 +1050,28 @@ export const PlanilhaMensalView: React.FC = () => {
                 ) : (
                   <>
                     <Printer className="w-3.5 h-3.5 mr-1.5 text-[#C9A227]" />
-                    Imprimir / PDF Frente e Verso
+                    Imprimir / PDF com Valores
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={handleGerarPdfEmBranco}
+                disabled={gerandoPdfBranco || loading}
+                variant="outline"
+                size="sm"
+                className="border-slate-300 text-slate-700 hover:bg-slate-100 hover:text-[#1E3A5F] text-xs font-bold h-9 px-3 shadow-2xs"
+                title="Gera PDF limpo em branco oficial timbrado para impressão e preenchimento manual no papel"
+              >
+                {gerandoPdfBranco ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    Gerando Branco...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="w-3.5 h-3.5 mr-1.5 text-slate-600" />
+                    Planilha em Branco (PDF)
                   </>
                 )}
               </Button>

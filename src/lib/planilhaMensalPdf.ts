@@ -7,18 +7,18 @@ import type {
 } from '@/types/adtc'
 
 export interface PlanilhaPdfData {
-  mes: number
-  mesNome: string
-  ano: number
-  congregacao: string
-  linhasDizimos: LinhaDizimoPlanilha[]
-  linhasOfertas: LinhaOfertaPlanilha[]
-  linhasContabilidade: LinhaContabilidadePlanilha[]
-  saldoMesAnterior: number
-  totalOfertas: number
-  totalDizimos: number
-  ofertaEspecial: number
-  totalEntradas: number
+  mes?: number
+  mesNome?: string
+  ano?: number
+  congregacao?: string
+  linhasDizimos?: LinhaDizimoPlanilha[]
+  linhasOfertas?: LinhaOfertaPlanilha[]
+  linhasContabilidade?: LinhaContabilidadePlanilha[]
+  saldoMesAnterior?: number
+  totalOfertas?: number
+  totalDizimos?: number
+  ofertaEspecial?: number
+  totalEntradas?: number
   totalSaidas20?: number // compatibilidade
   totalSaidas?: number // novo total das saídas / repasse à SEDE
   percentualSede?: number // percentual dinâmico (ex.: 20, 30, 40)
@@ -27,11 +27,14 @@ export interface PlanilhaPdfData {
   saldoRestanteFilial?: number // saldo restante após despesas (Entradas − Despesas)
   saldoEnviadoSede?: number // valor enviado à Sede pela filial (saldoRestante - valorDirigente)
   saldosRecebidosCongregacoes?: Record<string, number> // na Sede: lista de saldos recebidos de cada congregação
+  nomesCongregacoesFiliais?: string[] // Lista completa de filiais cadastradas para a Sede
   totalSaldosRecebidos?: number // total dos saldos recebidos na Sede
   totalDespesas?: number // total de despesas lançadas no verso
   baseCalculoRepasse?: number // bruto após despesas
-  saldoSede: number
-  saldoCongregacao: number
+  saldoSede?: number
+  saldoCongregacao?: number
+  // Modo em branco (para impressão física limpa, preenchimento à mão)
+  emBranco?: boolean
   // Assinaturas configuradas ou gravadas
   assinaturaPastorUrl?: string | null
   assinaturaSecretario1Url?: string | null
@@ -91,7 +94,7 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
   }> = []
 
   for (let i = 1; i <= maxLinhasDizimos; i++) {
-    const item = dados.linhasDizimos[i - 1]
+    const item = !dados.emBranco && dados.linhasDizimos ? dados.linhasDizimos[i - 1] : undefined
     if (item) {
       linhasDizimosCompletas.push({
         numero: i,
@@ -124,7 +127,7 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
   }> = []
 
   for (let i = 1; i <= maxLinhasOfertas; i++) {
-    const item = dados.linhasOfertas[i - 1]
+    const item = !dados.emBranco && dados.linhasOfertas ? dados.linhasOfertas[i - 1] : undefined
     if (item) {
       linhasOfertasCompletas.push({
         numero: i,
@@ -150,7 +153,8 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
   }> = []
 
   for (let i = 1; i <= maxLinhasVerso; i++) {
-    const item = dados.linhasContabilidade[i - 1]
+    const item =
+      !dados.emBranco && dados.linhasContabilidade ? dados.linhasContabilidade[i - 1] : undefined
     if (item) {
       linhasVersoCompletas.push({
         numero: i,
@@ -229,6 +233,8 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
     : ''
 
   const isSede = (dados.congregacao || '').trim().toLowerCase() === 'sede'
+  const isEmBranco = Boolean(dados.emBranco)
+
   const pctDirigente =
     typeof dados.porcentagemDirigente === 'number'
       ? dados.porcentagemDirigente
@@ -236,7 +242,9 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
         ? dados.percentualSede
         : 20
 
-  const totalDizimosOfertas = Math.round((dados.totalDizimos + dados.totalOfertas) * 100) / 100
+  const totalDizimosVal = dados.totalDizimos || 0
+  const totalOfertasVal = dados.totalOfertas || 0
+  const totalDizimosOfertas = Math.round((totalDizimosVal + totalOfertasVal) * 100) / 100
   const despesasFilial = dados.totalDespesas || 0
   const saldoRestanteCalc =
     typeof dados.saldoRestanteFilial === 'number'
@@ -253,32 +261,89 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
 
   // Linhas HTML de Saldos Recebidos das Congregações para a Sede
   let saldosRecebidosHtml = ''
-  if (isSede && dados.saldosRecebidosCongregacoes) {
-    const entries = Object.entries(dados.saldosRecebidosCongregacoes)
-    if (entries.length > 0) {
+  if (isSede) {
+    if (isEmBranco) {
+      // No modo em branco: gera uma linha para cada congregação filial cadastrada, sem valor preenchido
+      const filiaisList =
+        dados.nomesCongregacoesFiliais && dados.nomesCongregacoesFiliais.length > 0
+          ? dados.nomesCongregacoesFiliais
+          : dados.saldosRecebidosCongregacoes
+            ? Object.keys(dados.saldosRecebidosCongregacoes)
+            : []
+
       saldosRecebidosHtml = `
         <div class="linha-contabil linha-destaque" style="background:#e8edf3 !important;">
           <div class="rotulo" style="background:#e8edf3 !important; font-weight:900; color:#1E3A5F;">
             Saldos Recebidos das Congregações Filiais
           </div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box" style="background:#e8edf3 !important; color:#1E3A5F;">
-            ${formatarMoeda(dados.totalSaldosRecebidos || 0)}
-          </div>
+          <div class="valor-box" style="background:#e8edf3 !important; color:#1E3A5F;"></div>
         </div>
-        ${entries
-          .map(
-            ([nomeCong, val]) => `
-          <div class="linha-contabil" style="font-size:8px;">
-            <div class="rotulo" style="padding-left:18px; color:#333;">
-              ↳ Saldo vindo de <strong>${escapeHtml(nomeCong)}</strong>
+        ${
+          filiaisList.length > 0
+            ? filiaisList
+                .map(
+                  (nomeCong) => `
+              <div class="linha-contabil" style="font-size:8px;">
+                <div class="rotulo" style="padding-left:18px; color:#333;">
+                  ↳ Saldo vindo de <strong>${escapeHtml(nomeCong)}</strong>
+                </div>
+                <div class="sufixo-rs">R$ =</div>
+                <div class="valor-box"></div>
+              </div>`,
+                )
+                .join('')
+            : `
+              <div class="linha-contabil" style="font-size:8px;">
+                <div class="rotulo" style="padding-left:18px; color:#333;">
+                  ↳ Saldo vindo de Congregação: _______________________
+                </div>
+                <div class="sufixo-rs">R$ =</div>
+                <div class="valor-box"></div>
+              </div>
+              <div class="linha-contabil" style="font-size:8px;">
+                <div class="rotulo" style="padding-left:18px; color:#333;">
+                  ↳ Saldo vindo de Congregação: _______________________
+                </div>
+                <div class="sufixo-rs">R$ =</div>
+                <div class="valor-box"></div>
+              </div>
+              <div class="linha-contabil" style="font-size:8px;">
+                <div class="rotulo" style="padding-left:18px; color:#333;">
+                  ↳ Saldo vindo de Congregação: _______________________
+                </div>
+                <div class="sufixo-rs">R$ =</div>
+                <div class="valor-box"></div>
+              </div>`
+        }
+      `
+    } else if (dados.saldosRecebidosCongregacoes) {
+      const entries = Object.entries(dados.saldosRecebidosCongregacoes)
+      if (entries.length > 0) {
+        saldosRecebidosHtml = `
+          <div class="linha-contabil linha-destaque" style="background:#e8edf3 !important;">
+            <div class="rotulo" style="background:#e8edf3 !important; font-weight:900; color:#1E3A5F;">
+              Saldos Recebidos das Congregações Filiais
             </div>
             <div class="sufixo-rs">R$ =</div>
-            <div class="valor-box">${formatarMoeda(val)}</div>
-          </div>`,
-          )
-          .join('')}
-      `
+            <div class="valor-box" style="background:#e8edf3 !important; color:#1E3A5F;">
+              ${formatarMoeda(dados.totalSaldosRecebidos || 0)}
+            </div>
+          </div>
+          ${entries
+            .map(
+              ([nomeCong, val]) => `
+            <div class="linha-contabil" style="font-size:8px;">
+              <div class="rotulo" style="padding-left:18px; color:#333;">
+                ↳ Saldo vindo de <strong>${escapeHtml(nomeCong)}</strong>
+              </div>
+              <div class="sufixo-rs">R$ =</div>
+              <div class="valor-box">${formatarMoeda(val)}</div>
+            </div>`,
+            )
+            .join('')}
+        `
+      }
     }
   }
 
@@ -754,9 +819,9 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
 
       <!-- BARRA DE IDENTIFICAÇÃO -->
       <div class="info-bar-top">
-        <div class="campo-cong">Congregação: <strong>${escapeHtml(dados.congregacao)}</strong></div>
-        <div class="campo-mes">Mês: <strong>${escapeHtml(dados.mesNome)}</strong></div>
-        <div class="campo-ano">Ano: <strong>${dados.ano}</strong></div>
+        <div class="campo-cong">Congregação: <strong>${escapeHtml(dados.congregacao || '')}</strong></div>
+        <div class="campo-mes">Mês: <strong>${isEmBranco && !dados.mesNome ? '____________________' : escapeHtml(dados.mesNome || '')}</strong></div>
+        <div class="campo-ano">Ano: <strong>${isEmBranco && !dados.ano ? '________' : dados.ano || ''}</strong></div>
       </div>
 
       <!-- GRID COM DUAS TABELAS LADO A LADO -->
@@ -804,15 +869,15 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
 
       <!-- TOTAIS RÁPIDOS DA FRENTE -->
       <div class="rodape-frente">
-        <span>Total de Dízimos: R$ ${formatarMoeda(dados.totalDizimos)}</span>
-        <span>Total de Ofertas: R$ ${formatarMoeda(dados.totalOfertas)}</span>
-        <span>Soma Frente: R$ ${formatarMoeda(dados.totalDizimos + dados.totalOfertas)}</span>
+        <span>Total de Dízimos: R$ ${isEmBranco ? '' : formatarMoeda(totalDizimosVal)}</span>
+        <span>Total de Ofertas: R$ ${isEmBranco ? '' : formatarMoeda(totalOfertasVal)}</span>
+        <span>Soma Frente: R$ ${isEmBranco ? '' : formatarMoeda(totalDizimosVal + totalOfertasVal)}</span>
       </div>
     </div>
 
     <!-- RODAPÉ TÉCNICO -->
     <div class="rodape-documento">
-      <span>${escapeHtml(dados.church?.nomeIgreja || 'Sistema de Gestão Eclesiástica')} • Sistema de Gestão Eclesiástica</span>
+      <span>${escapeHtml(dados.church?.nomeIgreja || 'Sistema de Gestão Eclesiástica')}${isEmBranco ? ' • PLANILHA EM BRANCO PARA PREENCHIMENTO MANUAL' : ' • Sistema de Gestão Eclesiástica'}</span>
       <span>FRENTE • Página 1 de 2</span>
       <span>Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
     </div>
@@ -826,7 +891,7 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
       <!-- CABEÇALHO DO VERSO -->
       <div class="header-verso">
         <h2 class="titulo">Contabilidade Geral</h2>
-        <p class="sub">${escapeHtml(dados.congregacao)} • ${escapeHtml(dados.mesNome)} de ${dados.ano}</p>
+        <p class="sub">${escapeHtml(dados.congregacao || '')} • ${isEmBranco && !dados.mesNome ? 'Fechamento Mensal' : `${escapeHtml(dados.mesNome || '')} de ${dados.ano || ''}`}</p>
       </div>
 
       <!-- TABELA SUPERIOR: DESCRIÇÃO | VALOR (20 LINHAS) -->
@@ -850,25 +915,25 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
         <div class="linha-contabil">
           <div class="rotulo">Saldo do Mês Anterior</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(dados.saldoMesAnterior)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(dados.saldoMesAnterior)}</div>
         </div>
 
         <div class="linha-contabil">
           <div class="rotulo">Total de Ofertas</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(dados.totalOfertas)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(totalOfertasVal)}</div>
         </div>
 
         <div class="linha-contabil">
           <div class="rotulo">Total de Dízimos</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(dados.totalDizimos)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(totalDizimosVal)}</div>
         </div>
 
         <div class="linha-contabil">
           <div class="rotulo">Oferta Especial</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(dados.ofertaEspecial)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(dados.ofertaEspecial)}</div>
         </div>
 
         <div class="linha-contabil linha-destaque">
@@ -876,13 +941,17 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
             ${
               isSede
                 ? 'Total das Receitas da Sede (Dízimos + Ofertas + Oferta Especial + Outras Entradas' +
-                  (dados.totalSaldosRecebidos ? ' + Saldos Recebidos das Congregações' : '') +
+                  (!isEmBranco && dados.totalSaldosRecebidos
+                    ? ' + Saldos Recebidos das Congregações'
+                    : isEmBranco
+                      ? ' + Saldos Recebidos das Congregações'
+                      : '') +
                   ')'
                 : 'Total das Entradas (Dízimos + Ofertas + Oferta Especial + Outras Entradas)'
             }
           </div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(dados.totalEntradas)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(dados.totalEntradas)}</div>
         </div>
 
         ${
@@ -893,12 +962,12 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
         <div class="linha-contabil">
           <div class="rotulo">Total de Despesas Gerais da Sede</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(dados.totalDespesas || 0)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(dados.totalDespesas || 0)}</div>
         </div>
         <div class="linha-contabil linha-destaque">
           <div class="rotulo">Saldo Geral da Sede (Receitas − Despesas + Saldo Anterior)</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(dados.saldoSede)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(dados.saldoSede)}</div>
         </div>
         `
             : `
@@ -906,21 +975,21 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
         <div class="linha-contabil">
           <div class="rotulo">Despesas da Congregação (Contas e Manutenção)</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(despesasFilial)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(despesasFilial)}</div>
         </div>
 
         <div class="linha-contabil linha-destaque">
           <div class="rotulo">Saldo Restante da Congregação (Entradas [Dízimos + Ofertas] − Despesas)</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(saldoRestanteCalc)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(saldoRestanteCalc)}</div>
         </div>
 
         <div class="linha-contabil">
           <div class="rotulo">
-            Porcentagem do Dirigente (${pctDirigente}% sobre o Saldo Restante)
+            ${isEmBranco ? `Porcentagem do Dirigente (${pctDirigente}% ou livre sobre o Saldo Restante)` : `Porcentagem do Dirigente (${pctDirigente}% sobre o Saldo Restante)`}
           </div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(valorDirigenteCalc)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(valorDirigenteCalc)}</div>
         </div>
 
         <div class="linha-contabil linha-destaque" style="background:#fef3c7 !important;">
@@ -929,14 +998,14 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
           </div>
           <div class="sufixo-rs">R$ =</div>
           <div class="valor-box" style="background:#fef3c7 !important; font-weight:900; color:#78350f;">
-            ${formatarMoeda(saldoEnviadoSedeCalc)}
+            ${isEmBranco ? '' : formatarMoeda(saldoEnviadoSedeCalc)}
           </div>
         </div>
 
         <div class="linha-contabil linha-destaque">
           <div class="rotulo">Saldo da Congregação p/ Mês Seguinte (Saldo Anterior + Oferta Especial)</div>
           <div class="sufixo-rs">R$ =</div>
-          <div class="valor-box">${formatarMoeda(dados.saldoCongregacao)}</div>
+          <div class="valor-box">${isEmBranco ? '' : formatarMoeda(dados.saldoCongregacao)}</div>
         </div>
         `
         }
@@ -966,7 +1035,7 @@ export async function buildPlanilhaMensalHtml(dados: PlanilhaPdfData): Promise<s
 
     <!-- RODAPÉ VERSO -->
     <div class="rodape-documento">
-      <span>${escapeHtml(dados.church?.nomeIgreja || 'Gestão Eclesiástica')} • Contabilidade Geral de Congregação</span>
+      <span>${escapeHtml(dados.church?.nomeIgreja || 'Gestão Eclesiástica')}${isEmBranco ? ' • PLANILHA EM BRANCO PARA PREENCHIMENTO MANUAL' : ' • Contabilidade Geral de Congregação'}</span>
       <span>VERSO • Página 2 de 2</span>
       <span>Via oficial arquivada • ${escapeHtml(subtituloIgreja)}</span>
     </div>
