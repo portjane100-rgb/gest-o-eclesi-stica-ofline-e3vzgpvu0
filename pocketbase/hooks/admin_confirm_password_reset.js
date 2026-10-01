@@ -5,8 +5,6 @@ routerAdd('POST', '/backend/v1/admin/confirm-password-reset', (e) => {
     const code = (body.code || '').trim().toUpperCase()
     const newPassword = (body.newPassword || '').trim()
     const confirmPassword = (body.confirmPassword || '').trim()
-    const ADMIN_EMAIL = 'portelajane@outlook.com'
-
     if (!code) {
       return e.json(400, { error: 'O código de recuperação é obrigatório.' })
     }
@@ -21,23 +19,21 @@ routerAdd('POST', '/backend/v1/admin/confirm-password-reset', (e) => {
 
     // Verificar se o código bate com o código salvo em configuracoes
     let valid = false
-    let targetEmail = ADMIN_EMAIL
+    let targetEmail = ''
     try {
       const rec = $app.findFirstRecordByData('configuracoes', 'chave', 'admin_pwd_reset_token')
       const data = JSON.parse(rec.getString('valor') || '{}')
       if (data.code && data.code.toUpperCase() === code) {
         if (new Date(data.expiresAt) > new Date()) {
           valid = true
-          if (data.email) {
-            targetEmail = data.email
-          }
+          targetEmail = data.email || ''
         } else {
           return e.json(400, { error: 'O código de recuperação expirou. Solicite um novo.' })
         }
       }
     } catch (_) {}
 
-    if (!valid) {
+    if (!valid || !targetEmail) {
       return e.json(400, { error: 'Código de recuperação inválido ou inexistente.' })
     }
 
@@ -46,7 +42,7 @@ routerAdd('POST', '/backend/v1/admin/confirm-password-reset', (e) => {
     try {
       user = $app.findAuthRecordByEmail('users', targetEmail)
     } catch (_) {
-      user = $app.findAuthRecordByEmail('users', ADMIN_EMAIL)
+      return e.json(404, { error: 'Usuário não encontrado para redefinir senha.' })
     }
     user.setPassword(newPassword)
     $app.save(user)

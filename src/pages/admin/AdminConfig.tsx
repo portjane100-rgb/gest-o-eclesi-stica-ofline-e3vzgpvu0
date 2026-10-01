@@ -178,11 +178,11 @@ export const AdminConfig: React.FC = () => {
           name: r.name || '',
           perfil:
             (r.perfil as any) ||
-            (r.email === 'portelajane@outlook.com'
+            (r.email?.includes('admin')
               ? 'admin'
               : r.email === 'tesouraria@adtc.local'
                 ? 'tesoureiro'
-                : r.email === 'cvalderlanio@gmail.com' || r.email === 'secretaria1@adtc.local'
+                : r.email === 'secretaria1@adtc.local'
                   ? 'secretario1'
                   : 'secretario2'),
           ativo: r.ativo !== undefined ? Boolean(r.ativo) : true,

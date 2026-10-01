@@ -496,24 +496,27 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* =========================================================================
-          2. CARTÕES COLORIDOS COM ÍCONES PARA CADA MÓDULO (PALETA DOURADO/AZUL)
+          2. CARTÕES DE MÓDULOS (CORES VIVAS, ÍCONES PADRONIZADOS, PALETA DOURADO/AZUL)
       ========================================================================= */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         {/* Membros Ativos */}
         <Link to="/admin/membros" className="block group">
-          <Card className="border border-[#E6E2D8] hover:border-[#1E3A5F] bg-white shadow-xs hover:shadow-md transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E3A5F] border border-blue-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Users className="w-5 h-5 text-[#1E3A5F]" />
+          <Card className="border-2 border-blue-200/90 hover:border-[#1E3A5F] bg-gradient-to-b from-white to-blue-50/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-4 space-y-2.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#1E3A5F] to-[#2B5282] text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-blue-200">
+                <Users className="w-5 h-5 text-amber-300" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Membros
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900 block">
+                  Rol de Membros
                 </span>
                 <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
                   {stats.totalMembros}
                 </span>
-                <span className="text-[11px] text-emerald-600 font-medium">Em comunhão</span>
+                <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                  Em comunhão
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -521,19 +524,19 @@ export const Dashboard: React.FC = () => {
 
         {/* Congregados */}
         <Link to="/admin/congregados" className="block group">
-          <Card className="border border-[#E6E2D8] hover:border-[#C9A227] bg-white shadow-xs hover:shadow-md transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-[#C9A227] border border-amber-200 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <UserCheck className="w-5 h-5 text-[#C9A227]" />
+          <Card className="border-2 border-amber-300/80 hover:border-[#C9A227] bg-gradient-to-b from-white to-amber-50/50 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-4 space-y-2.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#C9A227] to-[#997610] text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-amber-200">
+                <UserCheck className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block">
                   Congregados
                 </span>
                 <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
                   {stats.totalCongregados}
                 </span>
-                <span className="text-[11px] text-slate-500 font-medium">
+                <span className="text-[11px] text-amber-800 font-semibold">
                   {totalUnidades} {totalUnidades === 1 ? 'congregação' : 'congregações'}
                 </span>
               </div>
@@ -543,19 +546,19 @@ export const Dashboard: React.FC = () => {
 
         {/* Corpo de Obreiros */}
         <Link to="/admin/obreiros" className="block group">
-          <Card className="border border-[#E6E2D8] hover:border-emerald-600 bg-white shadow-xs hover:shadow-md transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Award className="w-5 h-5 text-emerald-700" />
+          <Card className="border-2 border-emerald-300/80 hover:border-emerald-600 bg-gradient-to-b from-white to-emerald-50/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-4 space-y-2.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-emerald-200">
+                <Award className="w-5 h-5 text-amber-200" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block">
                   Obreiros
                 </span>
                 <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
                   {stats.totalObreiros}
                 </span>
-                <span className="text-[11px] text-emerald-700 font-medium">Corpo Ministerial</span>
+                <span className="text-[11px] text-emerald-700 font-bold">Corpo Ministerial</span>
               </div>
             </CardContent>
           </Card>
@@ -563,21 +566,21 @@ export const Dashboard: React.FC = () => {
 
         {/* Aniversariantes do Mês */}
         <Link to="/admin/membros?aba=aniversariantes" className="block group">
-          <Card className="border border-[#E6E2D8] hover:border-pink-400 bg-white shadow-xs hover:shadow-md transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-pink-50 text-pink-600 border border-pink-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Cake className="w-5 h-5 text-pink-600" />
+          <Card className="border-2 border-pink-300/80 hover:border-pink-500 bg-gradient-to-b from-white to-pink-50/50 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-4 space-y-2.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-pink-200">
+                <Cake className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-pink-900 block">
                   Aniversariantes
                 </span>
                 <span className="font-serif text-2xl font-bold text-pink-700 block">
                   {stats.totalAniversariantesMes}
                 </span>
-                <span className="text-[11px] text-pink-600 font-medium">
+                <span className="text-[11px] text-pink-600 font-bold">
                   {stats.totalAniversariantesHoje > 0
-                    ? `${stats.totalAniversariantesHoje} celebrando hoje!`
+                    ? `🎉 ${stats.totalAniversariantesHoje} celebrando hoje!`
                     : 'Neste mês'}
                 </span>
               </div>
@@ -590,19 +593,19 @@ export const Dashboard: React.FC = () => {
           to={podeAcessarFinanceiro ? '/admin/dizimistas' : '#'}
           className={`block group ${!podeAcessarFinanceiro ? 'pointer-events-none opacity-80' : ''}`}
         >
-          <Card className="border border-[#E6E2D8] hover:border-purple-400 bg-white shadow-xs hover:shadow-md transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Wallet className="w-5 h-5 text-purple-700" />
+          <Card className="border-2 border-purple-300/80 hover:border-purple-600 bg-gradient-to-b from-white to-purple-50/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-4 space-y-2.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-700 to-indigo-900 text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-purple-200">
+                <Wallet className="w-5 h-5 text-amber-300" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-900 block">
                   Dízimos & Ofertas
                 </span>
                 <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
                   {stats.totalDizimistasMes}
                 </span>
-                <span className="text-[11px] text-purple-700 font-medium">
+                <span className="text-[11px] text-purple-700 font-bold">
                   {podeAcessarFinanceiro ? 'Sessão Financeira' : 'Acesso Restrito'}
                 </span>
               </div>
@@ -612,13 +615,13 @@ export const Dashboard: React.FC = () => {
 
         {/* Eventos / Festas */}
         <Link to="/admin/calendario" className="block group">
-          <Card className="border border-[#E6E2D8] hover:border-[#C9A227] bg-white shadow-xs hover:shadow-md transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 text-[#C9A227] border border-amber-200 flex items-center justify-center group-hover:scale-105 transition-transform">
+          <Card className="border-2 border-indigo-300/80 hover:border-[#1E3A5F] bg-gradient-to-b from-white to-indigo-50/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-4 space-y-2.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#1E3A5F] via-[#102A45] to-amber-600 text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-indigo-200">
                 <CalendarDays className="w-5 h-5 text-[#C9A227]" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-900 block">
                   Festas & Agenda
                 </span>
                 <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
@@ -632,39 +635,39 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* =========================================================================
-          3. SEÇÃO PRINCIPAL: CALENDÁRIO DO MÊS + PRÓXIMOS COMPROMISSOS AO LADO
+          3. SEÇÃO PRINCIPAL COMPACTA: CALENDÁRIO ENXUTO + PRÓXIMOS EVENTOS + ACOMPANHAMENTO
       ========================================================================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Calendário Mensal Interativo (8 Colunas em desktop) */}
-        <div className="lg:col-span-8 bg-white border border-[#E6E2D8] rounded-3xl p-5 sm:p-6 shadow-xs space-y-5">
-          {/* Cabeçalho do Calendário */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-[#E6E2D8]">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1E3A5F] to-[#12243B] text-[#C9A227] flex items-center justify-center font-bold shadow-xs">
-                <CalendarIcon className="w-5 h-5" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        {/* Calendário Mensal Compacto e Enxuto (7 colunas lg:col-span-7) */}
+        <div className="lg:col-span-7 bg-white border border-[#E6E2D8] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+          {/* Cabeçalho do Calendário Compacto */}
+          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[#E6E2D8]">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1E3A5F] to-[#12243B] text-[#C9A227] flex items-center justify-center font-bold shadow-xs">
+                <CalendarIcon className="w-4 h-4" />
               </div>
               <div>
-                <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#1E3A5F] flex items-center gap-2">
+                <h2 className="font-serif text-base sm:text-lg font-bold text-[#1E3A5F] flex items-center gap-1.5 leading-tight">
                   <span>
-                    {mesesNomes[mesAtual]} de {anoAtual}
+                    {mesesNomes[mesAtual]} {anoAtual}
                   </span>
-                  <Badge className="bg-[#C9A227] text-[#1E3A5F] font-bold text-[10px] uppercase">
-                    Festas & Eventos
+                  <Badge className="bg-[#C9A227] text-[#1E3A5F] font-bold text-[9px] px-1.5 py-0 h-4 uppercase">
+                    Festas
                   </Badge>
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Clique em um dia marcado para visualizar as celebrações e congressos agendados.
-                </p>
+                <span className="text-[10px] text-slate-500">
+                  Pontos coloridos indicam eventos no dia
+                </span>
               </div>
             </div>
 
             {/* Controles de Navegação de Mês */}
-            <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-1">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={voltarMesAtual}
-                className="text-xs h-8 px-2.5 border-[#E6E2D8] text-slate-700"
+                className="text-[11px] h-7 px-2 border-[#E6E2D8] text-slate-700"
               >
                 Hoje
               </Button>
@@ -672,102 +675,95 @@ export const Dashboard: React.FC = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => mudarMes(-1)}
-                className="h-8 w-8 border-[#E6E2D8] text-[#1E3A5F]"
+                className="h-7 w-7 border-[#E6E2D8] text-[#1E3A5F]"
                 title="Mês Anterior"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => mudarMes(1)}
-                className="h-8 w-8 border-[#E6E2D8] text-[#1E3A5F]"
+                className="h-7 w-7 border-[#E6E2D8] text-[#1E3A5F]"
                 title="Próximo Mês"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
 
-          {/* Grade de Dias da Semana */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2 text-center text-xs font-bold text-slate-500 pb-1">
-            <span className="text-rose-600">DOM</span>
-            <span>SEG</span>
-            <span>TER</span>
-            <span>QUA</span>
-            <span>QUI</span>
-            <span>SEX</span>
-            <span className="text-blue-600">SÁB</span>
+          {/* Grade de Dias da Semana Compacta */}
+          <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-500 pb-0.5">
+            <span className="text-rose-600">D</span>
+            <span>S</span>
+            <span>T</span>
+            <span>Q</span>
+            <span>Q</span>
+            <span>S</span>
+            <span className="text-blue-600">S</span>
           </div>
 
-          {/* Grade de Células do Calendário */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
+          {/* Grade de Células Compactas do Calendário com Pontinhos */}
+          <div className="grid grid-cols-7 gap-1">
             {gridDias.map((dia, idx) => {
               const temEvento = dia.eventos.length > 0
               const selecionado = dia.mesAtual && diaSelecionado === dia.numero
+              const titulosTooltip = temEvento
+                ? dia.eventos.map((e) => `• ${e.titulo}`).join('\n')
+                : ''
 
               return (
                 <button
                   key={`${dia.numero}-${idx}`}
                   type="button"
                   disabled={!dia.mesAtual}
+                  title={
+                    dia.mesAtual
+                      ? `${dia.numero} de ${mesesNomes[mesAtual]}${titulosTooltip ? `\n${titulosTooltip}` : ''}`
+                      : ''
+                  }
                   onClick={() => dia.mesAtual && setDiaSelecionado(dia.numero)}
-                  className={`min-h-[64px] sm:min-h-[76px] p-1.5 sm:p-2 rounded-xl text-left flex flex-col justify-between transition-all duration-150 relative ${
+                  className={`h-9 sm:h-10 p-1 rounded-lg text-center flex flex-col items-center justify-between transition-all duration-150 relative ${
                     !dia.mesAtual
-                      ? 'bg-slate-50/50 text-slate-300 cursor-default opacity-40'
+                      ? 'bg-slate-50/40 text-slate-300 cursor-default opacity-30'
                       : selecionado
-                        ? 'bg-[#1E3A5F] text-white shadow-md ring-2 ring-[#C9A227]'
+                        ? 'bg-[#1E3A5F] text-white shadow-xs font-bold ring-2 ring-[#C9A227]'
                         : dia.isHoje
-                          ? 'bg-amber-50/80 border-2 border-[#C9A227] text-slate-900 font-bold'
+                          ? 'bg-amber-100/80 border border-[#C9A227] text-slate-900 font-extrabold'
                           : temEvento
-                            ? 'bg-blue-50/70 border border-blue-200 text-slate-900 hover:bg-blue-100/70'
-                            : 'bg-white border border-[#E6E2D8] text-slate-800 hover:bg-slate-50'
+                            ? 'bg-blue-50/80 border border-blue-200/90 text-slate-900 hover:bg-blue-100/70 font-semibold'
+                            : 'bg-white border border-slate-100 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span
-                      className={`text-xs font-semibold ${
-                        selecionado
-                          ? 'text-white'
-                          : dia.isHoje
-                            ? 'text-amber-800 font-extrabold'
-                            : 'text-slate-700'
-                      }`}
-                    >
-                      {dia.numero}
-                    </span>
-                    {dia.isHoje && (
-                      <span className="text-[9px] uppercase tracking-wider font-extrabold text-[#C9A227]">
-                        Hoje
-                      </span>
-                    )}
-                  </div>
+                  <span
+                    className={`text-[11px] sm:text-xs leading-none ${
+                      selecionado
+                        ? 'text-white'
+                        : dia.isHoje
+                          ? 'text-[#8C6D15] font-extrabold'
+                          : 'text-slate-800'
+                    }`}
+                  >
+                    {dia.numero}
+                  </span>
 
-                  {/* Marcadores de eventos no dia */}
+                  {/* Marcadores em pontinho/bolinhas discretas */}
                   {temEvento && (
-                    <div className="space-y-0.5 w-full mt-1">
-                      {dia.eventos.slice(0, 2).map((ev) => (
-                        <div
-                          key={ev.id}
-                          className={`text-[9px] sm:text-[10px] font-medium truncate px-1 py-0.5 rounded ${
+                    <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                      {dia.eventos.slice(0, 3).map((ev, eIdx) => (
+                        <span
+                          key={ev.id || eIdx}
+                          className={`w-1.5 h-1.5 rounded-full ${
                             selecionado
-                              ? 'bg-white/20 text-white'
-                              : 'bg-[#C9A227]/25 text-[#1E3A5F] font-semibold'
+                              ? 'bg-amber-300'
+                              : eIdx === 0
+                                ? 'bg-[#C9A227]'
+                                : eIdx === 1
+                                  ? 'bg-[#1E3A5F]'
+                                  : 'bg-emerald-600'
                           }`}
-                          title={`${ev.titulo} (${ev.departamento || 'Geral'})`}
-                        >
-                          {ev.titulo}
-                        </div>
+                        />
                       ))}
-                      {dia.eventos.length > 2 && (
-                        <div
-                          className={`text-[9px] font-bold pl-0.5 ${
-                            selecionado ? 'text-amber-200' : 'text-[#C9A227]'
-                          }`}
-                        >
-                          +{dia.eventos.length - 2} mais
-                        </div>
-                      )}
                     </div>
                   )}
                 </button>
@@ -775,48 +771,54 @@ export const Dashboard: React.FC = () => {
             })}
           </div>
 
-          {/* Detalhes do Dia Selecionado */}
+          {/* Detalhes do Dia Selecionado Enxutos */}
           {diaSelecionado && (
-            <div className="p-4 rounded-2xl bg-[#F7F5F0] border border-[#E6E2D8] space-y-2.5">
+            <div className="p-3 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#1E3A5F] flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-[#C9A227]" />
-                  Eventos em {diaSelecionado} de {mesesNomes[mesAtual]}:
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E3A5F] flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-[#C9A227]" />
+                  Dia {diaSelecionado} de {mesesNomes[mesAtual]}:
                 </span>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-[11px] text-slate-500 font-medium">
                   {eventosDoDiaSelecionado.length === 0
-                    ? 'Nenhum evento registrado'
-                    : `${eventosDoDiaSelecionado.length} celebração(ões)`}
+                    ? 'Nenhum evento'
+                    : `${eventosDoDiaSelecionado.length} evento(s)`}
                 </span>
               </div>
 
               {eventosDoDiaSelecionado.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="space-y-1.5 pt-1">
                   {eventosDoDiaSelecionado.map((ev) => (
                     <div
                       key={ev.id}
-                      className="p-3 bg-white border border-[#E6E2D8] rounded-xl space-y-1 shadow-2xs"
+                      className="p-2 bg-white border border-[#E6E2D8] rounded-lg flex items-center justify-between gap-2 shadow-2xs"
                     >
-                      <div className="flex items-center justify-between gap-1">
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] font-bold border-[#C9A227] text-[#8C6D15] bg-[#F1EBD8]/50"
-                        >
-                          {ev.departamento || 'Geral'}
-                        </Badge>
-                        <span className="text-[11px] font-semibold text-[#1E3A5F]">
-                          {formatarDataBr(ev.data_inicio)}
-                        </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1 py-0 h-4 border-[#C9A227] text-[#8C6D15] bg-[#F1EBD8]/50"
+                          >
+                            {ev.departamento || 'Geral'}
+                          </Badge>
+                          <h4 className="font-serif font-bold text-xs text-[#1E3A5F] truncate">
+                            {ev.titulo}
+                          </h4>
+                        </div>
+                        {ev.descricao && (
+                          <p className="text-[10px] text-slate-500 truncate mt-0.5">
+                            {ev.descricao}
+                          </p>
+                        )}
                       </div>
-                      <h4 className="font-serif font-bold text-sm text-[#1E3A5F]">{ev.titulo}</h4>
-                      {ev.descricao && (
-                        <p className="text-xs text-slate-600 line-clamp-2">{ev.descricao}</p>
-                      )}
+                      <span className="text-[10px] font-bold text-[#C9A227] shrink-0">
+                        {formatarDataBr(ev.data_inicio)}
+                      </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-slate-500 italic">
+                <p className="text-[11px] text-slate-500 italic">
                   Dia livre de eventos institucionais no calendário oficial.
                 </p>
               )}
@@ -824,38 +826,43 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Coluna Lateral: Próximos Compromissos (4 Colunas em desktop) */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white border border-[#E6E2D8] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E6E2D8]">
+        {/* Coluna Lateral Compacta: Próximos Compromissos & Atalhos Pastorais (5 colunas lg:col-span-5) */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="bg-white border border-[#E6E2D8] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between pb-2.5 border-b border-[#E6E2D8]">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-50 text-[#C9A227] flex items-center justify-center font-bold">
-                  <Clock className="w-4 h-4" />
+                <div className="w-7 h-7 rounded-lg bg-amber-50 text-[#C9A227] flex items-center justify-center font-bold">
+                  <Clock className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <h3 className="font-serif text-base font-bold text-[#1E3A5F]">
+                  <h3 className="font-serif text-sm sm:text-base font-bold text-[#1E3A5F]">
                     Próximos Compromissos
                   </h3>
-                  <p className="text-[11px] text-slate-500">Festas e celebrações futuras</p>
+                  <p className="text-[10px] text-slate-500">Festas e celebrações futuras</p>
                 </div>
               </div>
 
-              <Button asChild variant="ghost" size="sm" className="text-xs text-[#1E3A5F] h-7 px-2">
+              <Button
+                asChild
+                variant="ghost"
+                size="sm"
+                className="text-xs text-[#1E3A5F] h-6 px-1.5"
+              >
                 <Link to="/admin/calendario">Ver agenda</Link>
               </Button>
             </div>
 
             {proximosCompromissos.length > 0 ? (
-              <div className="space-y-2.5">
-                {proximosCompromissos.map((ev) => (
+              <div className="space-y-2">
+                {proximosCompromissos.slice(0, 4).map((ev) => (
                   <div
                     key={ev.id}
-                    className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-[#C9A227] transition-all space-y-1 group"
+                    className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-[#C9A227] transition-all space-y-0.5 group"
                   >
-                    <div className="flex items-center justify-between gap-1 text-[11px]">
+                    <div className="flex items-center justify-between gap-1 text-[10px]">
                       <Badge
                         variant="outline"
-                        className="text-[9px] border-[#C9A227] text-[#8C6D15] bg-[#F1EBD8]/40"
+                        className="text-[9px] px-1 py-0 h-4 border-[#C9A227] text-[#8C6D15] bg-[#F1EBD8]/40"
                       >
                         {ev.departamento || 'Geral'}
                       </Badge>
@@ -863,20 +870,25 @@ export const Dashboard: React.FC = () => {
                         {formatarDataBr(ev.data_inicio)}
                       </span>
                     </div>
-                    <h4 className="font-serif font-bold text-xs sm:text-sm text-[#1E3A5F] group-hover:text-amber-800 transition-colors">
+                    <h4 className="font-serif font-bold text-xs text-[#1E3A5F] group-hover:text-amber-800 transition-colors truncate">
                       {ev.titulo}
                     </h4>
                     {ev.descricao && (
-                      <p className="text-[11px] text-slate-500 line-clamp-1">{ev.descricao}</p>
+                      <p className="text-[10px] text-slate-500 line-clamp-1">{ev.descricao}</p>
                     )}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-slate-400 space-y-2">
-                <CalendarDays className="w-8 h-8 mx-auto text-slate-300" />
+              <div className="py-6 text-center text-slate-400 space-y-1.5">
+                <CalendarDays className="w-6 h-6 mx-auto text-slate-300" />
                 <p className="text-xs">Nenhum evento futuro agendado.</p>
-                <Button asChild size="sm" variant="outline" className="text-xs border-[#E6E2D8]">
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-7 border-[#E6E2D8]"
+                >
                   <Link to="/admin/calendario">Cadastrar Festa</Link>
                 </Button>
               </div>
@@ -884,20 +896,20 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Atalho Pastoral de Acompanhamento */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             {/* In Memória */}
             <Link
               to="/admin/membros?aba=in_memoria"
-              className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-900 to-[#102A45] text-white border border-slate-700/80 shadow-xs hover:shadow-md transition-all group"
+              className="p-3 rounded-xl bg-gradient-to-br from-slate-900 to-[#102A45] text-white border border-slate-700/80 shadow-xs hover:shadow-md transition-all group"
             >
-              <div className="flex items-center justify-between mb-1">
-                <Cross className="w-4 h-4 text-amber-200" />
-                <span className="text-[10px] text-slate-300 font-semibold uppercase">Solene</span>
+              <div className="flex items-center justify-between mb-0.5">
+                <Cross className="w-3.5 h-3.5 text-amber-200" />
+                <span className="text-[9px] text-slate-300 font-semibold uppercase">Solene</span>
               </div>
-              <span className="font-serif font-bold text-lg block text-white">
+              <span className="font-serif font-bold text-base block text-white">
                 {stats.totalFalecidos}
               </span>
-              <span className="text-[11px] text-slate-300 group-hover:text-amber-200 block truncate">
+              <span className="text-[10px] text-slate-300 group-hover:text-amber-200 block truncate">
                 In Memória →
               </span>
             </Link>
@@ -905,16 +917,16 @@ export const Dashboard: React.FC = () => {
             {/* Inativos */}
             <Link
               to="/admin/membros?aba=inativos"
-              className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-slate-900 shadow-xs hover:shadow-md transition-all group"
+              className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-slate-900 shadow-xs hover:shadow-md transition-all group"
             >
-              <div className="flex items-center justify-between mb-1">
-                <UserX className="w-4 h-4 text-amber-700" />
-                <span className="text-[10px] text-amber-800 font-semibold uppercase">Pastoral</span>
+              <div className="flex items-center justify-between mb-0.5">
+                <UserX className="w-3.5 h-3.5 text-amber-700" />
+                <span className="text-[9px] text-amber-800 font-semibold uppercase">Pastoral</span>
               </div>
-              <span className="font-serif font-bold text-lg block text-amber-900">
+              <span className="font-serif font-bold text-base block text-amber-900">
                 {stats.totalInativos}
               </span>
-              <span className="text-[11px] text-amber-800 group-hover:underline block truncate">
+              <span className="text-[10px] text-amber-800 group-hover:underline block truncate">
                 Inativos →
               </span>
             </Link>

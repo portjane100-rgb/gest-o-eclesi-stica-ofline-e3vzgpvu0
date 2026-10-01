@@ -19,11 +19,7 @@ routerAdd(
       }
 
       const callerPerfil = authRecord.getString('perfil') || ''
-      const callerEmail = (authRecord.email() || '').toLowerCase()
-      const isManager =
-        callerPerfil === 'admin' ||
-        callerPerfil === 'tesoureiro' ||
-        callerEmail === 'portelajane@outlook.com'
+      const isManager = callerPerfil === 'admin' || callerPerfil === 'tesoureiro'
 
       if (!isManager) {
         return e.json(403, {

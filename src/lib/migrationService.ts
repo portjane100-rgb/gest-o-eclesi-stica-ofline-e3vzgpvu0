@@ -145,7 +145,7 @@ export async function runPocketBaseMigration(
           id: u.id,
           email: u.email,
           name: u.name || (u.perfil === 'tesoureiro' ? 'Tesoureiro' : 'Secretário'),
-          perfil: u.perfil || (u.email === 'portelajane@outlook.com' ? 'admin' : 'tesoureiro'),
+          perfil: u.perfil || (u.email?.includes('admin') ? 'admin' : 'tesoureiro'),
           passwordHash: passHash,
           ativo: u.ativo !== false,
           created: u.created,

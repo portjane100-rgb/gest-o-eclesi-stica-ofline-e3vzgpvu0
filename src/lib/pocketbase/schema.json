@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T13:53:27.244Z",
+  "generatedAt": "2026-10-01T14:41:14.726Z",
   "collections": [
     {
       "name": "users",
@@ -8,8 +8,8 @@
         "list": "@request.auth.id != ''",
         "view": "@request.auth.id != ''",
         "create": null,
-        "update": "@request.auth.id != '' && (id = @request.auth.id || @request.auth.perfil = 'tesoureiro' || @request.auth.perfil = 'admin' || @request.auth.email = 'portelajane@outlook.com')",
-        "delete": "@request.auth.id != '' && (@request.auth.perfil = 'tesoureiro' || @request.auth.perfil = 'admin' || @request.auth.email = 'portelajane@outlook.com')"
+        "update": "@request.auth.id != '' && (id = @request.auth.id || @request.auth.perfil = 'tesoureiro' || @request.auth.perfil = 'admin')",
+        "delete": "@request.auth.id != '' && (@request.auth.perfil = 'tesoureiro' || @request.auth.perfil = 'admin')"
       },
       "fields": [
         {

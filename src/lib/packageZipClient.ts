@@ -1,197 +1,199 @@
 /**
- * Utilitário para geração e download direto do pacote ZIP do sistema no navegador.
- * Gera os arquivos index.html, ABRIR_SISTEMA.bat, ABRIR_SISTEMA.command, LEIA-ME.txt,
- * além de todos os scripts, estilos e recursos necessários para execução offline.
+ * Utilitário cliente para gerar o arquivo .ZIP do sistema local offline
+ * no próprio navegador do usuário (sem depender de internet ou servidor).
+ * Usa compressão ZIP padrão sem bibliotecas externas pesadas.
  */
-
-// Cálculo CRC32 padrão IEEE 802.3
-const CRC_TABLE = new Uint32Array(256)
-for (let i = 0; i < 256; i++) {
-  let c = i
-  for (let k = 0; k < 8; k++) {
-    c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
-  }
-  CRC_TABLE[i] = c >>> 0
-}
-
-function calculateCrc32(bytes: Uint8Array): number {
-  let crc = 0xffffffff
-  for (let i = 0; i < bytes.length; i++) {
-    crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ bytes[i]) & 0xff]
-  }
-  return (crc ^ 0xffffffff) >>> 0
-}
 
 export interface ZipFileInfo {
   relativePath: string
-  content: Uint8Array | string
+  content: string | Uint8Array
+}
+
+// CRC32 table para cálculo de integridade do ZIP
+const makeCrcTable = () => {
+  let c: number
+  const crcTable: number[] = []
+  for (let n = 0; n < 256; n++) {
+    c = n
+    for (let k = 0; k < 8; k++) {
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1
+    }
+    crcTable[n] = c
+  }
+  return crcTable
+}
+const CRC_TABLE = makeCrcTable()
+
+function crc32(buf: Uint8Array): number {
+  let crc = 0 ^ -1
+  for (let i = 0; i < buf.length; i++) {
+    crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ buf[i]) & 0xff]
+  }
+  return (crc ^ -1) >>> 0
 }
 
 /**
- * Constrói um ZIP compatível (PK0304) no navegador em formato STORE (sem compressão proprietária)
- * que qualquer descompactador (Windows Explorer nativo, Mac Archive Utility, WinRAR, 7-Zip) abre instantaneamente.
+ * Construtor básico de ZIP Store (sem compressão proprietária ou Deflate puro)
+ * 100% suportado nativamente pelo Windows Explorer, macOS Archive Utility e Linux.
  */
 export function buildZipBlob(files: ZipFileInfo[]): Blob {
-  const enc = new TextEncoder()
-  const entries: {
-    filename: string
-    bytes: Uint8Array
-    crc: number
-    offset: number
-  }[] = []
+  const parts: BlobPart[] = []
+  const centralDirParts: BlobPart[] = []
+  let offset = 0
 
-  const chunks: Uint8Array[] = []
-  let currentOffset = 0
+  const textEncoder = new TextEncoder()
 
-  const now = new Date()
-  const dosTime =
-    ((now.getHours() & 0x1f) << 11) |
-    ((now.getMinutes() & 0x3f) << 5) |
-    ((now.getSeconds() >> 1) & 0x1f)
-  const dosDate =
-    (((now.getFullYear() - 1980) & 0x7f) << 9) |
-    (((now.getMonth() + 1) & 0x0f) << 5) |
-    (now.getDate() & 0x1f)
+  for (const file of files) {
+    const filenameBytes = textEncoder.encode(file.relativePath)
+    const contentBytes =
+      typeof file.content === 'string' ? textEncoder.encode(file.content) : file.content
+    const uncompressedSize = contentBytes.length
+    const compressedSize = uncompressedSize
+    const fileCrc = crc32(contentBytes)
 
-  for (const f of files) {
-    const rawBytes = typeof f.content === 'string' ? enc.encode(f.content) : f.content
-    const filename = f.relativePath.replace(/\\/g, '/')
-    const nameBytes = enc.encode(filename)
-    const crc = calculateCrc32(rawBytes)
-    const size = rawBytes.length
+    // Local file header (30 bytes + filename length)
+    const localHeader = new ArrayBuffer(30 + filenameBytes.length)
+    const view = new DataView(localHeader)
 
-    // Local file header (30 bytes)
-    const lfh = new Uint8Array(30 + nameBytes.length)
-    const view = new DataView(lfh.buffer)
-    view.setUint32(0, 0x04034b50, true) // Signature
-    view.setUint16(4, 20, true) // Version needed (2.0)
-    view.setUint16(6, 0x0800, true) // Flags (UTF-8)
-    view.setUint16(8, 0, true) // Method 0 = Store
-    view.setUint16(10, dosTime, true)
-    view.setUint16(12, dosDate, true)
-    view.setUint32(14, crc, true)
-    view.setUint32(18, size, true) // Compressed size
-    view.setUint32(22, size, true) // Uncompressed size
-    view.setUint16(26, nameBytes.length, true)
+    view.setUint32(0, 0x04034b50, true) // Local file header signature
+    view.setUint16(4, 20, true) // Version needed to extract (2.0)
+    view.setUint16(6, 0x0800, true) // General purpose bit flag (UTF-8)
+    view.setUint16(8, 0, true) // Compression method: 0 (store)
+    view.setUint16(10, 0, true) // File last mod time
+    view.setUint16(12, 0, true) // File last mod date
+    view.setUint32(14, fileCrc, true) // CRC-32
+    view.setUint32(18, compressedSize, true) // Compressed size
+    view.setUint32(22, uncompressedSize, true) // Uncompressed size
+    view.setUint16(26, filenameBytes.length, true) // File name length
     view.setUint16(28, 0, true) // Extra field length
-    lfh.set(nameBytes, 30)
 
-    entries.push({
-      filename,
-      bytes: rawBytes,
-      crc,
-      offset: currentOffset,
-    })
+    new Uint8Array(localHeader, 30).set(filenameBytes)
 
-    chunks.push(lfh)
-    chunks.push(rawBytes)
-    currentOffset += lfh.length + rawBytes.length
+    parts.push(localHeader)
+    parts.push(contentBytes.buffer as ArrayBuffer)
+
+    // Central directory header (46 bytes + filename length)
+    const cdHeader = new ArrayBuffer(46 + filenameBytes.length)
+    const cdView = new DataView(cdHeader)
+
+    cdView.setUint32(0, 0x02014b50, true) // Central directory header signature
+    cdView.setUint16(4, 20, true) // Version made by
+    cdView.setUint16(6, 20, true) // Version needed to extract
+    cdView.setUint16(8, 0x0800, true) // General purpose bit flag (UTF-8)
+    cdView.setUint16(10, 0, true) // Compression method: 0 (store)
+    cdView.setUint16(12, 0, true) // File last mod time
+    cdView.setUint16(14, 0, true) // File last mod date
+    cdView.setUint32(16, fileCrc, true) // CRC-32
+    cdView.setUint32(20, compressedSize, true) // Compressed size
+    cdView.setUint32(24, uncompressedSize, true) // Uncompressed size
+    cdView.setUint16(28, filenameBytes.length, true) // File name length
+    cdView.setUint16(30, 0, true) // Extra field length
+    cdView.setUint16(32, 0, true) // File comment length
+    cdView.setUint16(34, 0, true) // Disk number start
+    cdView.setUint16(36, 0, true) // Internal file attributes
+    cdView.setUint32(38, 0, true) // External file attributes
+    cdView.setUint32(42, offset, true) // Relative offset of local header
+
+    new Uint8Array(cdHeader, 46).set(filenameBytes)
+    centralDirParts.push(cdHeader)
+
+    offset += localHeader.byteLength + contentBytes.length
+  }
+  // Central directory start offset
+  const centralDirOffset = offset
+  let centralDirSize = 0
+  for (const cdp of centralDirParts) {
+    if (cdp instanceof Uint8Array || cdp instanceof ArrayBuffer) {
+      centralDirSize += cdp.byteLength
+    }
+    parts.push(cdp)
   }
 
-  // Central Directory
-  const cdOffset = currentOffset
-  let cdSize = 0
+  // End of central directory record (22 bytes)
+  const eocd = new ArrayBuffer(22)
+  const eocdView = new DataView(eocd)
+  eocdView.setUint32(0, 0x06054b50, true) // EOCD signature
+  eocdView.setUint16(4, 0, true) // Number of this disk
+  eocdView.setUint16(6, 0, true) // Disk where central directory starts
+  eocdView.setUint16(8, files.length, true) // Number of central directory records on this disk
+  eocdView.setUint16(10, files.length, true) // Total number of central directory records
+  eocdView.setUint32(12, centralDirSize, true) // Size of central directory
+  eocdView.setUint32(16, centralDirOffset, true) // Offset of start of central directory
+  eocdView.setUint16(20, 0, true) // Comment length
 
-  for (const entry of entries) {
-    const nameBytes = enc.encode(entry.filename)
-    const cdh = new Uint8Array(46 + nameBytes.length)
-    const view = new DataView(cdh.buffer)
-    view.setUint32(0, 0x02014b50, true) // Central Dir signature
-    view.setUint16(4, 0x0314, true) // Version made by UNIX/2.0
-    view.setUint16(6, 20, true) // Version needed
-    view.setUint16(8, 0x0800, true) // Flags UTF-8
-    view.setUint16(10, 0, true) // Method Store
-    view.setUint16(12, dosTime, true)
-    view.setUint16(14, dosDate, true)
-    view.setUint32(16, entry.crc, true)
-    view.setUint32(20, entry.bytes.length, true) // Compressed
-    view.setUint32(24, entry.bytes.length, true) // Uncompressed
-    view.setUint16(28, nameBytes.length, true)
-    view.setUint16(30, 0, true) // Extra len
-    view.setUint16(32, 0, true) // Comment len
-    view.setUint16(34, 0, true) // Disk start
-    view.setUint16(36, 0, true) // Internal attrs
-    view.setUint32(38, 0x81a40000, true) // External attrs (-rw-r--r--)
-    view.setUint32(42, entry.offset, true) // Offset
-    cdh.set(nameBytes, 46)
+  parts.push(eocd)
 
-    chunks.push(cdh)
-    cdSize += cdh.length
-  }
-
-  // End of Central Directory
-  const eocd = new Uint8Array(22)
-  const eocdView = new DataView(eocd.buffer)
-  eocdView.setUint32(0, 0x06054b50, true)
-  eocdView.setUint16(4, 0, true)
-  eocdView.setUint16(6, 0, true)
-  eocdView.setUint16(8, entries.length, true)
-  eocdView.setUint16(10, entries.length, true)
-  eocdView.setUint32(12, cdSize, true)
-  eocdView.setUint32(16, cdOffset, true)
-  eocdView.setUint16(20, 0, true)
-
-  chunks.push(eocd)
-
-  // Criar Blob Array
-  return new Blob(chunks as any[], { type: 'application/zip' })
+  return new Blob(parts, { type: 'application/zip' })
 }
 
 /**
- * Coleta os arquivos do ambiente atual (documento HTML, scripts carregados, estilos, arquivos de inicialização)
- * e gera o ZIP completo diretamente no cliente.
+ * Monta os arquivos do pacote offline cliente e gera o Blob final
  */
 export async function gerarPacoteZipNoCliente(
-  onProgresso?: (msg: string, pct: number) => void,
+  onProgresso?: (mensagem: string, percentual: number) => void,
 ): Promise<Blob> {
-  onProgresso?.('Preparando arquivos de inicialização...', 10)
+  onProgresso?.('Preparando arquivos de inicialização...', 15)
 
-  // Conteúdo dos executáveis e documentação
   const abrirBat = `@echo off
 chcp 65001 >nul
-title Gestão Eclesiástica - Versão Local Desktop (100%% Offline)
-
-echo ========================================================
-echo       GESTÃO ECLESIÁSTICA — VERSÃO LOCAL DESKTOP
-echo ========================================================
+title Gestão Eclesiástica - Versão PC Offline
+cls
+echo ====================================================================
+echo        GESTÃO ECLESIÁSTICA - VERSÃO LOCAL DESKTOP (100%% OFFLINE)
+echo ====================================================================
 echo.
-echo Iniciando o sistema no seu computador...
-echo Modo 100%% offline ativado com banco local seguro.
+echo Iniciando sistema local no navegador padrão...
 echo.
 
-set "SCRIPT_DIR=%~dp0"
-set "HTML_FILE=%SCRIPT_DIR%index.html"
+set "HTML_FILE=%~dp0index.html"
 
-:: 1. Tentar abrir no Microsoft Edge em modo aplicativo dedicado (janela limpa sem abas)
-start "" msedge --app="file:///%HTML_FILE:\\=/%" --allow-file-access-from-files --disable-web-security 2>nul
-if %errorlevel% equ 0 goto :fim
+REM 1. Tentar abrir no Google Chrome em modo aplicativo
+if exist "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe" (
+    start "" "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
+    exit /b 0
+)
+if exist "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe" (
+    start "" "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
+    exit /b 0
+)
+if exist "%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe" (
+    start "" "%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
+    exit /b 0
+)
 
-:: 2. Tentar abrir no Google Chrome em modo aplicativo dedicado
-start "" chrome --app="file:///%HTML_FILE:\\=/%" --allow-file-access-from-files --disable-web-security 2>nul
-if %errorlevel% equ 0 goto :fim
+REM 2. Tentar abrir no Microsoft Edge em modo aplicativo
+if exist "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe" (
+    start "" "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
+    exit /b 0
+)
+if exist "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe" (
+    start "" "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
+    exit /b 0
+)
 
-:: 3. Tentar abrir no Brave se disponível
-start "" brave --app="file:///%HTML_FILE:\\=/%" --allow-file-access-from-files --disable-web-security 2>nul
-if %errorlevel% equ 0 goto :fim
-
-:: 4. Fallback: navegador padrão do Windows
+REM 3. Fallback: abre no navegador padrão do Windows
 start "" "%HTML_FILE%"
-
-:fim
-exit
+exit /b 0
 `
 
   const abrirCommand = `#!/bin/bash
 DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
 HTML_FILE="$DIR/index.html"
 
-# 1. Tentar Google Chrome em modo aplicativo dedicado no macOS
+echo "===================================================================="
+echo "       GESTÃO ECLESIÁSTICA - VERSÃO LOCAL DESKTOP (100% OFFLINE)"
+echo "===================================================================="
+echo ""
+echo "Iniciando sistema local no navegador..."
+echo ""
+
+# 1. Tentar Chrome no Mac
 if [ -d "/Applications/Google Chrome.app" ]; then
   open -a "Google Chrome" --args --app="file://$HTML_FILE" --allow-file-access-from-files --disable-web-security
   exit 0
 fi
 
-# 2. Tentar Microsoft Edge em modo aplicativo dedicado no macOS
+# 2. Tentar Edge no Mac
 if [ -d "/Applications/Microsoft Edge.app" ]; then
   open -a "Microsoft Edge" --args --app="file://$HTML_FILE" --allow-file-access-from-files --disable-web-security
   exit 0
@@ -225,7 +227,9 @@ Como usar:
 1. Extraia todo o conteúdo deste arquivo ZIP em uma pasta do seu computador.
 2. No Windows: dê duplo clique em ABRIR_SISTEMA.bat (ou index.html).
 3. No Mac: dê duplo clique em ABRIR_SISTEMA.command (ou index.html).
-4. No primeiro acesso, crie a senha do Administrador Geral.
+4. No primeiro acesso: O sistema abre livre sem exigir senha pré-definida.
+   Crie o seu próprio login e senha de Administrador Geral (Nome, Usuário e Senha).
+   Nenhuma conta de revendedor fica gravada. Nas entradas seguintes, use o login criado.
 5. Todos os dados ficam salvos no seu próprio PC de forma 100% segura.
 `
   }
@@ -308,6 +312,51 @@ Como usar:
 }
 
 /**
+ * Resolve a URL absoluta ou relativa correta para um recurso estático em public/
+ * levando em conta se está rodando em subcaminho, preview ou iframe.
+ */
+export function getStaticAssetUrl(filename: string): string {
+  if (typeof window === 'undefined') return `/${filename}`
+  // Respeita a base da página atual se houver base href ou caminho
+  const base = document.baseURI || window.location.href
+  try {
+    return new URL(filename, base).href
+  } catch {
+    return `./${filename}`
+  }
+}
+
+/**
+ * Dispara o download de um arquivo estático ou URL direta.
+ * Funciona de forma robusta dentro de iframes com atributos de download e fallback via window.open.
+ */
+export function dispararDownloadUrl(url: string, nomeArquivo: string): boolean {
+  try {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = nomeArquivo
+    a.target = '_blank'
+    a.rel = 'noopener noreferrer'
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => {
+      if (a.parentNode) {
+        document.body.removeChild(a)
+      }
+    }, 1000)
+    return true
+  } catch (err) {
+    console.warn('Falha no clique da âncora direta:', err)
+    try {
+      window.open(url, '_blank')
+      return true
+    } catch {
+      return false
+    }
+  }
+}
+
+/**
  * Dispara o download de um Blob no navegador com o nome especificado
  */
 export function dispararDownloadBlob(blob: Blob, nomeArquivo: string) {
@@ -315,10 +364,14 @@ export function dispararDownloadBlob(blob: Blob, nomeArquivo: string) {
   const a = document.createElement('a')
   a.href = url
   a.download = nomeArquivo
+  a.target = '_blank'
+  a.rel = 'noopener noreferrer'
   document.body.appendChild(a)
   a.click()
   setTimeout(() => {
-    document.body.removeChild(a)
+    if (a.parentNode) {
+      document.body.removeChild(a)
+    }
     URL.revokeObjectURL(url)
-  }, 1000)
+  }, 2000)
 }

@@ -8,23 +8,15 @@ routerAdd('POST', '/backend/v1/admin/request-password-reset', (e) => {
       return e.json(400, { error: 'O e-mail cadastrado é obrigatório.' })
     }
 
-    const ADMIN_EMAIL = 'portelajane@outlook.com'
-    if (email !== ADMIN_EMAIL) {
-      return e.json(400, {
-        error:
-          'E-mail não reconhecido como administrador do sistema. Utilize o e-mail oficial cadastrado (portelajane@outlook.com).',
-      })
-    }
-
-    const targetEmail = ADMIN_EMAIL
-
-    // Tentar localizar o usuário admin
+    // Tentar localizar o usuário por e-mail
     let user
     try {
-      user = $app.findAuthRecordByEmail('users', targetEmail)
+      user = $app.findAuthRecordByEmail('users', email)
     } catch (_) {
-      return e.json(404, { error: 'Usuário administrador não encontrado no sistema.' })
+      return e.json(404, { error: 'Usuário não encontrado no sistema com o e-mail informado.' })
     }
+
+    const targetEmail = email
 
     // Gerar código de recuperação de 6 dígitos alfanuméricos
     // gravado na coleção configuracoes com validade de 30 minutos

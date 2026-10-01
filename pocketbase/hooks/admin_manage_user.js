@@ -18,11 +18,7 @@ routerAdd(
       }
 
       const callerPerfil = authRecord.getString('perfil') || ''
-      const callerEmail = (authRecord.email() || '').toLowerCase()
-      const isManager =
-        callerPerfil === 'tesoureiro' ||
-        callerPerfil === 'admin' ||
-        callerEmail === 'portelajane@outlook.com'
+      const isManager = callerPerfil === 'tesoureiro' || callerPerfil === 'admin'
 
       // Seção e endpoints de gestão de logins são EXCLUSIVOS do Tesoureiro / Admin
       if (!isManager) {

@@ -71,7 +71,7 @@ export const LoginModal: React.FC = () => {
   // Estados do fluxo "Esqueci a senha"
   // view: 'login' | 'forgot_email' | 'reset_code' | 'success'
   const [view, setView] = useState<'login' | 'forgot_email' | 'reset_code' | 'success'>('login')
-  const [recoveryEmail, setRecoveryEmail] = useState('portelajane@outlook.com')
+  const [recoveryEmail, setRecoveryEmail] = useState('')
   const [resetCode, setResetCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -457,7 +457,7 @@ export const LoginModal: React.FC = () => {
                   type="email"
                   value={recoveryEmail}
                   onChange={(e) => setRecoveryEmail(e.target.value)}
-                  placeholder="portelajane@outlook.com"
+                  placeholder="admin@suaigreja.local ou seu e-mail"
                   className="border-[#E6E2D8] focus-visible:ring-[#C9A227]"
                   required
                   autoFocus

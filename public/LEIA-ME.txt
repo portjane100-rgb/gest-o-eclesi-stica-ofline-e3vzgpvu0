@@ -28,11 +28,18 @@ Passo 2: ABRIR O SISTEMA
     Microsoft Edge ou Google Chrome (possuem o melhor suporte ao banco de dados offline IndexedDB e maior performance gráfica).
 
 --------------------------------------------------------------------
-2. PRIMEIRO ACESSO (CONFIGURAÇÃO INICIAL)
+2. PRIMEIRO ACESSO (ACESSO LIVRE E CONFIGURAÇÃO INICIAL)
 --------------------------------------------------------------------
-- Ao abrir o sistema pela primeira vez no seu computador, o banco de dados estará pronto para iniciar.
-- Na tela de boas-vindas, cadastre o seu Administrador Geral (Nome, Usuário e Senha).
-- Essa senha fica criptografada e gravada exclusivamente no navegador do seu computador.
+- O sistema abre sem exigir nenhuma senha pré-definida de terceiros. Não existe nenhuma conta padrão embutida ou de revendedor gravada no código.
+- Na primeira entrada (quando nenhum usuário estiver cadastrado neste computador), o sistema abre diretamente o passo guiado de PRIMEIRO ACESSO.
+- Nesse passo guiado, você cria o seu próprio login de Administrador Geral:
+  1. Nome Completo (ex.: Pr. João da Silva)
+  2. Usuário de Acesso (ex.: admin ou o usuário de sua preferência)
+  3. Senha Mestra (mínimo de 6 caracteres) e Confirmação de Senha
+- Assim que você clicar em "Criar Administrador e Iniciar", sua conta é gerada imediatamente com criptografia local segura e você já entra no sistema como Administrador Geral com controle total.
+- Nas entradas seguintes no mesmo computador, o sistema solicitará o usuário e senha que você acabou de criar.
+- Dentro do sistema (menu "Configurações" > "Perfis e Logins de Acesso"), você pode cadastrar outros usuários adicionais (Secretários, Tesoureiro) a qualquer momento.
+- Essa senha fica criptografada e gravada exclusivamente no banco local (IndexedDB) do seu computador.
 - Uma vez cadastrado, você terá acesso imediato e total a todos os módulos:
   • Painel Geral (Dashboard com estatísticas e aniversariantes)
   • Rol de Membros e Congregados (com foto, dados e impressão de carteirinhas)

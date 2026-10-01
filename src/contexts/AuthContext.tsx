@@ -177,44 +177,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       await localDb.create('users', adminRecord)
 
-      // Também cria os logins padrão dos secretários e tesoureiro desativados ou com senha padrão se desejar, ou apenas o admin
-      const tesoureiroHash = await hashPassword('tesoureiro123')
-      const sec1Hash = await hashPassword('secretario123')
-      const sec2Hash = await hashPassword('secretario123')
-
-      await localDb.create('users', {
-        id: localDb.generateId(),
-        email: 'tesouraria@adtc.local',
-        name: 'Tesoureiro',
-        perfil: 'tesoureiro',
-        passwordHash: tesoureiroHash,
-        ativo: true,
-        created: now,
-        updated: now,
-      })
-
-      await localDb.create('users', {
-        id: localDb.generateId(),
-        email: 'secretaria1@adtc.local',
-        name: '1º Secretário',
-        perfil: 'secretario1',
-        passwordHash: sec1Hash,
-        ativo: true,
-        created: now,
-        updated: now,
-      })
-
-      await localDb.create('users', {
-        id: localDb.generateId(),
-        email: 'secretaria2@adtc.local',
-        name: '2º Secretário',
-        perfil: 'secretario2',
-        passwordHash: sec2Hash,
-        ativo: true,
-        created: now,
-        updated: now,
-      })
-
       setHasAnyUser(true)
 
       // Autentica diretamente com o administrador criado
@@ -260,21 +222,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const uPerfil = (u.perfil || '').toLowerCase()
 
         if (uEmail === clean) return true
-        if (
-          clean === 'admin' &&
-          (uPerfil === 'admin' || uEmail.includes('admin') || uEmail.includes('portela'))
-        )
-          return true
+        if (clean === 'admin' && (uPerfil === 'admin' || uEmail.includes('admin'))) return true
         if (clean === 'tesoureiro' || clean === 'tesouraria') {
           if (uPerfil === 'tesoureiro' || uEmail.includes('tesour')) return true
         }
         if (clean === 'secretario1' || clean === 'secretaria1') {
-          if (
-            uPerfil === 'secretario1' ||
-            uEmail.includes('secretaria1') ||
-            uEmail.includes('valderlanio')
-          )
-            return true
+          if (uPerfil === 'secretario1' || uEmail.includes('secretaria1')) return true
         }
         if (clean === 'secretario2' || clean === 'secretaria2') {
           if (uPerfil === 'secretario2' || uEmail.includes('secretaria2')) return true
@@ -299,18 +252,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isValidPassword = await verifyPassword(password, match.passwordHash)
       }
 
-      // Fallback para senhas iniciais migradas
+      // Fallback para senhas iniciais se houver
       if (!isValidPassword) {
-        const defaultPasswords = [
-          '123456',
-          'admin123',
-          'tesoureiro123',
-          'secretario123',
-          'portela123',
-        ]
+        const defaultPasswords = ['123456', 'admin123', 'tesoureiro123', 'secretario123']
         if (defaultPasswords.includes(password.trim())) {
           isValidPassword = true
-          // Atualiza para o novo hash
           const newHash = await hashPassword(password)
           await localDb.update('users', match.id, { passwordHash: newHash })
         }

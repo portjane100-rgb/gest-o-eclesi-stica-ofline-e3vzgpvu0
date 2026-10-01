@@ -174,12 +174,6 @@ export const LoginPage: React.FC = () => {
     }
   }
 
-  const preencherAtalho = (perfilKey: string) => {
-    setIdentificador(perfilKey)
-    setSenha('')
-    setErro(null)
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-[#1E3A5F] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-4">
@@ -379,29 +373,6 @@ export const LoginPage: React.FC = () => {
                   )}
                   Entrar no Sistema
                 </Button>
-
-                {/* Atalhos rápidos para perfis */}
-                <div className="pt-2 border-t border-slate-100">
-                  <span className="text-[11px] font-medium text-slate-500 block mb-1.5">
-                    Preenchimento Rápido de Acesso:
-                  </span>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => preencherAtalho('admin')}
-                      className="text-left px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-200 text-[11px] text-slate-700 font-medium transition-colors"
-                    >
-                      🛡️ Administrador Geral
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => preencherAtalho('secretario1')}
-                      className="text-left px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 rounded border border-slate-200 text-[11px] text-slate-700 font-medium transition-colors"
-                    >
-                      📋 Secretário / Auxiliar
-                    </button>
-                  </div>
-                </div>
               </form>
             )}
 
@@ -472,7 +443,7 @@ export const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsDownloadModalOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs text-[#C9A227] hover:text-amber-300 underline font-medium"
+              className="inline-flex items-center gap-1.5 text-xs text-[#C9A227] hover:text-amber-300 underline font-medium cursor-pointer"
             >
               <FolderDown className="w-3.5 h-3.5" />
               Baixar pacote completo do sistema (.zip) para testar no computador
