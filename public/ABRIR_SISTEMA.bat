@@ -13,16 +13,17 @@ echo.
 set "SCRIPT_DIR=%~dp0"
 set "HTML_FILE=%SCRIPT_DIR%index.html"
 
-:: 1. Tentar abrir no Microsoft Edge em modo aplicativo dedicado (janela limpa sem abas)
-start "" msedge --app="file:///%HTML_FILE:\=/%" 2>nul
+:: Flags essenciais para execução offline via file:// sem bloqueios de CORS/módulos
+:: 1. Tentar abrir no Microsoft Edge em modo aplicativo dedicado
+start "" msedge --app="file:///%HTML_FILE:\=/%" --allow-file-access-from-files --disable-web-security 2>nul
 if %errorlevel% equ 0 goto :fim
 
 :: 2. Tentar abrir no Google Chrome em modo aplicativo dedicado
-start "" chrome --app="file:///%HTML_FILE:\=/%" 2>nul
+start "" chrome --app="file:///%HTML_FILE:\=/%" --allow-file-access-from-files --disable-web-security 2>nul
 if %errorlevel% equ 0 goto :fim
 
 :: 3. Tentar abrir no Brave se disponível
-start "" brave --app="file:///%HTML_FILE:\=/%" 2>nul
+start "" brave --app="file:///%HTML_FILE:\=/%" --allow-file-access-from-files --disable-web-security 2>nul
 if %errorlevel% equ 0 goto :fim
 
 :: 4. Fallback: navegador padrão do Windows

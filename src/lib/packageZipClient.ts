@@ -163,15 +163,15 @@ set "SCRIPT_DIR=%~dp0"
 set "HTML_FILE=%SCRIPT_DIR%index.html"
 
 :: 1. Tentar abrir no Microsoft Edge em modo aplicativo dedicado (janela limpa sem abas)
-start "" msedge --app="file:///%HTML_FILE:\\=/%" 2>nul
+start "" msedge --app="file:///%HTML_FILE:\\=/%" --allow-file-access-from-files --disable-web-security 2>nul
 if %errorlevel% equ 0 goto :fim
 
 :: 2. Tentar abrir no Google Chrome em modo aplicativo dedicado
-start "" chrome --app="file:///%HTML_FILE:\\=/%" 2>nul
+start "" chrome --app="file:///%HTML_FILE:\\=/%" --allow-file-access-from-files --disable-web-security 2>nul
 if %errorlevel% equ 0 goto :fim
 
 :: 3. Tentar abrir no Brave se disponível
-start "" brave --app="file:///%HTML_FILE:\\=/%" 2>nul
+start "" brave --app="file:///%HTML_FILE:\\=/%" --allow-file-access-from-files --disable-web-security 2>nul
 if %errorlevel% equ 0 goto :fim
 
 :: 4. Fallback: navegador padrão do Windows
@@ -187,19 +187,19 @@ HTML_FILE="$DIR/index.html"
 
 # 1. Tentar Google Chrome em modo aplicativo dedicado no macOS
 if [ -d "/Applications/Google Chrome.app" ]; then
-  open -a "Google Chrome" --args --app="file://$HTML_FILE"
+  open -a "Google Chrome" --args --app="file://$HTML_FILE" --allow-file-access-from-files --disable-web-security
   exit 0
 fi
 
 # 2. Tentar Microsoft Edge em modo aplicativo dedicado no macOS
 if [ -d "/Applications/Microsoft Edge.app" ]; then
-  open -a "Microsoft Edge" --args --app="file://$HTML_FILE"
+  open -a "Microsoft Edge" --args --app="file://$HTML_FILE" --allow-file-access-from-files --disable-web-security
   exit 0
 fi
 
 # 3. Tentar Brave Browser
 if [ -d "/Applications/Brave Browser.app" ]; then
-  open -a "Brave Browser" --args --app="file://$HTML_FILE"
+  open -a "Brave Browser" --args --app="file://$HTML_FILE" --allow-file-access-from-files --disable-web-security
   exit 0
 fi
 
@@ -239,12 +239,41 @@ Como usar:
     { relativePath: 'Gestao_Eclesiastica_PC/LEIA-ME.txt', content: leiaMe },
   ]
 
-  // Clonar o HTML atual e ajustar os caminhos para relativos
+  // Clonar o HTML atual e ajustar os caminhos para relativos e auto-contidos
   try {
     let htmlContent = document.documentElement.outerHTML
 
     // Remove referências a scripts de terceiros/dev que não fazem sentido em offline
     htmlContent = htmlContent.replace(/<script[^>]*src="[^"]*@vite\/client"[^>]*><\/script>/gi, '')
+    htmlContent = htmlContent.replace(/<link[^>]+googleapis\.com[^>]*>/gi, '')
+    htmlContent = htmlContent.replace(/<link[^>]+gstatic\.com[^>]*>/gi, '')
+
+    // Converte caminhos absolutos / para relativos ./
+    htmlContent = htmlContent.replace(/(href|src)=["']\/([^"']+)["']/g, '$1="./$2"')
+
+    // Injeta scripts inline de estilos capturados do documento
+    let inlineStyles = ''
+    try {
+      const styleSheets = Array.from(document.styleSheets)
+      for (const sheet of styleSheets) {
+        try {
+          if (sheet.cssRules) {
+            const rulesText = Array.from(sheet.cssRules)
+              .map((r) => r.cssText)
+              .join('\n')
+            inlineStyles += `<style>\n${rulesText}\n</style>\n`
+          }
+        } catch (_) {
+          // Possível bloqueio de CORS de estilos externos
+        }
+      }
+    } catch (_) {
+      // Ignora erro
+    }
+
+    if (inlineStyles) {
+      htmlContent = htmlContent.replace('</head>', `${inlineStyles}\n</head>`)
+    }
 
     // Ajusta o doctype
     const fullHtml = '<!DOCTYPE html>\n' + htmlContent

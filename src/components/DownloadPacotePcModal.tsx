@@ -49,20 +49,24 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
       // 1. Tentar primeiro baixar o arquivo pré-gerado /Gestao_Eclesiastica_Versao_PC.zip
       // que está na raiz de public/dist
       let baixouEstatico = false
-      try {
-        // Verifica se consegue dar fetch no arquivo estático
-        const resp = await fetch(`./${nomeArquivoZip}`)
-        if (resp.ok) {
-          setProgressoPct(70)
-          setProgressoTexto('Baixando pacote (.zip)...')
-          const blob = await resp.blob()
-          if (blob && blob.size > 1000) {
-            dispararDownloadBlob(blob, nomeArquivoZip)
-            baixouEstatico = true
+      const caminhosTentativa = [`./${nomeArquivoZip}`, `/${nomeArquivoZip}`, nomeArquivoZip]
+
+      for (const caminho of caminhosTentativa) {
+        try {
+          const resp = await fetch(caminho)
+          if (resp.ok) {
+            setProgressoPct(75)
+            setProgressoTexto('Baixando pacote (.zip)...')
+            const blob = await resp.blob()
+            if (blob && blob.size > 2000) {
+              dispararDownloadBlob(blob, nomeArquivoZip)
+              baixouEstatico = true
+              break
+            }
           }
+        } catch (_) {
+          // continua tentando
         }
-      } catch (_) {
-        baixouEstatico = false
       }
 
       if (!baixouEstatico) {
@@ -75,7 +79,6 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
         })
         dispararDownloadBlob(blob, nomeArquivoZip)
       }
-
       setProgressoPct(100)
       setProgressoTexto('Download iniciado!')
       setDownloadConcluido(true)

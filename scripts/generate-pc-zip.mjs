@@ -129,6 +129,104 @@ export function buildZipBuffer(files) {
   return Buffer.concat([...localFileChunks, cdTotalBuf, eocd])
 }
 
+/**
+ * Converte um arquivo HTML produzido pelo Vite em um arquivo 100% auto-contido (inline),
+ * embutindo CSS, scripts JS e convertendo URLs para relativas ou data-URIs,
+ * permitindo que funcione perfeitamente via duplo clique em file:// sem bloqueios de CORS.
+ */
+export function buildStandaloneHtml(distDir) {
+  const indexPath = path.join(distDir, 'index.html')
+  if (!fs.existsSync(indexPath)) return null
+
+  let html = fs.readFileSync(indexPath, 'utf-8')
+
+  // 1. Embutir arquivos CSS (<link rel="stylesheet" ... href="/assets/...">)
+  const cssLinkRegex =
+    /<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>|<link[^>]+href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*>/gi
+  html = html.replace(cssLinkRegex, (match, href1, href2) => {
+    const rawHref = (href1 || href2 || '').trim()
+    const cleanHref = rawHref.replace(/^\.?\//, '')
+    const fullCssPath = path.join(distDir, cleanHref)
+    if (fs.existsSync(fullCssPath)) {
+      let cssContent = fs.readFileSync(fullCssPath, 'utf-8')
+      // Embutir fontes ou imagens referenciadas no CSS se existirem localmente
+      cssContent = cssContent.replace(/url\((['"]?)(\/?[^'")]+)\1\)/g, (uMatch, q, assetUrl) => {
+        if (
+          assetUrl.startsWith('data:') ||
+          assetUrl.startsWith('http://') ||
+          assetUrl.startsWith('https://')
+        ) {
+          return uMatch
+        }
+        const cleanAsset = assetUrl.replace(/^\.?\//, '')
+        const fullAssetPath = path.join(distDir, cleanAsset)
+        if (fs.existsSync(fullAssetPath)) {
+          const ext = path.extname(cleanAsset).toLowerCase()
+          let mime = 'application/octet-stream'
+          if (ext === '.woff2') mime = 'font/woff2'
+          else if (ext === '.woff') mime = 'font/woff'
+          else if (ext === '.ttf') mime = 'font/ttf'
+          else if (ext === '.svg') mime = 'image/svg+xml'
+          else if (ext === '.png') mime = 'image/png'
+          else if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg'
+          const b64 = fs.readFileSync(fullAssetPath).toString('base64')
+          return `url("data:${mime};base64,${b64}")`
+        }
+        return `url("./${cleanAsset}")`
+      })
+      return `<style>/* Inlined ${cleanHref} */\n${cssContent}</style>`
+    }
+    return match
+  })
+
+  // 2. Embutir scripts JavaScript (<script type="module" ... src="/assets/...">)
+  const scriptRegex = /<script([^>]*)\ssrc=["']([^"']+)["']([^>]*)><\/script>/gi
+  html = html.replace(scriptRegex, (match, before, src, after) => {
+    if (src.includes('goskip.dev') || src.startsWith('http')) {
+      return match
+    }
+    const cleanSrc = src.replace(/^\.?\//, '')
+    const fullJsPath = path.join(distDir, cleanSrc)
+    if (fs.existsSync(fullJsPath)) {
+      let jsContent = fs.readFileSync(fullJsPath, 'utf-8')
+      // Converter referências a /assets/ ou import.meta em caminhos relativos
+      jsContent = jsContent.replace(/["']\/assets\/([^"']+)["']/g, '"./assets/$1"')
+      return `<script type="module">\n/* Inlined ${cleanSrc} */\n${jsContent}\n</script>`
+    }
+    return match
+  })
+
+  // 3. Embutir favicon / logos se existirem como data URIs para que não haja falha de 404 em file://
+  const iconRegex = /<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["'][^>]*>/gi
+  html = html.replace(iconRegex, (match, iconHref) => {
+    const cleanIcon = iconHref.replace(/^\.?\//, '')
+    const fullIconPath = path.join(distDir, cleanIcon)
+    if (fs.existsSync(fullIconPath)) {
+      const ext = path.extname(cleanIcon).toLowerCase()
+      const mime = ext === '.png' ? 'image/png' : ext === '.svg' ? 'image/svg+xml' : 'image/x-icon'
+      const b64 = fs.readFileSync(fullIconPath).toString('base64')
+      return `<link rel="icon" type="${mime}" href="data:${mime};base64,${b64}" />`
+    }
+    return match
+  })
+
+  // 4. Garantir caminhos estáticos relativos (./ em vez de /)
+  html = html.replace(/(href|src)=["']\/([^"']+)["']/g, '$1="./$2"')
+
+  // 5. Adicionar polyfill/fallback de segurança para file:// no topo do head
+  const headStartTag = '<head>'
+  const fileProtocolPatch = `<head>
+    <script>
+      // ADTC Local - Proteção contra bloqueios de protocolo file://
+      if (window.location.protocol === 'file:') {
+        console.log('ADTC Gestão Eclesiástica: Executando em modo 100% Offline (file://)');
+      }
+    </script>`
+  html = html.replace(headStartTag, fileProtocolPatch)
+
+  return html
+}
+
 export function coletarArquivos(dir, baseDir = dir) {
   const results = []
   if (!fs.existsSync(dir)) return results
@@ -169,17 +267,55 @@ export function gerarPacoteZip() {
     sourceDir = publicDir
   }
 
+  // 1. Tentar gerar o index.html auto-contido / standalone
+  let standaloneHtml = null
+  if (fs.existsSync(path.join(distDir, 'index.html'))) {
+    console.log(
+      '[ZIP BUILDER] Gerando index.html auto-contido (inline JS/CSS) para execução em file://...',
+    )
+    standaloneHtml = buildStandaloneHtml(distDir)
+  }
+
   const arquivos = coletarArquivos(sourceDir)
   if (arquivos.length === 0) {
     console.warn('[ZIP BUILDER] Nenhum arquivo para empacotar.')
     return
   }
 
+  // Garantir scripts .bat, .command e LEIA-ME atualizados de public caso não estejam no dist
+  const arquivosObrigatorios = ['ABRIR_SISTEMA.bat', 'ABRIR_SISTEMA.command', 'LEIA-ME.txt']
+  for (const arq of arquivosObrigatorios) {
+    const arqPublic = path.join(publicDir, arq)
+    if (fs.existsSync(arqPublic) && !arquivos.some((a) => a.relativePath === arq)) {
+      arquivos.push({
+        relativePath: arq,
+        content: fs.readFileSync(arqPublic),
+      })
+    }
+  }
+
   const pastaRaiz = 'Gestao_Eclesiastica_PC/'
-  const arquivosNoZip = arquivos.map((a) => ({
-    relativePath: pastaRaiz + a.relativePath,
-    content: a.content,
-  }))
+  const arquivosNoZip = arquivos.map((a) => {
+    // Se for o index.html e tivermos a versão auto-contida, substitui pelo conteúdo inlined
+    if (standaloneHtml && (a.relativePath === 'index.html' || a.relativePath === './index.html')) {
+      return {
+        relativePath: pastaRaiz + 'index.html',
+        content: Buffer.from(standaloneHtml, 'utf-8'),
+      }
+    }
+    return {
+      relativePath: pastaRaiz + a.relativePath,
+      content: a.content,
+    }
+  })
+
+  // Se por algum motivo o index.html não estava na lista, adiciona explicitamente
+  if (standaloneHtml && !arquivosNoZip.some((a) => a.relativePath === pastaRaiz + 'index.html')) {
+    arquivosNoZip.push({
+      relativePath: pastaRaiz + 'index.html',
+      content: Buffer.from(standaloneHtml, 'utf-8'),
+    })
+  }
 
   const zipBuf = buildZipBuffer(arquivosNoZip)
 
