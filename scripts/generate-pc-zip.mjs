@@ -391,6 +391,31 @@ export function gerarPacoteZip() {
   const targetPublic = path.join(publicDir, zipName)
   fs.writeFileSync(targetPublic, zipBuf)
   const statPublic = fs.statSync(targetPublic)
+
+  const summary = {
+    zipPath: targetPublic,
+    sizeBytes: statPublic.size,
+    sizeMB: (statPublic.size / (1024 * 1024)).toFixed(2) + ' MB',
+    mtime: statPublic.mtime.toISOString(),
+    totalFiles: arquivosNoZip.length,
+    rootFiles: arquivosNoZip
+      .filter((a) => {
+        const parts = a.relativePath.split('/')
+        return parts.length === 2 && parts[1] !== ''
+      })
+      .map((a) => ({
+        name: a.relativePath.replace(pastaRaiz, ''),
+        bytes: a.content.length,
+      })),
+  }
+
+  // Salvar resumo json legível em public para inspeção direta
+  fs.writeFileSync(
+    path.join(publicDir, 'zip-summary.json'),
+    JSON.stringify(summary, null, 2),
+    'utf-8',
+  )
+
   console.log(
     `[ZIP BUILDER] Criado e gravado com sucesso em: ${targetPublic} (${statPublic.size} bytes / ${(statPublic.size / (1024 * 1024)).toFixed(2)} MB)`,
   )
@@ -398,6 +423,11 @@ export function gerarPacoteZip() {
   if (fs.existsSync(distDir)) {
     const targetDist = path.join(distDir, zipName)
     fs.writeFileSync(targetDist, zipBuf)
+    fs.writeFileSync(
+      path.join(distDir, 'zip-summary.json'),
+      JSON.stringify(summary, null, 2),
+      'utf-8',
+    )
     console.log(`[ZIP BUILDER] Copiado também para dist: ${targetDist}`)
   }
 

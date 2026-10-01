@@ -74,6 +74,7 @@ if (versaoEntry) {
 
 // Extrair index.html para verificar conteúdo
 let indexSnippet = ''
+let hasHardcodedAdtcCampanarioInIndex = false
 const indexEntry = entries.find((e) => e.name === 'Gestao_Eclesiastica_PC/index.html')
 if (indexEntry) {
   const locOff = indexEntry.localOffset
@@ -86,10 +87,43 @@ if (indexEntry) {
     rawContent = zlib.inflateRawSync(compressedData)
   }
   const str = rawContent.toString('utf-8')
-  indexSnippet = `Tamanho total HTML: ${str.length} caracteres. Tem __ADTC_OFFLINE_ONLY__: ${str.includes('__ADTC_OFFLINE_ONLY__')}. Tem script inlined: ${str.includes('<script type="module">')}.`
+  hasHardcodedAdtcCampanarioInIndex = str.includes('ADTC Campanário')
+  indexSnippet = `Tamanho total HTML: ${str.length} caracteres. Tem __ADTC_OFFLINE_ONLY__: ${str.includes('__ADTC_OFFLINE_ONLY__')}. Tem script inlined: ${str.includes('<script type="module">')}. Tem 'ADTC Campanário': ${hasHardcodedAdtcCampanarioInIndex}`
+}
+
+// Extrair e inspecionar ABRIR_SISTEMA.bat
+let batSecurityFlagsPresent = false
+let batContentSnippet = ''
+const batEntry = entries.find((e) => e.name === 'Gestao_Eclesiastica_PC/ABRIR_SISTEMA.bat')
+if (batEntry) {
+  const locOff = batEntry.localOffset
+  const locNameLen = buf.readUInt16LE(locOff + 26)
+  const locExtraLen = buf.readUInt16LE(locOff + 28)
+  const dataStart = locOff + 30 + locNameLen + locExtraLen
+  const compressedData = buf.subarray(dataStart, dataStart + batEntry.compressedSize)
+  let rawContent = compressedData
+  if (batEntry.method === 8) {
+    rawContent = zlib.inflateRawSync(compressedData)
+  }
+  const str = rawContent.toString('utf-8')
+  batSecurityFlagsPresent =
+    str.includes('--disable-web-security') || str.includes('--allow-file-access-from-files')
+  batContentSnippet = str
 }
 
 // Relatório em formato JSON para fácil inspeção
+const rootFiles = entries
+  .filter((e) => {
+    // Arquivos que estão diretamente sob Gestao_Eclesiastica_PC/
+    const parts = e.name.split('/')
+    return parts.length === 2 && parts[1] !== ''
+  })
+  .map((e) => ({
+    name: e.name.replace('Gestao_Eclesiastica_PC/', ''),
+    uncompressedBytes: e.uncompressedSize,
+    compressedBytes: e.compressedSize,
+  }))
+
 const report = {
   zipPath: path.relative(process.cwd(), zipPath),
   sizeBytes: stat.size,
@@ -98,19 +132,25 @@ const report = {
   totalFiles: entries.length,
   packageMeta,
   indexCheck: indexSnippet,
-  rootFiles: entries
-    .filter((e) => {
-      // Arquivos que estão diretamente sob Gestao_Eclesiastica_PC/
-      const parts = e.name.split('/')
-      return parts.length === 2 && parts[1] !== ''
-    })
-    .map((e) => ({
-      name: e.name.replace('Gestao_Eclesiastica_PC/', ''),
-      uncompressedBytes: e.uncompressedSize,
-      compressedBytes: e.compressedSize,
-    })),
+  hasHardcodedAdtcCampanarioInIndex,
+  batCheck: {
+    batSecurityFlagsPresent,
+    content: batContentSnippet,
+  },
+  rootFiles,
   allFiles: entries.map((e) => e.name),
 }
 
-fs.writeFileSync('scripts/evidence-output.json', JSON.stringify(report, null, 2), 'utf-8')
-console.log('EVIDENCE_REPORT_GENERATED')
+console.log('=== EVIDENCE REPORT START ===')
+console.log(JSON.stringify(report, null, 2))
+console.log('=== EVIDENCE REPORT END ===')
+
+// Garantir que asserções de segurança e conformidade não passem se violadas
+if (batSecurityFlagsPresent) {
+  console.error('ERRO FATAL: flags inseguras detectadas no BAT do pacote!')
+  process.exit(1)
+}
+if (hasHardcodedAdtcCampanarioInIndex) {
+  console.error('ERRO FATAL: "ADTC Campanário" hardcoded detectado no index.html do pacote!')
+  process.exit(1)
+}
