@@ -270,7 +270,7 @@ export const Obreiros: React.FC = () => {
         </h1>
         <p className="text-sm sm:text-base text-[#5A5A5A] leading-relaxed">
           Homens separados e consagrados por Deus para apascentar o rebanho, administrar os
-          sacramentos e servir com dedicação no campo de Campanário.
+          sacramentos e servir com dedicação no campo eclesiástico.
         </p>
 
         {/* Botão Admin Adicionar */}
@@ -325,7 +325,7 @@ export const Obreiros: React.FC = () => {
                       {pastorPresidente.nome}
                     </h2>
                     <p className="text-xs sm:text-sm font-semibold text-[#C9A227] tracking-wider uppercase mt-1">
-                      Presidente da Assembleia de Deus Templo Central em Campanário
+                      Pastor Presidente
                     </p>
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-[#5A5A5A] mt-2">
                       <span className="flex items-center gap-1">

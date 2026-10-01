@@ -278,8 +278,8 @@ export const Calendario: React.FC = () => {
           Calendário de Festas & Eventos
         </h1>
         <p className="text-sm sm:text-base text-[#5A5A5A] leading-relaxed">
-          Congressos, festividades departamentais, cruzadas evangelísticas e celebrações da ADTC
-          Campanário.
+          Congressos, festividades departamentais, cruzadas evangelísticas e celebrações de
+          toda a nossa igreja.
         </p>
 
         {isAdmin && (

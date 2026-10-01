@@ -537,7 +537,7 @@ export const Doacoes: React.FC = () => {
               <Input
                 value={formTitular}
                 onChange={(e) => setFormTitular(e.target.value)}
-                placeholder="Ex: Igreja Evangélica Assembleia de Deus Templo Central Campanário"
+                placeholder="Ex: Igreja Evangélica Assembleia de Deus"
                 className="text-xs sm:text-sm"
               />
             </div>
@@ -548,7 +548,7 @@ export const Doacoes: React.FC = () => {
                 <Input
                   value={formCnpj}
                   onChange={(e) => setFormCnpj(e.target.value)}
-                  placeholder="Ex: 00.000.000/0001-00 (Sede Campanário)"
+                  placeholder="Ex: 00.000.000/0001-00"
                   className="text-xs sm:text-sm"
                 />
               </div>

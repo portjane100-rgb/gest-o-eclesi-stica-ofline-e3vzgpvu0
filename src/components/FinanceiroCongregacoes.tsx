@@ -32,7 +32,7 @@ import {
 } from 'lucide-react'
 import { formatarMoeda } from '@/lib/planilhaMensalPdf'
 import { formatarDataBr } from '@/lib/utils'
-import pb from '@/lib/pocketbase/client'
+import { updateItem } from '@/lib/dataClient'
 import { Percent, Check, Landmark } from 'lucide-react'
 
 export const FinanceiroCongregacoes: React.FC = () => {

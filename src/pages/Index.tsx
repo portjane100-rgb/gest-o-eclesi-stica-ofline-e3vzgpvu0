@@ -129,13 +129,13 @@ export const Index: React.FC = () => {
   const [heroBadge, setHeroBadge] = useState(
     config.homeHeroBadge || 'Igreja Evangélica Assembleia de Deus',
   )
-  const [heroTitle, setHeroTitle] = useState(config.homeHeroTitle || 'ADTC Campanário')
+  const [heroTitle, setHeroTitle] = useState(config.homeHeroTitle || 'Gestão Eclesiástica')
   const [heroSubtitle, setHeroSubtitle] = useState(
     config.homeHeroSubtitle ||
       'Um lugar de adoração, comunhão fraternal e proclamação da genuína Palavra de Deus para toda a família.',
   )
   const [heroEndereco, setHeroEndereco] = useState(
-    config.homeHeroEndereco || 'Sede: Rua Alberto Batista Fontenele, nº 141, Campanário',
+    config.homeHeroEndereco || 'Sede da Igreja',
   )
   const [pixBannerVerso, setPixBannerVerso] = useState(
     '"Cada um dê conforme determinou em seu coração, não com tristeza ou por obrigação, pois Deus ama quem dá com alegria." (2 Co 9:7).',
@@ -144,7 +144,7 @@ export const Index: React.FC = () => {
   // Títulos e Textos configuráveis das seções
   const [tituloAniversariantes, setTituloAniversariantes] = useState('Aniversariantes do Dia')
   const [subtituloAniversariantes, setSubtituloAniversariantes] = useState(
-    'A família ADTC Campanário se alegra e rende graças ao Senhor por mais um ano de vida concedido!',
+    'A família da igreja se alegra e rende graças ao Senhor por mais um ano de vida concedido!',
   )
   const [tituloReflexao, setTituloReflexao] = useState('Palavra e Edificação Diária')
   const [badgeReflexao, setBadgeReflexao] = useState('📖 Reflexão do Dia')
@@ -158,7 +158,7 @@ export const Index: React.FC = () => {
   const [customTituloCampos, setCustomTituloCampos] = useState<boolean>(false)
   const [tagCampos, setTagCampos] = useState('Campos de Atuação')
   const [descCampos, setDescCampos] = useState(
-    'A ADTC Campanário atua através do Templo Sede e suas congregações ativas na proclamação do Evangelho.',
+    'A igreja atua através do Templo Sede e suas congregações ativas na proclamação do Evangelho.',
   )
   const [tituloPix, setTituloPix] = useState('Dízimos e Ofertas para a Obra do Senhor')
   const [tagPix, setTagPix] = useState('Contribuição Voluntária')
@@ -256,7 +256,7 @@ export const Index: React.FC = () => {
   }
 
   const [mensagemAniversarioConfig, setMensagemAniversarioConfig] = useState(
-    'A paz do Senhor, {nome}! A Assembleia de Deus — Templo Central de Campanário deseja a você muitas felicidades e que Deus abençoe seu novo ano de vida! 🎉',
+    'A paz do Senhor, {nome}! A igreja deseja a você muitas felicidades e que Deus abençoe seu novo ano de vida! 🎉',
   )
 
   const handleAbrirFelicitarModal = (item: AniversarianteItem) => {
@@ -484,7 +484,7 @@ export const Index: React.FC = () => {
   }, [hojeNome])
 
   const handleCopyVersiculo = () => {
-    const texto = `📖 Reflexão Diária — ADTC Campanário\n\n"${versiculoDia.texto}"\n— ${versiculoDia.livro} ${versiculoDia.capitulo}:${versiculoDia.versiculo} (Almeida Revista e Corrigida - ARC)\n\n${versiculoDia.reflexao || ''}`
+    const texto = `📖 Reflexão Diária — ${config.churchName || 'Igreja'}\n\n"${versiculoDia.texto}"\n— ${versiculoDia.livro} ${versiculoDia.capitulo}:${versiculoDia.versiculo} (Almeida Revista e Corrigida - ARC)\n\n${versiculoDia.reflexao || ''}`
     navigator.clipboard.writeText(texto)
     setVersiculoCopiado(true)
     toast({
@@ -696,7 +696,7 @@ export const Index: React.FC = () => {
               <div className="relative p-1 rounded-full bg-gradient-to-b from-[#FAF8F5] via-[#C9A227] to-[#8C6D15] shadow-2xl">
                 <img
                   src={ADTC_LOGO_URL}
-                  alt="Assembleia de Deus Templo Central de Campanário"
+                  alt="Gestão Eclesiástica"
                   className="w-28 h-28 sm:w-36 sm:h-36 rounded-full object-cover border-4 border-[#072348] shadow-2xl bg-[#072348] transition-transform duration-500 group-hover:scale-105"
                   onError={(e) => {
                     ;(e.target as HTMLImageElement).src = '/logo-oficial.png'
@@ -1038,7 +1038,7 @@ export const Index: React.FC = () => {
                                 )}
                               </div>
                               <p className="text-[11px] text-slate-500 truncate">
-                                {m.congregacao || 'ADTC Campanário'}
+                                {m.congregacao || config.churchName || 'Sede'}
                               </p>
                             </div>
                           </div>
@@ -1331,7 +1331,7 @@ export const Index: React.FC = () => {
                         {pastorPresidente.nome}
                       </h3>
                       <p className="text-xs text-[#F3CA52] font-semibold tracking-wide uppercase mt-0.5">
-                        Liderança Pastoral Geral • Sede ADTC Campanário
+                        Liderança Pastoral Geral • Sede
                       </p>
                     </div>
 
@@ -1657,7 +1657,7 @@ export const Index: React.FC = () => {
                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
                       chavePix,
                     )}`}
-                    alt="QR Code PIX ADTC Campanário"
+                    alt="QR Code PIX"
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -1699,7 +1699,7 @@ export const Index: React.FC = () => {
               <Input
                 value={heroForm.title}
                 onChange={(e) => setHeroForm({ ...heroForm, title: e.target.value })}
-                placeholder="Ex: ADTC Campanário"
+                placeholder="Ex: Igreja Evangélica Assembleia de Deus"
                 className="text-xs sm:text-sm"
               />
             </div>
@@ -1720,7 +1720,7 @@ export const Index: React.FC = () => {
               <Input
                 value={heroForm.endereco}
                 onChange={(e) => setHeroForm({ ...heroForm, endereco: e.target.value })}
-                placeholder="Ex: Sede: Rua Alberto Batista Fontenele, nº 141, Campanário"
+                placeholder="Ex: Sede: Rua das Flores, nº 100"
                 className="text-xs sm:text-sm"
               />
             </div>

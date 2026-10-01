@@ -774,8 +774,7 @@ export const KitImplantacaoSection: React.FC = () => {
 
               <p className="text-xs text-rose-950 leading-relaxed">
                 Ao clicar no botão de implantação, este sistema{' '}
-                <strong>APAGARÁ PERMANENTEMENTE</strong> todos os dados operacionais e registros da
-                ADTC Campanário nesta instância:
+                <strong>APAGARÁ PERMANENTEMENTE</strong> todos os dados operacionais e registros anteriores nesta instância:
               </p>
 
               <ul className="text-[11px] text-rose-900 list-disc list-inside space-y-0.5 bg-white/70 p-3 rounded-lg border border-rose-200">
@@ -874,7 +873,7 @@ export const KitImplantacaoSection: React.FC = () => {
               Sistema Implantado com Sucesso!
             </DialogTitle>
             <DialogDescription className="text-center text-xs text-slate-600 pt-2 leading-relaxed">
-              Os dados antigos da ADTC foram completamente zerados e a nova identidade de{' '}
+              Os dados operacionais antigos foram completamente zerados e a nova identidade de{' '}
               <strong>{igrejaNome}</strong> já está ativa em todo o sistema. O login do novo
               Tesoureiro ({tesoureiroEmail}) foi gravado com sucesso.
             </DialogDescription>

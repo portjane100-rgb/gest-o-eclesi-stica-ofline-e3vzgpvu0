@@ -150,7 +150,7 @@ export function CarteirinhaPublica() {
         registro: m.numero_registro || 'ADTC-001',
         nascimento,
         nacionalidade: 'Brasileira',
-        naturalidade: m.naturalidade || 'Campanário - CE',
+        naturalidade: m.naturalidade || '',
         estadoCivil: m.estado_civil || '—',
         batismo,
         cpf: m.cpf || '—',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { getItems, getChurchSettings } from '@/lib/dataClient'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -173,19 +173,13 @@ export const PlanilhaMensalView: React.FC = () => {
   useEffect(() => {
     const carregarConfigAssinaturas = async () => {
       try {
-        const records = await pb.collection('configuracoes').getFullList<Configuracao>()
-        records.forEach((c) => {
-          if (c.chave === 'lideranca_nome_pastor' && c.valor) {
-            setNomePastor(c.valor)
-          }
-          if (c.chave === 'assinatura_pastor') {
-            if (c.arquivo) {
-              setAssinaturaPastorUrl(pb.files.getURL(c, c.arquivo))
-            } else if (c.valor && c.valor.startsWith('data:image')) {
-              setAssinaturaPastorUrl(c.valor)
-            }
-          }
-        })
+        const settings = await getChurchSettings()
+        if (settings.nomePastorPresidente) {
+          setNomePastor(settings.nomePastorPresidente)
+        }
+        if (settings.assinaturaPastorUrl) {
+          setAssinaturaPastorUrl(settings.assinaturaPastorUrl)
+        }
       } catch {
         /* ignore */
       }
@@ -289,7 +283,7 @@ export const PlanilhaMensalView: React.FC = () => {
         setObservacoes('')
         setUltimoSalvo(null)
 
-        // Busca dizimistas ativos da congregação
+        // Busca dizimistas ativos da congregação via camada unificada dataClient
         let dizimistasAtivos: Dizimista[] = []
         try {
           const filterCong =
@@ -297,10 +291,18 @@ export const PlanilhaMensalView: React.FC = () => {
               ? `congregacao = "${congregacao}" && ativo != false`
               : `(congregacao = "Sede" || congregacao = "") && ativo != false`
 
-          dizimistasAtivos = await pb.collection('dizimistas').getFullList<Dizimista>({
+          const allDizimistas = await getItems<Dizimista>('dizimistas', {
             filter: filterCong,
             sort: 'nome',
-            expand: 'membro',
+          })
+          dizimistasAtivos = allDizimistas.filter((d) => {
+            if (d.ativo === false) return false
+            const dCong = (d.congregacao || '').trim().toLowerCase()
+            const selCong = (congregacao || 'Sede').trim().toLowerCase()
+            if (selCong === 'sede') {
+              return dCong === 'sede' || dCong === ''
+            }
+            return dCong === selCong
           })
         } catch (err) {
           console.warn('Erro ao carregar dizimistas ativos da congregação:', err)

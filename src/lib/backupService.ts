@@ -88,7 +88,7 @@ export async function exportarBackupCompleto(nomeIgreja?: string): Promise<{
       version: '1.0',
       appName: 'Gestao Eclesiastica Desktop',
       exportDate: new Date().toISOString(),
-      churchName: nomeIgreja || 'ADTC Campanário',
+      churchName: nomeIgreja || 'Gestão Eclesiástica',
       totalRecords: total,
       collections: collectionsSummary,
     },

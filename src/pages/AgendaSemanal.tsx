@@ -257,8 +257,8 @@ export const AgendaSemanal: React.FC = () => {
                     <MapPin className="w-3.5 h-3.5 text-[#C9A227]" />
                     {congregacaoInfo?.endereco ||
                       (unidade === 'Sede'
-                        ? 'Rua Alberto Batista Fontenele, nº 141, Campanário'
-                        : `Campo congregacional da ADTC Campanário`)}
+                        ? 'Templo Sede'
+                        : `Campo congregacional da igreja`)}
                   </p>
                 </div>
 
