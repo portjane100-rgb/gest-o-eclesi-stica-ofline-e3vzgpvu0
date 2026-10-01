@@ -262,56 +262,76 @@ export function gerarPacoteZip() {
 
   console.log(`[ZIP BUILDER] Verificando arquivos para empacotar em ${zipName}...`)
 
-  const devDistDir = path.resolve(cwd, 'dev-dist')
-  let effectiveDistDir = fs.existsSync(distDir) && fs.readdirSync(distDir).length > 0 ? distDir : null
-  if (!effectiveDistDir && fs.existsSync(devDistDir) && fs.readdirSync(devDistDir).length > 0) {
-    effectiveDistDir = devDistDir
+  // FASE 0: Falhar alto se dist/ não existir ou estiver vazio.
+  // NUNCA empacotar public/ (código-fonte cru) como fallback silencioso!
+  if (!fs.existsSync(distDir) || fs.readdirSync(distDir).length === 0) {
+    console.error('ERRO: dist/ não existe ou está vazio. Execute o build antes de gerar o pacote.')
+    process.exit(1)
   }
 
-  let sourceDir = effectiveDistDir || publicDir
-  if (!effectiveDistDir) {
-    console.log('[ZIP BUILDER] dist/ ainda não existe, empacotando arquivos de public/...')
-  } else {
-    console.log(`[ZIP BUILDER] Usando diretório de build: ${sourceDir}`)
-  }
-
-  // 1. Tentar gerar o index.html auto-contido / standalone
-  let standaloneHtml = null
-  if (effectiveDistDir && fs.existsSync(path.join(effectiveDistDir, 'index.html'))) {
-    console.log(
-      '[ZIP BUILDER] Gerando index.html auto-contido (inline JS/CSS) para execução em file://...',
+  const distIndexHtml = path.join(distDir, 'index.html')
+  if (!fs.existsSync(distIndexHtml)) {
+    console.error(
+      'ERRO: Arquivo obrigatório ausente: index.html no diretório dist/. Execute o build antes de gerar o pacote.',
     )
-    standaloneHtml = buildStandaloneHtml(effectiveDistDir)
+    process.exit(1)
   }
 
-  const arquivos = coletarArquivos(sourceDir)
+  console.log(`[ZIP BUILDER] Usando diretório de build: ${distDir}`)
+
+  // 1. Gerar o index.html auto-contido / standalone
+  console.log(
+    '[ZIP BUILDER] Gerando index.html auto-contido (inline JS/CSS) para execução em file://...',
+  )
+  const standaloneHtml = buildStandaloneHtml(distDir)
+  if (!standaloneHtml || standaloneHtml.length < 500) {
+    console.error('ERRO: Falha ao compor o index.html auto-contido a partir do dist/.')
+    process.exit(1)
+  }
+
+  const arquivos = coletarArquivos(distDir)
   if (arquivos.length === 0) {
-    console.warn('[ZIP BUILDER] Nenhum arquivo para empacotar.')
-    return
+    console.error('ERRO: dist/ não contém nenhum arquivo para empacotar.')
+    process.exit(1)
   }
 
-  // Garantir scripts .bat, .command, LEIA-ME, INSTALAR.bat e favicon atualizados de public caso não estejam no dist
-  const arquivosObrigatorios = [
-    'ABRIR_SISTEMA.bat',
-    'INSTALAR.bat',
-    'ABRIR_SISTEMA.command',
-    'LEIA-ME.txt',
-    'favicon.ico',
-  ]
-  for (const arq of arquivosObrigatorios) {
+  // Arquivos auxiliares obrigatórios na raiz do pacote
+  const arquivosObrigatorios = ['index.html', 'ABRIR_SISTEMA.bat', 'INSTALAR.bat', 'LEIA-ME.txt']
+
+  // Arquivos opcionais recomendados se presentes
+  const arquivosRecomendados = ['ABRIR_SISTEMA.command', 'favicon.ico']
+
+  for (const arq of [...arquivosObrigatorios, ...arquivosRecomendados]) {
+    if (arq === 'index.html') continue
     const arqPublic = path.join(publicDir, arq)
-    if (fs.existsSync(arqPublic) && !arquivos.some((a) => a.relativePath === arq)) {
-      arquivos.push({
-        relativePath: arq,
-        content: fs.readFileSync(arqPublic),
-      })
+    const arqDist = path.join(distDir, arq)
+
+    if (fs.existsSync(arqPublic)) {
+      if (!arquivos.some((a) => a.relativePath === arq)) {
+        arquivos.push({
+          relativePath: arq,
+          content: fs.readFileSync(arqPublic),
+        })
+      }
+    } else if (fs.existsSync(arqDist)) {
+      if (!arquivos.some((a) => a.relativePath === arq)) {
+        arquivos.push({
+          relativePath: arq,
+          content: fs.readFileSync(arqDist),
+        })
+      }
+    } else if (arquivosObrigatorios.includes(arq)) {
+      console.error(
+        `ERRO: Arquivo obrigatório ausente: ${arq}. Verifique a pasta public/ ou dist/.`,
+      )
+      process.exit(1)
     }
   }
 
   const pastaRaiz = 'Gestao_Eclesiastica_PC/'
   const arquivosNoZip = arquivos.map((a) => {
-    // Se for o index.html e tivermos a versão auto-contida, substitui pelo conteúdo inlined
-    if (standaloneHtml && (a.relativePath === 'index.html' || a.relativePath === './index.html')) {
+    // Se for o index.html, substitui pelo conteúdo inlined auto-contido
+    if (a.relativePath === 'index.html' || a.relativePath === './index.html') {
       return {
         relativePath: pastaRaiz + 'index.html',
         content: Buffer.from(standaloneHtml, 'utf-8'),
@@ -324,11 +344,20 @@ export function gerarPacoteZip() {
   })
 
   // Se por algum motivo o index.html não estava na lista, adiciona explicitamente
-  if (standaloneHtml && !arquivosNoZip.some((a) => a.relativePath === pastaRaiz + 'index.html')) {
+  if (!arquivosNoZip.some((a) => a.relativePath === pastaRaiz + 'index.html')) {
     arquivosNoZip.push({
       relativePath: pastaRaiz + 'index.html',
       content: Buffer.from(standaloneHtml, 'utf-8'),
     })
+  }
+
+  // Validar se todos os arquivos obrigatórios estão presentes no pacote final
+  for (const arq of arquivosObrigatorios) {
+    const esperado = pastaRaiz + arq
+    if (!arquivosNoZip.some((a) => a.relativePath === esperado)) {
+      console.error(`ERRO: Arquivo obrigatório ausente no pacote final: ${arq}`)
+      process.exit(1)
+    }
   }
 
   const zipBuf = buildZipBuffer(arquivosNoZip)
@@ -346,6 +375,16 @@ export function gerarPacoteZip() {
     fs.writeFileSync(targetDist, zipBuf)
     console.log(`[ZIP BUILDER] Copiado também para dist: ${targetDist}`)
   }
+
+  // Imprimir lista detalhada de arquivos empacotados com tamanhos para conferência
+  console.log('\n[ZIP BUILDER] Resumo dos arquivos empacotados no ZIP:')
+  arquivosNoZip.sort((a, b) => a.relativePath.localeCompare(b.relativePath))
+  for (const a of arquivosNoZip) {
+    const bytes = a.content.length
+    const kb = (bytes / 1024).toFixed(1)
+    console.log(`  - ${a.relativePath} (${bytes} bytes / ${kb} KB)`)
+  }
+  console.log(`[ZIP BUILDER] Total de arquivos empacotados: ${arquivosNoZip.length}\n`)
 }
 
 // Executar se chamado diretamente

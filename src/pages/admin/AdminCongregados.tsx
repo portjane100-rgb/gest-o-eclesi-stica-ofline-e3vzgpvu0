@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { getItems, createItem, updateItem, deleteItem } from '@/lib/dataClient'
 import type { Congregado, SituacaoEclesiastica } from '@/types/adtc'
 import { UNIDADES } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
@@ -93,7 +93,7 @@ export const AdminCongregados: React.FC = () => {
 
   const loadData = async () => {
     try {
-      const recordsCongregados = await pb.collection('congregados').getFullList<Congregado>({
+      const recordsCongregados = await getItems<Congregado>('congregados', {
         sort: 'nome',
       })
       setCongregados(recordsCongregados)
@@ -164,10 +164,10 @@ export const AdminCongregados: React.FC = () => {
       if (dataNascimento) payload.data_nascimento = `${dataNascimento} 12:00:00.000Z`
 
       if (editingCongregado) {
-        await pb.collection('congregados').update(editingCongregado.id, payload)
+        await updateItem('congregados', editingCongregado.id, payload)
         toast({ title: 'Congregado atualizado com sucesso!' })
       } else {
-        await pb.collection('congregados').create(payload)
+        await createItem('congregados', payload)
         toast({ title: 'Congregado cadastrado com sucesso!' })
       }
 
@@ -196,7 +196,7 @@ export const AdminCongregados: React.FC = () => {
   // Mudança de Situação (Ativo <-> Inativo <-> Falecido)
   const handleChangeStatus = async (congregado: Congregado, novoStatus: SituacaoEclesiastica) => {
     try {
-      await pb.collection('congregados').update(congregado.id, { status: novoStatus })
+      await updateItem('congregados', congregado.id, { status: novoStatus })
       toast({
         title: `Situação de ${congregado.nome} alterada para ${novoStatus}.`,
         description:
@@ -217,7 +217,7 @@ export const AdminCongregados: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingId) return
     try {
-      await pb.collection('congregados').delete(deletingId)
+      await deleteItem('congregados', deletingId)
       toast({ title: 'Congregado removido com sucesso.' })
       setIsDeleteModalOpen(false)
       setDeletingId(null)
@@ -240,7 +240,7 @@ export const AdminCongregados: React.FC = () => {
     // Buscar membros para sugerir o próximo número de ficha oficial
     let proximaFicha = '1'
     try {
-      const membrosRes = await pb.collection('membros').getFullList({ sort: '-created' })
+      const membrosRes = await getItems<any>('membros', { sort: '-created' })
       let max = 0
       membrosRes.forEach((m: any) => {
         if (m.numero_ficha) {
@@ -316,10 +316,10 @@ export const AdminCongregados: React.FC = () => {
       if (batismoForm.data_batismo)
         payloadMembro.data_batismo = `${batismoForm.data_batismo} 12:00:00.000Z`
 
-      await pb.collection('membros').create(payloadMembro)
+      await createItem('membros', payloadMembro)
 
       // 2. APAGAR o registro de congregado conforme especificação exata
-      await pb.collection('congregados').delete(congregadoBatismo.id)
+      await deleteItem('congregados', congregadoBatismo.id)
 
       toast({
         title: 'Batismo registrado com sucesso!',

@@ -34,7 +34,7 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { Dizimista, Membro } from '@/types/adtc'
-import pb from '@/lib/pocketbase/client'
+import { getItems, createItem, updateItem, deleteItem, getFileUrl } from '@/lib/dataClient'
 import { useToast } from '@/hooks/use-toast'
 import useRealtime from '@/hooks/use-realtime'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
@@ -78,11 +78,34 @@ export function AdminDizimistas() {
 
   const carregarDizimistas = useCallback(async () => {
     try {
-      const records = await pb.collection('dizimistas').getFullList<Dizimista>({
-        sort: '-created',
-        expand: 'membro',
+      const [records, membrosList] = await Promise.all([
+        getItems<Dizimista>('dizimistas', {
+          sort: '-created',
+          expand: 'membro',
+        }),
+        getItems<Membro>('membros', { sort: 'nome' }).catch(() => [] as Membro[]),
+      ])
+
+      const membrosMap = new Map<string, Membro>()
+      for (const m of membrosList) {
+        membrosMap.set(m.id, m)
+      }
+
+      // Preencher d.expand.membro caso venha do localDb (onde expand não roda automaticamente)
+      const populated = records.map((d) => {
+        if (!d.expand?.membro && d.membro && membrosMap.has(d.membro)) {
+          return {
+            ...d,
+            expand: {
+              ...(d.expand || {}),
+              membro: membrosMap.get(d.membro),
+            },
+          }
+        }
+        return d
       })
-      setDizimistas(records)
+
+      setDizimistas(populated)
       setError(null)
     } catch (err: any) {
       setError(err?.message || 'Erro ao carregar dizimistas')
@@ -93,7 +116,7 @@ export function AdminDizimistas() {
 
   const carregarMembros = useCallback(async () => {
     try {
-      const records = await pb.collection('membros').getFullList<Membro>({
+      const records = await getItems<Membro>('membros', {
         sort: 'nome',
       })
       setMembrosCadastrados(records)
@@ -240,7 +263,7 @@ export function AdminDizimistas() {
         if (jaExiste) {
           // Se já existe e estava inativo, apenas reativa
           if (jaExiste.ativo === false) {
-            await pb.collection('dizimistas').update(jaExiste.id, {
+            await updateItem('dizimistas', jaExiste.id, {
               ativo: true,
               congregacao: congregacaoFinal,
               mes_referencia: mesReferencia.trim() || 'Permanente',
@@ -256,7 +279,7 @@ export function AdminDizimistas() {
         }
       }
 
-      await pb.collection('dizimistas').create({
+      await createItem('dizimistas', {
         nome: nomeFinal,
         membro: membroIdFinal || null,
         congregacao: congregacaoFinal,
@@ -286,7 +309,7 @@ export function AdminDizimistas() {
     const novoStatus = dizimista.ativo === false ? true : false
     const nome = dizimista.expand?.membro?.nome || dizimista.nome
     try {
-      await pb.collection('dizimistas').update(dizimista.id, {
+      await updateItem('dizimistas', dizimista.id, {
         ativo: novoStatus,
       })
       toast({
@@ -310,7 +333,7 @@ export function AdminDizimistas() {
     const nome = dizimistaParaRemover.expand?.membro?.nome || dizimistaParaRemover.nome
 
     try {
-      await pb.collection('dizimistas').delete(dizimistaParaRemover.id)
+      await deleteItem('dizimistas', dizimistaParaRemover.id)
       toast({
         title: 'Registro removido',
         description: `${nome} foi retirado da lista de dizimistas. O cadastro do membro permanece inalterado.`,
@@ -592,7 +615,7 @@ export function AdminDizimistas() {
                         const isAtivo = d.ativo !== false
 
                         const fotoUrl = membroRel?.foto
-                          ? pb.files.getURL(membroRel, membroRel.foto)
+                          ? getFileUrl(membroRel, membroRel.foto)
                           : null
 
                         return (
@@ -800,10 +823,7 @@ export function AdminDizimistas() {
                                     <div className="flex items-center gap-2">
                                       <Avatar className="w-6 h-6 border border-[#E6E2D8]">
                                         {m.foto ? (
-                                          <AvatarImage
-                                            src={pb.files.getURL(m, m.foto)}
-                                            alt={m.nome}
-                                          />
+                                          <AvatarImage src={getFileUrl(m, m.foto)} alt={m.nome} />
                                         ) : null}
                                         <AvatarFallback className="text-[9px] font-bold text-[#1E3A5F]">
                                           {m.nome.slice(0, 2).toUpperCase()}
@@ -849,7 +869,7 @@ export function AdminDizimistas() {
                           <Avatar className="w-10 h-10 border-2 border-emerald-300">
                             {membroSelecionado.foto ? (
                               <AvatarImage
-                                src={pb.files.getURL(membroSelecionado, membroSelecionado.foto)}
+                                src={getFileUrl(membroSelecionado, membroSelecionado.foto)}
                                 alt={membroSelecionado.nome}
                               />
                             ) : null}

@@ -402,15 +402,7 @@ export const FinanceiroCongregacoes: React.FC = () => {
         dirigente_percentual: novaPct,
       }
 
-      await localDb.update('congregacoes', congregacaoAtual.id, payload)
-
-      try {
-        await pb.collection('congregacoes').update(congregacaoAtual.id, {
-          dirigente_percentual: novaPct,
-        })
-      } catch {
-        // Modo offline
-      }
+      await updateItem('congregacoes', congregacaoAtual.id, payload)
 
       setPorcentagemDirigente(novaPct)
       setCampoValorDirigenteManual('')

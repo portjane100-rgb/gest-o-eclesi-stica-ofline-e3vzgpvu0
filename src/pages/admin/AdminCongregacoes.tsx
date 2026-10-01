@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { localDb } from '@/lib/localDb'
-import pb from '@/lib/pocketbase/client'
+import { getItems, createItem, updateItem, deleteItem } from '@/lib/dataClient'
 import { useToast } from '@/hooks/use-toast'
 import { useCongregacoes, type CongregacaoItem } from '@/hooks/useCongregacoes'
 import { Card, CardContent } from '@/components/ui/card'
@@ -136,57 +136,14 @@ export const AdminCongregacoes: React.FC = () => {
       }
 
       if (itemEdicao?.id) {
-        // Atualiza no banco local IndexedDB
-        await localDb.update('congregacoes', itemEdicao.id, payload)
-
-        // Sincroniza em segundo plano com PocketBase se estiver conectado
-        try {
-          await pb.collection('congregacoes').update(itemEdicao.id, {
-            nome: payload.nome,
-            endereco: payload.endereco,
-            bairro: payload.bairro,
-            cidade: payload.cidade,
-            dirigente_geral: payload.dirigente_geral,
-            dirigente_percentual: payload.dirigente_percentual,
-            dias_culto: payload.dias_culto,
-            ordem: payload.ordem,
-            ativo: payload.ativo,
-          })
-        } catch {
-          // Em modo offline PocketBase pode falhar, IndexedDB já salvou
-        }
+        await updateItem('congregacoes', itemEdicao.id, payload)
 
         toast({
           title: 'Congregação atualizada!',
           description: `"${payload.nome}" salva com sucesso no banco local.`,
         })
       } else {
-        const novoId = localDb.generateId()
-        const novoRegistro = {
-          id: novoId,
-          ...payload,
-        }
-
-        // Grava no IndexedDB
-        await localDb.create('congregacoes', novoRegistro)
-
-        // Tenta gravar no PocketBase se conectado
-        try {
-          await pb.collection('congregacoes').create({
-            id: novoId,
-            nome: payload.nome,
-            endereco: payload.endereco,
-            bairro: payload.bairro,
-            cidade: payload.cidade,
-            dirigente_geral: payload.dirigente_geral,
-            dirigente_percentual: payload.dirigente_percentual,
-            dias_culto: payload.dias_culto,
-            ordem: payload.ordem,
-            ativo: payload.ativo,
-          })
-        } catch {
-          // Modo offline garantido no IndexedDB
-        }
+        await createItem('congregacoes', payload)
 
         toast({
           title: 'Congregação cadastrada!',
@@ -212,13 +169,7 @@ export const AdminCongregacoes: React.FC = () => {
     if (!itemExclusao?.id) return
     setExcluindo(true)
     try {
-      await localDb.delete('congregacoes', itemExclusao.id)
-
-      try {
-        await pb.collection('congregacoes').delete(itemExclusao.id)
-      } catch {
-        // Modo offline
-      }
+      await deleteItem('congregacoes', itemExclusao.id)
 
       toast({
         title: 'Congregação excluída',

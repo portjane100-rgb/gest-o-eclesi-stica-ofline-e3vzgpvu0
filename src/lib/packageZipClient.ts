@@ -149,28 +149,27 @@ set "HTML_FILE=%~dp0index.html"
 
 REM 1. Tentar abrir no Google Chrome em modo aplicativo
 if exist "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe" (
-    start "" "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
-    exit /b 0
-)
-if exist "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe" (
-    start "" "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
-    exit /b 0
-)
-if exist "%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe" (
-    start "" "%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
-    exit /b 0
-)
+    start "" "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%"
+    if %errorlevel% equ 0 goto :fim
+  )
+  if exist "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe" (
+    start "" "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%"
+    if %errorlevel% equ 0 goto :fim
+  )
+  if exist "%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe" (
+    start "" "%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%"
+    if %errorlevel% equ 0 goto :fim
+  )
 
-REM 2. Tentar abrir no Microsoft Edge em modo aplicativo
-if exist "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe" (
-    start "" "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
-    exit /b 0
-)
-if exist "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe" (
-    start "" "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe" --app="file:///%HTML_FILE%" --allow-file-access-from-files --disable-web-security
-    exit /b 0
-)
-
+  REM 2. Tentar Microsoft Edge
+  if exist "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe" (
+    start "" "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe" --app="file:///%HTML_FILE%"
+    if %errorlevel% equ 0 goto :fim
+  )
+  if exist "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe" (
+    start "" "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe" --app="file:///%HTML_FILE%"
+    if %errorlevel% equ 0 goto :fim
+  )
 REM 3. Fallback: abre no navegador padrão do Windows
 start "" "%HTML_FILE%"
 exit /b 0
@@ -189,22 +188,21 @@ echo ""
 
 # 1. Tentar Chrome no Mac
 if [ -d "/Applications/Google Chrome.app" ]; then
-  open -a "Google Chrome" --args --app="file://$HTML_FILE" --allow-file-access-from-files --disable-web-security
+  open -a "Google Chrome" --args --app="file://$HTML_FILE"
   exit 0
 fi
 
 # 2. Tentar Edge no Mac
 if [ -d "/Applications/Microsoft Edge.app" ]; then
-  open -a "Microsoft Edge" --args --app="file://$HTML_FILE" --allow-file-access-from-files --disable-web-security
+  open -a "Microsoft Edge" --args --app="file://$HTML_FILE"
   exit 0
 fi
 
 # 3. Tentar Brave Browser
 if [ -d "/Applications/Brave Browser.app" ]; then
-  open -a "Brave Browser" --args --app="file://$HTML_FILE" --allow-file-access-from-files --disable-web-security
+  open -a "Brave Browser" --args --app="file://$HTML_FILE"
   exit 0
 fi
-
 # 4. Fallback para o navegador padrão
 open "$HTML_FILE"
 exit 0

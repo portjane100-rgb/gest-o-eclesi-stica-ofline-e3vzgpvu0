@@ -7,15 +7,15 @@ set "SCRIPT_DIR=%~dp0"
 set "HTML_FILE=%SCRIPT_DIR%index.html"
 
 REM 1. Tentar abrir no Microsoft Edge em modo aplicativo
-start "" msedge --app="file:///%HTML_FILE:\=/%" --allow-file-access-from-files --disable-web-security 2>nul
+start "" msedge --app="file:///%HTML_FILE:\=/%" 2>nul
 if %errorlevel% equ 0 goto :fim
 
 REM 2. Tentar abrir no Google Chrome em modo aplicativo
-start "" chrome --app="file:///%HTML_FILE:\=/%" --allow-file-access-from-files --disable-web-security 2>nul
+start "" chrome --app="file:///%HTML_FILE:\=/%" 2>nul
 if %errorlevel% equ 0 goto :fim
 
 REM 3. Tentar abrir no Brave se disponivel
-start "" brave --app="file:///%HTML_FILE:\=/%" --allow-file-access-from-files --disable-web-security 2>nul
+start "" brave --app="file:///%HTML_FILE:\=/%" 2>nul
 if %errorlevel% equ 0 goto :fim
 
 REM 4. Fallback: navegador padrao do Windows
