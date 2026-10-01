@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getItems, createItem, updateItem, deleteItem } from '@/lib/dataClient'
+import { getItems, createItem, updateItem, deleteItem, getChurchSettings } from '@/lib/dataClient'
 import type { CalendarioEvento } from '@/types/adtc'
 import useRealtime from '@/hooks/use-realtime'
 import { Card } from '@/components/ui/card'
@@ -164,6 +164,7 @@ export const AdminCalendario: React.FC = () => {
   const handleGerarPdf = async () => {
     setIsGeneratingPdf(true)
     try {
+      const freshSettings = await getChurchSettings()
       const eventosFiltrados =
         filtroDepartamento === 'Todos'
           ? eventos
@@ -172,13 +173,13 @@ export const AdminCalendario: React.FC = () => {
       const ok = await imprimirOuBaixarPdfCalendario(
         eventosFiltrados,
         {
-          nomeIgreja: config.nomeIgreja,
-          denominacao: config.denominacao,
-          subtituloIgreja: config.subtituloIgreja,
-          enderecoIgreja: config.enderecoIgreja,
-          cidadeUf: config.cidadeUf,
-          siglaIgreja: config.siglaIgreja,
-          logoUrl: config.logoUrl,
+          nomeIgreja: freshSettings.nomeIgreja || config.nomeIgreja,
+          denominacao: freshSettings.denominacao || config.denominacao,
+          subtituloIgreja: freshSettings.subtituloIgreja || config.subtituloIgreja,
+          enderecoIgreja: freshSettings.enderecoIgreja || config.enderecoIgreja,
+          cidadeUf: freshSettings.cidadeUf || config.cidadeUf,
+          siglaIgreja: freshSettings.siglaIgreja || config.siglaIgreja,
+          logoUrl: freshSettings.logoUrl || config.logoUrl,
         },
         {
           departamentoFiltro: filtroDepartamento,

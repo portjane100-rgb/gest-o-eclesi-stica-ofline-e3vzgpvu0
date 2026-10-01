@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import pb from '@/lib/pocketbase/client'
 import type { Configuracao } from '@/types/adtc'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'

@@ -12,6 +12,7 @@
 import pb from '@/lib/pocketbase/client'
 import { isOfflineOnly } from '@/lib/offlineMode'
 import { localDb } from '@/lib/localDb'
+import { CHURCH_CONFIG_DEFAULTS, type ChurchConfig } from '@/contexts/ChurchConfigContext'
 
 /** Converte um File/Blob em Base64 dataURL via FileReader (funciona em file://). */
 export function fileToDataUrl(file: File | Blob): Promise<string> {
@@ -211,6 +212,87 @@ export async function deleteItem(collection: string, id: string): Promise<boolea
  * Interpreta um filter PocketBase simples de igualdade (ex: "status='Ativo' && cargo='Pastor'").
  * Retorna uma função predicate para filtrar em memória no modo offline.
  */
+/**
+ * Retorna as configurações consolidadas da igreja (fonte única de configurações e assinaturas).
+ * Lê as chaves gravadas em 'configuracoes' (localDb ou PocketBase) e compõe os dados oficiais.
+ */
+export async function getChurchSettings(): Promise<ChurchConfig> {
+  try {
+    const records = await getItems<{ chave: string; valor?: string; arquivo?: string }>(
+      'configuracoes',
+    )
+    const map: Record<string, { valor?: string; arquivo?: string }> = {}
+    for (const r of records) {
+      if (r && r.chave) {
+        map[r.chave] = { valor: r.valor, arquivo: r.arquivo }
+      }
+    }
+
+    return {
+      nomeIgreja:
+        map['igreja_nome']?.valor?.trim() ||
+        map['home_hero_title']?.valor?.trim() ||
+        CHURCH_CONFIG_DEFAULTS.nomeIgreja,
+      subtituloIgreja:
+        map['igreja_subtitulo']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.subtituloIgreja,
+      denominacao: map['igreja_denominacao']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.denominacao,
+      siglaIgreja: map['igreja_sigla']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.siglaIgreja,
+      enderecoSede:
+        map['igreja_endereco']?.valor?.trim() ||
+        map['home_hero_endereco']?.valor?.trim() ||
+        CHURCH_CONFIG_DEFAULTS.enderecoSede,
+      enderecoIgreja:
+        map['igreja_endereco']?.valor?.trim() ||
+        map['home_hero_endereco']?.valor?.trim() ||
+        CHURCH_CONFIG_DEFAULTS.enderecoIgreja,
+      cidadeEstado:
+        map['igreja_cidade_estado']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.cidadeEstado,
+      cidadeUf: map['igreja_cidade_estado']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.cidadeUf,
+      telefoneContato:
+        map['igreja_telefone']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.telefoneContato,
+      emailContato: map['igreja_email']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.emailContato,
+      instagramUrl: map['igreja_instagram']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.instagramUrl,
+      nomePastor: map['lideranca_nome_pastor']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.nomePastor,
+      logoUrl:
+        map['igreja_logo']?.arquivo || map['igreja_logo']?.valor || CHURCH_CONFIG_DEFAULTS.logoUrl,
+      corPrimaria: map['tema_cor_primaria']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.corPrimaria,
+      corDestaque: map['tema_cor_destaque']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.corDestaque,
+      homeHeroBadge: map['home_hero_badge']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.homeHeroBadge,
+      homeHeroTitle:
+        map['home_hero_title']?.valor?.trim() ||
+        map['igreja_nome']?.valor?.trim() ||
+        CHURCH_CONFIG_DEFAULTS.homeHeroTitle,
+      homeHeroSubtitle: map['home_hero_subtitle']?.valor?.trim() || '',
+      homeHeroEndereco:
+        map['home_hero_endereco']?.valor?.trim() || map['igreja_endereco']?.valor?.trim() || '',
+      textoRodape: map['igreja_rodape']?.valor?.trim() || '',
+      mensagemAniversario:
+        map['mensagem_aniversario']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.mensagemAniversario,
+      labelMembros: map['rotulo_membros']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelMembros,
+      labelCongregados:
+        map['rotulo_congregados']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelCongregados,
+      labelObreiros: map['rotulo_obreiros']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelObreiros,
+      labelDizimistas:
+        map['rotulo_dizimistas']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelDizimistas,
+      labelUnidades: map['rotulo_unidades']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelUnidades,
+      labelEscala: map['rotulo_escala']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelEscala,
+      labelCalendario:
+        map['rotulo_calendario']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.labelCalendario,
+      modeloCartaRecomendacao:
+        map['modelo_carta_recomendacao']?.valor?.trim() ||
+        CHURCH_CONFIG_DEFAULTS.modeloCartaRecomendacao,
+      modeloCartaMudanca:
+        map['modelo_carta_mudanca']?.valor?.trim() || CHURCH_CONFIG_DEFAULTS.modeloCartaMudanca,
+      modeloCertificadoApresentacao:
+        map['modelo_certificado_apresentacao']?.valor?.trim() ||
+        CHURCH_CONFIG_DEFAULTS.modeloCertificadoApresentacao,
+    }
+  } catch (err) {
+    console.warn('dataClient.getChurchSettings: erro ao ler configuracoes, usando defaults:', err)
+    return CHURCH_CONFIG_DEFAULTS
+  }
+}
+
 function parseFilter(filter: string): ((item: any) => boolean) | null {
   try {
     const cleaned = filter.trim()

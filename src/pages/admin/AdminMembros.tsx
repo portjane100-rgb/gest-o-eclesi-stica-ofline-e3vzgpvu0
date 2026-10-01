@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { getItems, createItem, updateItem, deleteItem, getFileUrl } from '@/lib/dataClient'
+import {
+  getItems,
+  createItem,
+  updateItem,
+  deleteItem,
+  getFileUrl,
+  getChurchSettings,
+} from '@/lib/dataClient'
 import type { Membro, SituacaoEclesiastica, Congregado } from '@/types/adtc'
 import { UNIDADES } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
@@ -490,17 +497,18 @@ export const AdminMembros: React.FC = () => {
   const handleBaixarFichaEmBranco = async () => {
     try {
       setGerandoFichaPdf(true)
-      const logoDataUri = await getLogoAsDataUri(config.logoUrl || '')
+      const freshSettings = await getChurchSettings()
+      const logoDataUri = await getLogoAsDataUri(freshSettings.logoUrl || config.logoUrl || '')
       const htmlCompleto = buildFichaMembroBrancoHtml({
         logoDataUri,
         unidades: [...(unidadesLista || [])],
         churchIdentity: {
-          nomeIgreja: config.nomeIgreja,
-          siglaIgreja: config.siglaIgreja,
-          denominacao: config.denominacao,
-          enderecoIgreja: config.enderecoIgreja,
-          cidadeUf: config.cidadeUf,
-          nomePastor: config.nomePastor,
+          nomeIgreja: freshSettings.nomeIgreja || config.nomeIgreja,
+          siglaIgreja: freshSettings.siglaIgreja || config.siglaIgreja,
+          denominacao: freshSettings.denominacao || config.denominacao,
+          enderecoIgreja: freshSettings.enderecoIgreja || config.enderecoIgreja,
+          cidadeUf: freshSettings.cidadeUf || config.cidadeUf,
+          nomePastor: freshSettings.nomePastor || config.nomePastor,
         },
       })
 

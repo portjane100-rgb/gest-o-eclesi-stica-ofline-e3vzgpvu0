@@ -27,7 +27,7 @@ import {
   Image as ImageIcon,
   X,
 } from 'lucide-react'
-import pb from '@/lib/pocketbase/client'
+import { getFileUrl } from '@/lib/dataClient'
 import { compressImage } from '@/lib/imageCompressor'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 import {
@@ -564,7 +564,7 @@ export const FormEscalaSemana: React.FC<FormEscalaSemanaProps> = ({
                         className="relative group rounded-xl overflow-hidden border border-[#E6E2D8] aspect-square bg-slate-50"
                       >
                         <img
-                          src={pb.files.getURL(editingItem, fotoNome)}
+                          src={getFileUrl(editingItem, fotoNome)}
                           alt="Foto do culto"
                           className="w-full h-full object-cover"
                         />

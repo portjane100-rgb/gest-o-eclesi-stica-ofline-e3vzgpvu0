@@ -1,7 +1,7 @@
 import React from 'react'
 import type { Membro } from '@/types/adtc'
 import { formatarDataBr } from '@/lib/utils'
-import pb from '@/lib/pocketbase/client'
+import { getFileUrl } from '@/lib/dataClient'
 import { ADTC_LOGO_URL } from '@/components/AdtcLogo'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
 
@@ -44,7 +44,7 @@ export const CartaoMembroVisual: React.FC<CartaoMembroVisualProps> = ({
     ? formatarDataBr(membro.data_nascimento)
     : membro.data_nascimento_texto || '—'
 
-  const fotoUrl = membro.foto ? pb.files.getURL(membro, membro.foto) : null
+  const fotoUrl = membro.foto ? getFileUrl(membro, membro.foto) : null
 
   return (
     <div className="cartao-membro-container flex flex-col md:flex-row gap-6 justify-center items-center p-4">

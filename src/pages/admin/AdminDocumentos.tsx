@@ -6,6 +6,7 @@ import {
   deleteItem,
   fileToDataUrl,
   getFileUrl,
+  getChurchSettings,
 } from '@/lib/dataClient'
 import { isOfflineOnly } from '@/lib/offlineMode'
 import { localDb } from '@/lib/localDb'
@@ -142,7 +143,7 @@ function extrairPaiMae(filiacao?: string): { pai: string; mae: string } {
 
 export const AdminDocumentos: React.FC = () => {
   const { toast } = useToast()
-  const { config } = useChurchConfig()
+  const { config, updateConfigKeys } = useChurchConfig()
   const { congregacoes } = useCongregacoes()
   const [activeTab, setActiveTab] = useState<'gerador' | 'arquivo'>('gerador')
 
@@ -486,36 +487,19 @@ export const AdminDocumentos: React.FC = () => {
 
   const saveConfigChave = async (chave: string, valor: string) => {
     try {
-      if (isOfflineOnly()) {
-        const records = await localDb.getFullList<Configuracao>('configuracoes')
-        const existing = records.find((c) => c.chave === chave)
-        if (existing) {
-          await localDb.update('configuracoes', existing.id, { valor })
-        } else {
-          await localDb.create('configuracoes', { id: localDb.generateId(), chave, valor })
-        }
+      if (updateConfigKeys) {
+        await updateConfigKeys({ [chave]: valor })
         return
       }
-      const existing = await (
-        await import('@/lib/pocketbase/client')
-      ).default
-        .collection('configuracoes')
-        .getFirstListItem<Configuracao>(`chave='${chave}'`)
-      await (
-        await import('@/lib/pocketbase/client')
-      ).default
-        .collection('configuracoes')
-        .update(existing.id, { valor })
-    } catch {
-      if (isOfflineOnly()) {
-        await localDb.create('configuracoes', { id: localDb.generateId(), chave, valor })
+      const records = await localDb.getFullList<Configuracao>('configuracoes')
+      const existing = records.find((c) => c.chave === chave)
+      if (existing) {
+        await localDb.update('configuracoes', existing.id, { valor })
       } else {
-        await (
-          await import('@/lib/pocketbase/client')
-        ).default
-          .collection('configuracoes')
-          .create({ chave, valor })
+        await localDb.create('configuracoes', { id: localDb.generateId(), chave, valor })
       }
+    } catch (err) {
+      console.warn('Erro ao salvar configuração:', err)
     }
   }
 
@@ -523,14 +507,25 @@ export const AdminDocumentos: React.FC = () => {
     e.preventDefault()
     setIsSalvandoLiderancaRapida(true)
     try {
-      await Promise.all([
-        saveConfigChave('lideranca_nome_pastor', nomePastor.trim()),
-        saveConfigChave('lideranca_cargo_pastor', cargoPastor.trim()),
-        saveConfigChave('lideranca_nome_1_secretario', nome1Secretario.trim()),
-        saveConfigChave('lideranca_cargo_1_secretario', cargo1Secretario.trim()),
-        saveConfigChave('lideranca_nome_2_secretario', nome2Secretario.trim()),
-        saveConfigChave('lideranca_cargo_2_secretario', cargo2Secretario.trim()),
-      ])
+      if (updateConfigKeys) {
+        await updateConfigKeys({
+          lideranca_nome_pastor: nomePastor.trim(),
+          lideranca_cargo_pastor: cargoPastor.trim(),
+          lideranca_nome_1_secretario: nome1Secretario.trim(),
+          lideranca_cargo_1_secretario: cargo1Secretario.trim(),
+          lideranca_nome_2_secretario: nome2Secretario.trim(),
+          lideranca_cargo_2_secretario: cargo2Secretario.trim(),
+        })
+      } else {
+        await Promise.all([
+          saveConfigChave('lideranca_nome_pastor', nomePastor.trim()),
+          saveConfigChave('lideranca_cargo_pastor', cargoPastor.trim()),
+          saveConfigChave('lideranca_nome_1_secretario', nome1Secretario.trim()),
+          saveConfigChave('lideranca_cargo_1_secretario', cargo1Secretario.trim()),
+          saveConfigChave('lideranca_nome_2_secretario', nome2Secretario.trim()),
+          saveConfigChave('lideranca_cargo_2_secretario', cargo2Secretario.trim()),
+        ])
+      }
 
       // Sincroniza estados correntes
       setCarteiraPastor(nomePastor.trim())
@@ -671,26 +666,34 @@ export const AdminDocumentos: React.FC = () => {
   // Impressão / Exportação PDF usando modelos dedicados A4 com logo do comprador (Data URI)
   const handlePrintOrDownload = async () => {
     try {
-      const currentLogoUrl = config.logoUrl || ADTC_LOGO_URL
+      // Sempre recarrega as configurações mais atuais para garantir fonte única e atualizada
+      const freshSettings = await getChurchSettings()
+      const currentLogoUrl = freshSettings.logoUrl || config.logoUrl || ADTC_LOGO_URL
       const logoDataUri = await getLogoAsDataUri(currentLogoUrl)
 
       let htmlCompleto = ''
 
       const churchIdentity = {
-        nomeIgreja: config.nomeIgreja,
-        subtituloIgreja: config.subtituloIgreja,
-        denominacao: config.denominacao,
-        enderecoIgreja: config.enderecoIgreja,
-        cidadeUf: config.cidadeUf,
-        siglaIgreja: config.siglaIgreja,
+        nomeIgreja: freshSettings.nomeIgreja || config.nomeIgreja,
+        subtituloIgreja: freshSettings.subtituloIgreja || config.subtituloIgreja,
+        denominacao: freshSettings.denominacao || config.denominacao,
+        enderecoIgreja: freshSettings.enderecoIgreja || config.enderecoIgreja,
+        cidadeUf: freshSettings.cidadeUf || config.cidadeUf,
+        siglaIgreja: freshSettings.siglaIgreja || config.siglaIgreja,
       }
+
+      const pastorAtual = (
+        freshSettings.nomePastor ||
+        config.nomePastor ||
+        'Pastor Presidente'
+      ).trim()
 
       if (selectedDocType === 'recomendacao') {
         const corpoHtml = renderTextoCartaRecomendacaoString()
         htmlCompleto = buildCartaRecomendacaoHtml({
           corpoHtml,
           dataExpedicaoExtenso: formatarDataExtensoBr(recDataExpedicao),
-          nomePastor: (recPastorAssinatura || nomePastor || 'Pastor Presidente').trim(),
+          nomePastor: (recPastorAssinatura || nomePastor || pastorAtual).trim(),
           cargoPastor: (recCargoPastor || cargoPastor || 'Pastor').trim(),
           nome1Sec: (rec1SecAssinatura || nome1Secretario || '1º Secretário').trim(),
           cargo1Sec: (recCargo1Sec || cargo1Secretario || '1ºSecretário').trim(),
@@ -705,7 +708,7 @@ export const AdminDocumentos: React.FC = () => {
         htmlCompleto = buildCartaMudancaHtml({
           corpoHtml,
           dataExpedicaoExtenso: formatarDataExtensoBr(mudDataExpedicao),
-          nomePastor: (mudPastorAssinatura || nomePastor || 'Pastor Presidente').trim(),
+          nomePastor: (mudPastorAssinatura || nomePastor || pastorAtual).trim(),
           cargoPastor: (mudCargoPastor || cargoPastor || 'Pastor').trim(),
           nome1Sec: (mud1SecAssinatura || nome1Secretario || '1º Secretário').trim(),
           cargo1Sec: (mudCargo1Sec || cargo1Secretario || '1ºSecretário').trim(),
@@ -745,7 +748,7 @@ export const AdminDocumentos: React.FC = () => {
           cpf: selectedCarteiraMembro.cpf || '—',
           fotoDataUri,
           logoDataUri,
-          pastorPresidente: (carteiraPastor || nomePastor || 'Pastor Presidente').trim(),
+          pastorPresidente: (carteiraPastor || nomePastor || pastorAtual).trim(),
           churchIdentity,
         })
       } else if (selectedDocType === 'apresentacao') {
@@ -759,7 +762,7 @@ export const AdminDocumentos: React.FC = () => {
           dataApresentacaoExtenso: aprDataApresentacao
             ? formatarDataBr(aprDataApresentacao)
             : formatarDataBr(new Date().toISOString().slice(0, 10)),
-          pastorOficiante: (aprPastorOficiante || nomePastor || 'Pastor Oficiante').trim(),
+          pastorOficiante: (aprPastorOficiante || nomePastor || pastorAtual).trim(),
           logoDataUri,
           watermarkDataUri: ADTC_TOCHA_WATERMARK_DATA_URI,
           churchIdentity,

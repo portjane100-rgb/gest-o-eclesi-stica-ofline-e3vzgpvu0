@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { getItems, createItem, updateItem, deleteItem, fileToDataUrl } from '@/lib/dataClient'
+import {
+  getItems,
+  createItem,
+  updateItem,
+  deleteItem,
+  fileToDataUrl,
+  getChurchSettings,
+} from '@/lib/dataClient'
 import { isOfflineOnly } from '@/lib/offlineMode'
 import type { EscalaSemanaItem, EscalaSemanaDia } from '@/types/adtc'
 import useRealtime from '@/hooks/use-realtime'
@@ -315,15 +322,16 @@ export const AdminEscala: React.FC = () => {
                     <Button
                       size="sm"
                       onClick={async () => {
+                        const freshSettings = await getChurchSettings()
                         await imprimirOuBaixarPdfEscalaSemana(semanaItem, {
-                          nomeIgreja: config.nomeIgreja,
-                          subtituloIgreja: config.subtituloIgreja,
-                          denominacao: config.denominacao,
-                          enderecoIgreja: config.enderecoIgreja,
-                          cidadeUf: config.cidadeUf,
-                          nomePastor: config.nomePastor,
-                          siglaIgreja: config.siglaIgreja,
-                          logoUrl: config.logoUrl,
+                          nomeIgreja: freshSettings.nomeIgreja || config.nomeIgreja,
+                          subtituloIgreja: freshSettings.subtituloIgreja || config.subtituloIgreja,
+                          denominacao: freshSettings.denominacao || config.denominacao,
+                          enderecoIgreja: freshSettings.enderecoIgreja || config.enderecoIgreja,
+                          cidadeUf: freshSettings.cidadeUf || config.cidadeUf,
+                          nomePastor: freshSettings.nomePastor || config.nomePastor,
+                          siglaIgreja: freshSettings.siglaIgreja || config.siglaIgreja,
+                          logoUrl: freshSettings.logoUrl || config.logoUrl,
                         })
                       }}
                       className="bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs h-9 justify-center"

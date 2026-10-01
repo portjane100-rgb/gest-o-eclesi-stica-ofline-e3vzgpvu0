@@ -19,7 +19,7 @@ import {
   Camera,
   X,
 } from 'lucide-react'
-import pb from '@/lib/pocketbase/client'
+import { getFileUrl } from '@/lib/dataClient'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import {
   imprimirOuBaixarPdfEscalaSemana,
@@ -269,7 +269,7 @@ export const VisualizadorEscalaSemana: React.FC<VisualizadorEscalaSemanaProps> =
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {semana.fotos.map((foto, idx) => {
-                  const url = pb.files.getURL(semana, foto)
+                  const url = getFileUrl(semana, foto)
                   return (
                     <button
                       key={idx}

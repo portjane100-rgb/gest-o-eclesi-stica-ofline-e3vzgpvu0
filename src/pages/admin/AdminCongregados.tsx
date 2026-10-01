@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { getItems, createItem, updateItem, deleteItem } from '@/lib/dataClient'
+import { getItems, createItem, updateItem, deleteItem, getChurchSettings } from '@/lib/dataClient'
 import type { Congregado, SituacaoEclesiastica } from '@/types/adtc'
 import { UNIDADES } from '@/types/adtc'
 import { useCongregacoes } from '@/hooks/useCongregacoes'
@@ -395,16 +395,20 @@ export const AdminCongregados: React.FC = () => {
   const handleImprimirFichaBranco = async () => {
     setGerandoFichaBranco(true)
     try {
-      const logoDataUri = await getLogoAsDataUri(config.logoUrl || ADTC_LOGO_URL)
+      const freshSettings = await getChurchSettings()
+      const logoDataUri = await getLogoAsDataUri(
+        freshSettings.logoUrl || config.logoUrl || ADTC_LOGO_URL,
+      )
       const htmlFicha = buildFichaCongregadoBrancoHtml({
         logoDataUri,
         churchIdentity: {
-          nomeIgreja: config.nomeIgreja,
-          denominacao: config.denominacao,
-          subtituloIgreja: config.subtituloIgreja,
-          enderecoIgreja: config.enderecoIgreja || config.enderecoSede,
-          cidadeUf: config.cidadeUf || config.cidadeEstado,
-          siglaIgreja: config.siglaIgreja,
+          nomeIgreja: freshSettings.nomeIgreja || config.nomeIgreja,
+          denominacao: freshSettings.denominacao || config.denominacao,
+          subtituloIgreja: freshSettings.subtituloIgreja || config.subtituloIgreja,
+          enderecoIgreja:
+            freshSettings.enderecoIgreja || config.enderecoIgreja || config.enderecoSede,
+          cidadeUf: freshSettings.cidadeUf || config.cidadeUf || config.cidadeEstado,
+          siglaIgreja: freshSettings.siglaIgreja || config.siglaIgreja,
         },
         unidades: unidadesLista.length > 0 ? unidadesLista : ['Sede'],
       })
