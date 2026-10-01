@@ -53,6 +53,7 @@ export const AdminCongregacoes: React.FC = () => {
   const [cidade, setCidade] = useState('')
   const [dirigente, setDirigente] = useState('')
   const [diasCulto, setDiasCulto] = useState('')
+  const [dirigentePercentual, setDirigentePercentual] = useState<number>(20)
   const [ordem, setOrdem] = useState<number>(1)
   const [ativo, setAtivo] = useState(true)
 
@@ -73,6 +74,7 @@ export const AdminCongregacoes: React.FC = () => {
     setCidade('')
     setDirigente('')
     setDiasCulto('')
+    setDirigentePercentual(20)
     setOrdem(proximaOrdem)
     setAtivo(true)
     setModalAberto(true)
@@ -86,6 +88,13 @@ export const AdminCongregacoes: React.FC = () => {
     setCidade(item.cidade || '')
     setDirigente(item.dirigenteGeral || item.dirigente_geral || '')
     setDiasCulto(item.diasCulto || item.dias_culto || '')
+    const pct =
+      typeof item.dirigentePercentual === 'number'
+        ? item.dirigentePercentual
+        : typeof item.dirigente_percentual === 'number'
+          ? item.dirigente_percentual
+          : 20
+    setDirigentePercentual(pct)
     setOrdem(typeof item.ordem === 'number' ? item.ordem : 1)
     setAtivo(item.ativo !== false)
     setModalAberto(true)
@@ -116,6 +125,10 @@ export const AdminCongregacoes: React.FC = () => {
         cidade: cidade.trim(),
         dirigente_geral: dirigente.trim(),
         dirigenteGeral: dirigente.trim(),
+        dirigente_percentual:
+          nome.trim().toLowerCase() === 'sede' ? undefined : Number(dirigentePercentual) || 20,
+        dirigentePercentual:
+          nome.trim().toLowerCase() === 'sede' ? undefined : Number(dirigentePercentual) || 20,
         dias_culto: diasCulto.trim(),
         diasCulto: diasCulto.trim(),
         ordem: Number(ordem) || 1,
@@ -134,6 +147,7 @@ export const AdminCongregacoes: React.FC = () => {
             bairro: payload.bairro,
             cidade: payload.cidade,
             dirigente_geral: payload.dirigente_geral,
+            dirigente_percentual: payload.dirigente_percentual,
             dias_culto: payload.dias_culto,
             ordem: payload.ordem,
             ativo: payload.ativo,
@@ -165,6 +179,7 @@ export const AdminCongregacoes: React.FC = () => {
             bairro: payload.bairro,
             cidade: payload.cidade,
             dirigente_geral: payload.dirigente_geral,
+            dirigente_percentual: payload.dirigente_percentual,
             dias_culto: payload.dias_culto,
             ordem: payload.ordem,
             ativo: payload.ativo,
@@ -434,6 +449,17 @@ export const AdminCongregacoes: React.FC = () => {
                           </div>
                         ) : null}
 
+                        {item.nome.trim().toLowerCase() !== 'sede' && (
+                          <div className="flex items-center gap-2 text-purple-900 bg-purple-50/70 px-2 py-1 rounded-lg border border-purple-200">
+                            <span className="text-[10px] font-bold uppercase">
+                              Porcentagem Dirigente:
+                            </span>
+                            <span className="font-mono font-bold text-xs">
+                              {item.dirigentePercentual ?? item.dirigente_percentual ?? 20}%
+                            </span>
+                          </div>
+                        )}
+
                         {cultos ? (
                           <div className="flex items-start gap-2">
                             <Clock className="w-3.5 h-3.5 text-[#C9A227] flex-shrink-0 mt-0.5" />
@@ -538,16 +564,39 @@ export const AdminCongregacoes: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-[#1E3A5F]">
-                Dirigente / Liderança Responsável
-              </label>
-              <Input
-                value={dirigente}
-                onChange={(e) => setDirigente(e.target.value)}
-                placeholder="Ex: Pr. João Silva ou Pb. Marcos"
-                className="bg-white border-[#E6E2D8] text-xs sm:text-sm"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-xs font-bold text-[#1E3A5F]">
+                  Dirigente / Liderança Responsável
+                </label>
+                <Input
+                  value={dirigente}
+                  onChange={(e) => setDirigente(e.target.value)}
+                  placeholder="Ex: Pr. João Silva ou Pb. Marcos"
+                  className="bg-white border-[#E6E2D8] text-xs sm:text-sm"
+                />
+              </div>
+
+              {nome.trim().toLowerCase() !== 'sede' && (
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-purple-900">% Dirigente (Filial)</label>
+                  <div className="flex items-center gap-1">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={dirigentePercentual}
+                      onChange={(e) =>
+                        setDirigentePercentual(
+                          Math.max(0, Math.min(100, parseInt(e.target.value, 10) || 0)),
+                        )
+                      }
+                      className="bg-white border-purple-300 font-bold text-center text-xs sm:text-sm text-purple-900"
+                    />
+                    <span className="text-xs font-bold text-purple-900">%</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">

@@ -9,6 +9,8 @@ export interface CongregacaoItem {
   endereco?: string
   dirigenteGeral?: string
   dirigente_geral?: string
+  dirigentePercentual?: number
+  dirigente_percentual?: number
   diasCulto?: string
   dias_culto?: string
   ordem?: number
@@ -49,6 +51,18 @@ export async function fetchCongregacoesFromDb(): Promise<CongregacaoItem[]> {
         cidade: r.cidade || '',
         endereco: r.endereco || '',
         dirigenteGeral: r.dirigente_geral || r.dirigenteGeral || '',
+        dirigentePercentual:
+          typeof r.dirigentePercentual === 'number'
+            ? r.dirigentePercentual
+            : typeof r.dirigente_percentual === 'number'
+              ? r.dirigente_percentual
+              : undefined,
+        dirigente_percentual:
+          typeof r.dirigente_percentual === 'number'
+            ? r.dirigente_percentual
+            : typeof r.dirigentePercentual === 'number'
+              ? r.dirigentePercentual
+              : undefined,
         diasCulto: r.dias_culto || r.diasCulto || '',
         ordem: typeof r.ordem === 'number' ? r.ordem : 999,
         ativo: r.ativo !== false,

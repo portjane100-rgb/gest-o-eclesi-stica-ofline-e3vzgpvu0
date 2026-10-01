@@ -32,10 +32,17 @@ import {
 } from 'lucide-react'
 import { formatarMoeda } from '@/lib/planilhaMensalPdf'
 import { formatarDataBr } from '@/lib/utils'
+import pb from '@/lib/pocketbase/client'
+import { Percent, Check, Landmark } from 'lucide-react'
 
 export const FinanceiroCongregacoes: React.FC = () => {
   const { toast } = useToast()
-  const { congregacoes, nomes: nomesCongregacoesRaw, loading: loadingCongs } = useCongregacoes()
+  const {
+    congregacoes,
+    nomes: nomesCongregacoesRaw,
+    loading: loadingCongs,
+    reload: reloadCongs,
+  } = useCongregacoes()
 
   // Lista dinâmica de unidades, com fallback 'Sede' se ainda não constar
   const unidades = useMemo(() => {
@@ -48,6 +55,36 @@ export const FinanceiroCongregacoes: React.FC = () => {
 
   // Unidade atualmente selecionada
   const [unidadeSelecionada, setUnidadeSelecionada] = useState<string>('Sede')
+
+  // Congregação selecionada e percentual do dirigente
+  const congregacaoAtual = useMemo(() => {
+    return congregacoes.find(
+      (c) => c.nome.trim().toLowerCase() === unidadeSelecionada.trim().toLowerCase(),
+    )
+  }, [congregacoes, unidadeSelecionada])
+
+  const isSede = useMemo(() => {
+    return unidadeSelecionada.trim().toLowerCase() === 'sede'
+  }, [unidadeSelecionada])
+
+  // Estado do percentual do dirigente da filial selecionada (default: salvo na congregação ou 20)
+  const [porcentagemDirigente, setPorcentagemDirigente] = useState<number>(20)
+  const [campoValorDirigenteManual, setCampoValorDirigenteManual] = useState<string>('')
+  const [salvandoPercentual, setSalvandoPercentual] = useState<boolean>(false)
+
+  // Ao trocar de congregação, atualiza o percentual do dirigente a partir do cadastro salvo
+  useEffect(() => {
+    if (!isSede && congregacaoAtual) {
+      const pctSalvo =
+        typeof congregacaoAtual.dirigentePercentual === 'number'
+          ? congregacaoAtual.dirigentePercentual
+          : typeof congregacaoAtual.dirigente_percentual === 'number'
+            ? congregacaoAtual.dirigente_percentual
+            : 20
+      setPorcentagemDirigente(pctSalvo)
+      setCampoValorDirigenteManual('')
+    }
+  }, [isSede, congregacaoAtual])
 
   // Movimentações
   const [movimentacoes, setMovimentacoes] = useState<MovimentacaoFinanceiroCongregacao[]>([])
@@ -166,16 +203,44 @@ export const FinanceiroCongregacoes: React.FC = () => {
       }
     })
 
-    // Saldo da congregação = Entradas - Saídas - Repasse enviado à Sede
-    const saldoLiquido = Math.round((totalEntradas - totalSaidas - totalEnviadoSede) * 100) / 100
+    const totEntradas = Math.round(totalEntradas * 100) / 100
+    const totSaidas = Math.round(totalSaidas * 100) / 100
+    const totEnviadoManual = Math.round(totalEnviadoSede * 100) / 100
+
+    // Regra eclesiástica para congregações filiais:
+    // Saldo Restante = Entradas - Saídas
+    const saldoRestante = Math.round((totEntradas - totSaidas) * 100) / 100
+
+    // Porcentagem do Dirigente (calculada sobre o saldo restante após saídas)
+    let valorDirigente = 0
+    if (!isSede && saldoRestante > 0) {
+      if (campoValorDirigenteManual.trim()) {
+        const parsedManual = parseValor(campoValorDirigenteManual)
+        valorDirigente = Math.min(saldoRestante, parsedManual)
+      } else {
+        const pct = Math.max(0, porcentagemDirigente || 0) / 100
+        valorDirigente = Math.round(saldoRestante * pct * 100) / 100
+      }
+    }
+
+    // Saldo Enviado à Sede calculado pela regra: Saldo Restante - Porcentagem do Dirigente
+    const saldoEnviadoSedeRegra = isSede
+      ? 0
+      : Math.max(0, Math.round((saldoRestante - valorDirigente) * 100) / 100)
+
+    // Saldo da congregação = Entradas - Saídas - Repasse enviado à Sede registrado
+    const saldoLiquido = Math.round((totEntradas - totSaidas - totEnviadoManual) * 100) / 100
 
     return {
-      totalEntradas: Math.round(totalEntradas * 100) / 100,
-      totalSaidas: Math.round(totalSaidas * 100) / 100,
-      totalEnviadoSede: Math.round(totalEnviadoSede * 100) / 100,
+      totalEntradas: totEntradas,
+      totalSaidas: totSaidas,
+      totalEnviadoSede: totEnviadoManual,
+      saldoRestante,
+      valorDirigente,
+      saldoEnviadoSedeRegra,
       saldoLiquido,
     }
-  }, [movimentacoesDaUnidade])
+  }, [movimentacoesDaUnidade, isSede, porcentagemDirigente, campoValorDirigenteManual])
 
   // Lista de meses disponíveis para filtro a partir dos dados existentes
   const mesesDisponiveis = useMemo(() => {
@@ -319,6 +384,55 @@ export const FinanceiroCongregacoes: React.FC = () => {
     }
   }
 
+  // Salvar a porcentagem do dirigente no registro da congregação filial (localDb e PB)
+  const handleSalvarPorcentagemCongregacao = async (novaPct: number) => {
+    if (isSede || !congregacaoAtual?.id) {
+      toast({
+        variant: 'destructive',
+        title: 'Operação não permitida',
+        description: 'A Sede não possui porcentagem de dirigente.',
+      })
+      return
+    }
+
+    setSalvandoPercentual(true)
+    try {
+      const payload = {
+        dirigentePercentual: novaPct,
+        dirigente_percentual: novaPct,
+      }
+
+      await localDb.update('congregacoes', congregacaoAtual.id, payload)
+
+      try {
+        await pb.collection('congregacoes').update(congregacaoAtual.id, {
+          dirigente_percentual: novaPct,
+        })
+      } catch {
+        // Modo offline
+      }
+
+      setPorcentagemDirigente(novaPct)
+      setCampoValorDirigenteManual('')
+
+      await reloadCongs()
+
+      toast({
+        title: 'Porcentagem gravada!',
+        description: `${novaPct}% definido como padrão para ${unidadeSelecionada}. Ela será usada na planilha mensal.`,
+      })
+    } catch (err: any) {
+      console.error('Erro ao salvar porcentagem do dirigente:', err)
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao gravar',
+        description: err?.message || 'Não foi possível salvar a porcentagem da congregação.',
+      })
+    } finally {
+      setSalvandoPercentual(false)
+    }
+  }
+
   // Exportar histórico da congregação em CSV
   const handleExportarCsv = () => {
     if (movimentacoesFiltradas.length === 0) {
@@ -444,6 +558,175 @@ export const FinanceiroCongregacoes: React.FC = () => {
         </div>
       </Card>
 
+      {/* BLOCO DA PORCENTAGEM DO DIRIGENTE (SOMENTE PARA FILIAIS — A SEDE NÃO TEM) */}
+      {!isSede && (
+        <Card className="border-[#C9A227]/40 bg-linear-to-r from-purple-50/40 via-white to-amber-50/30 shadow-xs rounded-2xl overflow-hidden p-4 sm:p-5 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#E6E2D8] pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <Landmark className="w-5 h-5 text-[#C9A227]" />
+                <h3 className="font-serif font-bold text-base text-[#1E3A5F]">
+                  Porcentagem do Dirigente — {unidadeSelecionada}
+                </h3>
+                <Badge className="bg-purple-100 text-purple-900 border-purple-300 font-bold text-[10px]">
+                  Filial
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Regra contábil oficial: <strong>Entradas − Saídas = Saldo Restante</strong> →{' '}
+                <strong>Porcentagem do Dirigente</strong> → <strong>Saldo Enviado à Sede</strong>.
+              </p>
+            </div>
+
+            {/* Controles de Porcentagem: 20%, 30%, 40% + Campo Livre (% ou R$) + Salvar */}
+            <div className="flex flex-wrap items-center gap-2 bg-white p-2 rounded-xl border border-[#E6E2D8] shadow-2xs">
+              <span className="text-xs font-bold text-[#1E3A5F]">Porcentagem:</span>
+
+              {/* Botões rápidos: 20%, 30%, 40% */}
+              <div className="flex items-center gap-1">
+                {[20, 30, 40].map((p) => {
+                  const selecionado =
+                    porcentagemDirigente === p && !campoValorDirigenteManual.trim()
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => {
+                        setPorcentagemDirigente(p)
+                        setCampoValorDirigenteManual('')
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-lg font-bold transition ${
+                        selecionado
+                          ? 'bg-[#1E3A5F] text-[#C9A227] shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
+                      {p}%
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Campo livre em % */}
+              <div className="flex items-center gap-1 pl-1 border-l border-slate-200">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={porcentagemDirigente}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value)
+                    setPorcentagemDirigente(isNaN(v) ? 0 : Math.max(0, Math.min(100, v)))
+                    setCampoValorDirigenteManual('')
+                  }}
+                  className="h-8 w-16 text-center font-bold text-xs bg-white border-[#C9A227]"
+                  title="Digite a porcentagem desejada (0 a 100%)"
+                />
+                <span className="text-xs font-bold text-slate-600">%</span>
+              </div>
+
+              {/* Campo livre alternativo em R$ fixo */}
+              <div className="flex items-center gap-1 pl-2 border-l border-slate-200">
+                <span className="text-[11px] font-semibold text-slate-500">ou R$</span>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="fixo..."
+                  value={campoValorDirigenteManual}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    setCampoValorDirigenteManual(raw)
+                    const val = parseValor(raw)
+                    if (resumo.saldoRestante > 0 && val > 0) {
+                      const equiv = Math.min(100, Math.round((val / resumo.saldoRestante) * 100))
+                      setPorcentagemDirigente(equiv)
+                    }
+                  }}
+                  className="h-8 w-24 text-xs font-mono font-bold text-purple-900 bg-white"
+                  title="Informe um valor em R$ caso o dirigente receba valor fixo"
+                />
+              </div>
+
+              {/* Botão de Salvar Padrão para a Unidade */}
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => handleSalvarPorcentagemCongregacao(porcentagemDirigente)}
+                disabled={salvandoPercentual}
+                className="h-8 text-xs bg-[#1E3A5F] hover:bg-[#16304F] text-white font-bold ml-1 gap-1"
+                title="Salva essa porcentagem no cadastro da congregação e a usa como padrão na planilha mensal"
+              >
+                {salvandoPercentual ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Check className="w-3.5 h-3.5 text-[#C9A227]" />
+                )}
+                Gravar Padrão
+              </Button>
+            </div>
+          </div>
+
+          {/* Resumo Contábil Específico da Filial (Entradas - Saídas = Saldo Restante → Dirigente → Saldo Sede) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {/* 1. Total Entradas */}
+            <div className="p-3 bg-white rounded-xl border border-emerald-200 shadow-2xs">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase block">
+                1. Entradas
+              </span>
+              <span className="text-lg font-serif font-bold text-emerald-700 block mt-0.5">
+                R$ {formatarMoeda(resumo.totalEntradas)}
+              </span>
+              <span className="text-[10px] text-slate-400">Total arrecadado</span>
+            </div>
+
+            {/* 2. Total Saídas */}
+            <div className="p-3 bg-white rounded-xl border border-rose-200 shadow-2xs">
+              <span className="text-[11px] font-bold text-rose-800 uppercase block">
+                2. Saídas / Despesas
+              </span>
+              <span className="text-lg font-serif font-bold text-rose-700 block mt-0.5">
+                R$ {formatarMoeda(resumo.totalSaidas)}
+              </span>
+              <span className="text-[10px] text-slate-400">Gastos da congregação</span>
+            </div>
+
+            {/* 3. Saldo Restante */}
+            <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-200 shadow-2xs">
+              <span className="text-[11px] font-bold text-[#1E3A5F] uppercase block">
+                3. Saldo Restante
+              </span>
+              <span className="text-lg font-serif font-bold text-[#1E3A5F] block mt-0.5">
+                R$ {formatarMoeda(resumo.saldoRestante)}
+              </span>
+              <span className="text-[10px] text-slate-500">(Entradas − Saídas)</span>
+            </div>
+
+            {/* 4. Porcentagem do Dirigente */}
+            <div className="p-3 bg-purple-50/70 rounded-xl border border-purple-200 shadow-2xs">
+              <span className="text-[11px] font-bold text-purple-900 uppercase block">
+                4. Dirigente ({porcentagemDirigente}%)
+              </span>
+              <span className="text-lg font-serif font-bold text-purple-900 block mt-0.5">
+                R$ {formatarMoeda(resumo.valorDirigente)}
+              </span>
+              <span className="text-[10px] text-purple-700">Retido pelo dirigente</span>
+            </div>
+
+            {/* 5. Saldo Enviado à Sede pela Regra */}
+            <div className="p-3 bg-amber-50/80 rounded-xl border border-[#C9A227] shadow-2xs col-span-2 sm:col-span-1">
+              <span className="text-[11px] font-bold text-amber-950 uppercase block">
+                5. Saldo p/ SEDE
+              </span>
+              <span className="text-lg font-serif font-bold text-amber-950 block mt-0.5">
+                R$ {formatarMoeda(resumo.saldoEnviadoSedeRegra)}
+              </span>
+              <span className="text-[10px] text-amber-800">Saldo Restante − Dirigente</span>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* CARDS DE RESUMO DA CONGREGAÇÃO */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Entradas */}
@@ -495,7 +778,7 @@ export const FinanceiroCongregacoes: React.FC = () => {
           <CardContent className="p-4 sm:p-5">
             <div className="flex items-center justify-between">
               <span className="text-xs uppercase tracking-wider font-bold text-slate-500">
-                Enviado à Sede
+                Enviado à Sede (Registrado)
               </span>
               <div className="w-8 h-8 rounded-lg bg-amber-50 text-[#C9A227] flex items-center justify-center">
                 <Send className="w-4 h-4 text-[#C9A227]" />
@@ -506,7 +789,9 @@ export const FinanceiroCongregacoes: React.FC = () => {
                 R$ {formatarMoeda(resumo.totalEnviadoSede)}
               </span>
               <span className="text-[11px] text-slate-400 mt-0.5 block">
-                Repasses oficiais enviados ao templo sede
+                {!isSede
+                  ? `Cálculo da regra: R$ ${formatarMoeda(resumo.saldoEnviadoSedeRegra)}`
+                  : 'Repasses oficiais recebidos / enviados'}
               </span>
             </div>
           </CardContent>

@@ -141,6 +141,7 @@ export interface CongregacaoRegistro extends RecordModel {
   endereco?: string
   dias_culto?: string
   dirigente_geral?: string
+  dirigente_percentual?: number
   ordem?: number
   ativa?: boolean
 }

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T01:25:01.637Z",
+  "generatedAt": "2026-10-01T01:55:08.985Z",
   "collections": [
     {
       "name": "users",
@@ -1355,6 +1355,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "dirigente_percentual",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_congregacoes_nome ON congregacoes (nome)"]

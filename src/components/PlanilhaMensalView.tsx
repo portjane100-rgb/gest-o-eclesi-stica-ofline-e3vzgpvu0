@@ -258,8 +258,24 @@ export const PlanilhaMensalView: React.FC = () => {
         // Nova planilha: Pré-preenche os dizimistas ativos da congregação a partir do banco
         setRecordId(null)
         setSaldoMesAnteriorManual(null)
-        setPercentualSede(20)
-        setPorcentagemDirigente(20)
+
+        // Busca a congregação atual para obter a porcentagem padrão salva do dirigente
+        let pctPadrao = 20
+        if (!isSede) {
+          const congItem = listaCongregacoesDb.find(
+            (c) => c.nome.trim().toLowerCase() === congregacao.trim().toLowerCase(),
+          )
+          if (congItem) {
+            if (typeof congItem.dirigentePercentual === 'number') {
+              pctPadrao = congItem.dirigentePercentual
+            } else if (typeof congItem.dirigente_percentual === 'number') {
+              pctPadrao = congItem.dirigente_percentual
+            }
+          }
+        }
+
+        setPercentualSede(pctPadrao)
+        setPorcentagemDirigente(pctPadrao)
         setSaldosRecebidos({})
         setTotalOfertasManual(null)
         setTotalDizimosManual(null)
@@ -360,7 +376,7 @@ export const PlanilhaMensalView: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [ano, mes, congregacao, toast])
+  }, [ano, mes, congregacao, isSede, listaCongregacoesDb, toast])
 
   useEffect(() => {
     carregarDadosPlanilha()
