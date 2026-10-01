@@ -217,12 +217,11 @@ export function buildStandaloneHtml(distDir) {
   const headStartTag = '<head>'
   const fileProtocolPatch = `<head>
     <script>
-      // ADTC Gestão Eclesiástica - Versão PC 100% Offline (blindagem à nuvem)
+      // Gestão Eclesiástica - Versão PC 100% Offline (blindagem à nuvem)
       window.__ADTC_OFFLINE_ONLY__ = true;
       if (window.location.protocol === 'file:') {
-        console.log('ADTC Gestão Eclesiástica: Executando em modo 100% Offline (file://)');
-      }
-    </script>`
+        console.log('Gestão Eclesiástica: Executando em modo 100% Offline (file://)');
+      }    </script>`
   html = html.replace(headStartTag, fileProtocolPatch)
 
   return html
