@@ -14,7 +14,6 @@ import {
   buildZipBlob,
   buildStandaloneHtmlFromUrl,
   validarPacoteZipGerado,
-  ZipFileInfo,
 } from '../src/lib/packageZipClient.ts'
 
 const distDir = path.resolve('dist')
