@@ -282,10 +282,11 @@ export function gerarPacoteZip() {
   // Isso garante que tanto o Electron quanto o pacote standalone resolvam todos os assets locais em file://
   try {
     let distHtmlRaw = fs.readFileSync(distIndexHtml, 'utf-8')
-    const patchedDistHtml = distHtmlRaw.replace(
-      /(href|src)=["']\/assets\/([^"']+)["']/g,
-      '$1="./assets/$2"',
-    )
+    let patchedDistHtml = distHtmlRaw
+      // Converte /assets/... em ./assets/...
+      .replace(/(href|src)=["']\/assets\/([^"']+)["']/g, '$1="./assets/$2"')
+      // Converte referências diretas a root (/favicon, /logo, /manifest) em ./...
+      .replace(/(href|src)=["']\/([a-zA-Z0-9_\-.]+\.[a-zA-Z0-9]+)["']/g, '$1="./$2"')
     if (patchedDistHtml !== distHtmlRaw) {
       fs.writeFileSync(distIndexHtml, patchedDistHtml, 'utf-8')
       console.log(
@@ -295,7 +296,6 @@ export function gerarPacoteZip() {
   } catch (err) {
     console.warn('[ZIP BUILDER] Aviso ao ajustar caminhos relativos em dist/index.html:', err)
   }
-
   // 2. Gerar o index.html auto-contido / standalone
   console.log(
     '[ZIP BUILDER] Gerando index.html auto-contido (inline JS/CSS) para execução em file://...',
