@@ -278,7 +278,25 @@ export function gerarPacoteZip() {
 
   console.log(`[ZIP BUILDER] Usando diretório de build: ${distDir}`)
 
-  // 1. Gerar o index.html auto-contido / standalone
+  // 1. Corrigir dist/index.html para caminhos relativos (./ em vez de /) se o build tiver gerado caminhos absolutos
+  // Isso garante que tanto o Electron quanto o pacote standalone resolvam todos os assets locais em file://
+  try {
+    let distHtmlRaw = fs.readFileSync(distIndexHtml, 'utf-8')
+    const patchedDistHtml = distHtmlRaw.replace(
+      /(href|src)=["']\/assets\/([^"']+)["']/g,
+      '$1="./assets/$2"',
+    )
+    if (patchedDistHtml !== distHtmlRaw) {
+      fs.writeFileSync(distIndexHtml, patchedDistHtml, 'utf-8')
+      console.log(
+        '[ZIP BUILDER] dist/index.html ajustado para caminhos relativos de assets (./assets/...)',
+      )
+    }
+  } catch (err) {
+    console.warn('[ZIP BUILDER] Aviso ao ajustar caminhos relativos em dist/index.html:', err)
+  }
+
+  // 2. Gerar o index.html auto-contido / standalone
   console.log(
     '[ZIP BUILDER] Gerando index.html auto-contido (inline JS/CSS) para execução em file://...',
   )

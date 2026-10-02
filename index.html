@@ -14,8 +14,12 @@
       name="description"
       content="Sistema integrado de gestão eclesiástica: membros, congregados, obreiros, dízimos, escalas e congregações."
     />
-    <!-- Fontes locais de sistema como padrão offline; Google Fonts opcional quando online -->
     <script>
+      // Flag global para execução 100% offline (tanto em file:// quanto em Electron)
+      if (window.location.protocol === 'file:' || (typeof navigator !== 'undefined' && navigator.userAgent && navigator.userAgent.includes('Electron'))) {
+        window.__ADTC_OFFLINE_ONLY__ = true;
+      }
+      // Fontes locais de sistema como padrão offline; Google Fonts opcional quando online via HTTP
       if (window.location.protocol.startsWith('http')) {
         var l1 = document.createElement('link');
         l1.rel = 'preconnect';
