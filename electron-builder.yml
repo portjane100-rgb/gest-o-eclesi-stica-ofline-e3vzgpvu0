@@ -1,0 +1,28 @@
+appId: com.adtc.gestaoeclesiastica
+productName: Gestão Eclesiástica ADTC
+
+directories:
+  output: release
+
+files:
+  - dist/**
+  - electron/**
+
+extraMetadata:
+  main: electron/main.cjs
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Gestão Eclesiástica ADTC
+  runAfterFinish: true
+
+artifactName: ${productName}-Setup-${version}.${ext}

@@ -1,6 +1,7 @@
 injectWorkspacePackages: false
 allowBuilds:
   '@swc/core': true
+  electron: true
   esbuild: true
 
 minimumReleaseAgeExclude:
