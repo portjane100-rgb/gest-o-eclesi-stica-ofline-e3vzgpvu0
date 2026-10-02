@@ -166,12 +166,18 @@ if (instalarBatEntry) {
     str.includes('favicon.ico') &&
     str.includes('ABRIR_SISTEMA.bat')
   const hasNoPrematureExit = !str.match(/^exit\s*$/m)
+  const hasOkMessages =
+    str.includes('[OK] Arquivos copiados') &&
+    str.includes('[OK] index.html encontrado') &&
+    str.includes('[OK] Sistema instalado') &&
+    str.includes('[OK] Atalho criado')
   report.instalarBatCheck = {
     hasOldCDir,
     hasLocalAppData,
     hasXcopyErrorHandling,
     hasZipDetection,
     hasPhysicalCheck,
+    hasOkMessages,
     hasNoPrematureExit,
     contentLength: str.length,
   }
@@ -206,6 +212,10 @@ if (!report.instalarBatCheck.hasXcopyErrorHandling) {
 }
 if (!report.instalarBatCheck.hasPhysicalCheck) {
   console.error('ERRO FATAL: INSTALAR.bat não contém a verificação física dos arquivos essenciais!')
+  process.exit(1)
+}
+if (!report.instalarBatCheck.hasOkMessages) {
+  console.error('ERRO FATAL: INSTALAR.bat não contém as mensagens [OK] esperadas!')
   process.exit(1)
 }
 if (hasHardcodedAdtcCampanarioInIndex) {

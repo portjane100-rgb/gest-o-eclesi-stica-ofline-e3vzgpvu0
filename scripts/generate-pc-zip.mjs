@@ -376,6 +376,10 @@ export function gerarPacoteZip() {
     )
     process.exit(1)
   }
+  if (!instalarContent.includes('[OK] Arquivos copiados') || !instalarContent.includes('[OK]')) {
+    console.error('ERRO: INSTALAR.bat não contém as mensagens de confirmação [OK]!')
+    process.exit(1)
+  }
 
   // Gravar arquivo de metadados do pacote (versão do app e timestamp)
   let packageVersion = '0.0.33'

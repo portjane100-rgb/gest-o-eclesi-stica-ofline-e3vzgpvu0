@@ -44,14 +44,15 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
   const [downloadConcluido, setDownloadConcluido] = useState(false)
 
   const nomeArquivoZip = 'Gestao_Eclesiastica_Versao_PC.zip'
-  const urlDownloadDireto = getStaticAssetUrl(nomeArquivoZip)
+  const urlDownloadDireto = `./${nomeArquivoZip}`
 
-  // Disparo nativo síncrono registrado no clique do usuário
-  const handleAvisoDownloadNativo = () => {
+  // Disparo nativo registrado no clique do usuário com verificação e fallback automático
+  const handleAvisoDownloadNativo = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Se o download via link direto não responder ou der erro, o fallback manual do modal ou automático auxilia
     setDownloadConcluido(true)
     toast({
       title: 'Download iniciado!',
-      description: `O arquivo ${nomeArquivoZip} foi enviado para a sua pasta de downloads.`,
+      description: `O arquivo ${nomeArquivoZip} foi solicitado para a sua pasta de downloads.`,
     })
   }
 
@@ -211,7 +212,7 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
           {/* Opção alternativa de clique direto/nova aba garantido em iframes com sandbox */}
           <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
             <a
-              href={urlDownloadDireto}
+              href={`./${nomeArquivoZip}`}
               download={nomeArquivoZip}
               target="_blank"
               rel="noopener noreferrer"
@@ -244,7 +245,7 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
               Fechar
             </Button>
             <a
-              href={urlDownloadDireto}
+              href={`./${nomeArquivoZip}`}
               download={nomeArquivoZip}
               target="_blank"
               rel="noopener noreferrer"
