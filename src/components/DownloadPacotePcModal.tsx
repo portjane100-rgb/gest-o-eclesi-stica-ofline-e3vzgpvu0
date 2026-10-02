@@ -19,14 +19,13 @@ import {
   Terminal,
   ShieldCheck,
   Sparkles,
-  ExternalLink,
+  AlertTriangle,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import {
   gerarPacoteZipNoCliente,
   dispararDownloadBlob,
-  dispararDownloadUrl,
-  getStaticAssetUrl,
+  ClientZipValidationResult,
 } from '@/lib/packageZipClient'
 
 interface DownloadPacotePcModalProps {
@@ -38,54 +37,59 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
   open,
   onOpenChange,
 }) => {
-  const [gerandoFallback, setGerandoFallback] = useState(false)
+  const [gerando, setGerando] = useState(false)
   const [progressoTexto, setProgressoTexto] = useState('')
   const [progressoPct, setProgressoPct] = useState(0)
   const [downloadConcluido, setDownloadConcluido] = useState(false)
+  const [erroMsg, setErroMsg] = useState<string | null>(null)
+  const [validacaoInfo, setValidacaoInfo] = useState<ClientZipValidationResult | null>(null)
 
   const nomeArquivoZip = 'Gestao_Eclesiastica_Versao_PC.zip'
-  const urlDownloadDireto = `./${nomeArquivoZip}`
 
-  // Disparo nativo registrado no clique do usuário com verificação e fallback automático
-  const handleAvisoDownloadNativo = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // Se o download via link direto não responder ou der erro, o fallback manual do modal ou automático auxilia
-    setDownloadConcluido(true)
-    toast({
-      title: 'Download iniciado!',
-      description: `O arquivo ${nomeArquivoZip} foi solicitado para a sua pasta de downloads.`,
-    })
-  }
-
-  // Fallback manual apenas se o usuário optar por gerar no navegador
-  const handleFallbackGerarNoCliente = async () => {
-    setGerandoFallback(true)
+  // Fluxo principal: gera o ZIP diretamente no navegador a partir dos recursos publicados
+  const handleGerarEBaixarPacote = async () => {
+    setGerando(true)
     setDownloadConcluido(false)
-    setProgressoPct(10)
-    setProgressoTexto('Iniciando montagem do pacote no navegador...')
+    setErroMsg(null)
+    setValidacaoInfo(null)
+    setProgressoPct(5)
+    setProgressoTexto('Iniciando geração do pacote ZIP no navegador...')
 
     try {
-      const blob = await gerarPacoteZipNoCliente((msg, pct) => {
+      const { blob, validacao } = await gerarPacoteZipNoCliente((msg, pct) => {
         setProgressoTexto(msg)
         setProgressoPct(pct)
       })
+
+      // Se a validação não passar, o gerador dispara exceção, mas por garantia extra:
+      if (!validacao.valido || validacao.erros.length > 0) {
+        throw new Error(validacao.erros.join(' | '))
+      }
+
+      setValidacaoInfo(validacao)
+
+      // Disparar o download do Blob autônomo validado
       dispararDownloadBlob(blob, nomeArquivoZip)
       setProgressoPct(100)
-      setProgressoTexto('Pacote gerado e download disparado!')
+      setProgressoTexto('Download concluído!')
       setDownloadConcluido(true)
 
       toast({
-        title: 'Download gerado!',
-        description: `O pacote ${nomeArquivoZip} foi gerado e enviado para a sua pasta de downloads.`,
+        title: 'Download concluído!',
+        description: `O pacote ${nomeArquivoZip} (${(blob.size / (1024 * 1024)).toFixed(2)} MB) foi gerado e enviado para a sua pasta de downloads.`,
       })
     } catch (err: any) {
-      console.error('Erro no fallback de geração de pacote:', err)
+      console.error('Erro na geração do pacote PC:', err)
+      const msg = err?.message || 'Falha ao gerar o pacote autônomo no navegador.'
+      setErroMsg(msg)
+      setDownloadConcluido(false)
       toast({
         variant: 'destructive',
-        title: 'Erro ao gerar pacote',
-        description: err?.message || 'Falha na geração do pacote pelo cliente.',
+        title: 'Falha na geração do pacote',
+        description: msg,
       })
     } finally {
-      setGerandoFallback(false)
+      setGerando(false)
     }
   }
 
@@ -104,8 +108,8 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
               Baixar Sistema para Testar no seu PC (100% Offline)
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              Baixe o sistema completo compilado em um único arquivo ZIP pronto para usar no seu
-              computador ou para distribuição via <strong>Hotmart</strong>.
+              Gera diretamente no seu navegador um arquivo ZIP autônomo e completo, pronto para
+              executar no Windows sem depender de servidores ou conexão com a internet.
             </DialogDescription>
           </DialogHeader>
 
@@ -122,6 +126,16 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
                   <strong className="text-slate-800 block">ABRIR_SISTEMA.bat</strong>
                   <span className="text-[11px] text-slate-500">
                     Inicia no Windows em modo app (Edge/Chrome)
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
+                <Terminal className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-slate-800 block">INSTALAR.bat</strong>
+                  <span className="text-[11px] text-slate-500">
+                    Instalador automático com atalho na Área de Trabalho
                   </span>
                 </div>
               </div>
@@ -146,12 +160,13 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
+              <div className="flex items-start gap-2 bg-white p-2.5 rounded-lg border border-slate-200 sm:col-span-2">
                 <HardDrive className="w-4 h-4 text-purple-600 shrink-0 mt-0.5" />
                 <div>
-                  <strong className="text-slate-800 block">index.html + assets</strong>
+                  <strong className="text-slate-800 block">index.html autônomo (Inlined)</strong>
                   <span className="text-[11px] text-slate-500">
-                    Sistema compilado offline com banco IndexedDB
+                    HTML com todos os estilos, scripts e fontes embutidos para funcionamento 100%
+                    offline em file://
                   </span>
                 </div>
               </div>
@@ -170,8 +185,8 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
                 <strong>Extrair Tudo</strong>.
               </li>
               <li>
-                Abra a pasta extraída e dê <strong>duplo clique em ABRIR_SISTEMA.bat</strong> (no
-                Windows) ou direto em <strong>index.html</strong>.
+                Abra a pasta extraída e dê <strong>duplo clique em INSTALAR.bat</strong> (para criar
+                o atalho) ou em <strong>ABRIR_SISTEMA.bat</strong>.
               </li>
               <li>
                 O sistema abrirá imediatamente e você poderá cadastrar o seu usuário e testar todas
@@ -180,8 +195,8 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
             </ol>
           </div>
 
-          {/* Barra de progresso se estiver gerando pelo fallback manual */}
-          {gerandoFallback && (
+          {/* Barra de progresso durante a geração */}
+          {gerando && (
             <div className="space-y-1.5 pt-1">
               <div className="flex justify-between text-xs text-slate-600">
                 <span className="font-medium flex items-center gap-1.5">
@@ -199,41 +214,30 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
             </div>
           )}
 
-          {downloadConcluido && (
-            <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-900 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
-              <span>
-                <strong>Download iniciado com sucesso!</strong> O arquivo{' '}
-                <strong>{nomeArquivoZip}</strong> foi enviado para a sua pasta de downloads.
-              </span>
+          {/* Mensagem de Erro com detalhes do recurso */}
+          {erroMsg && !gerando && (
+            <div className="p-3 bg-red-50 border border-red-300 rounded-xl text-red-900 text-xs flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <strong className="block font-semibold">Falha ao gerar o pacote ZIP:</strong>
+                <span className="text-[11px] leading-relaxed break-words">{erroMsg}</span>
+              </div>
             </div>
           )}
 
-          {/* Opção alternativa de clique direto/nova aba garantido em iframes com sandbox */}
-          <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <a
-              href={`./${nomeArquivoZip}`}
-              download={nomeArquivoZip}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleAvisoDownloadNativo}
-              className="inline-flex items-center gap-1.5 text-xs text-[#1E3A5F] hover:text-[#C9A227] font-semibold underline"
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Abrir/Baixar em Nova Aba (link estático direto)
-            </a>
-
-            <button
-              type="button"
-              onClick={handleFallbackGerarNoCliente}
-              disabled={gerandoFallback}
-              className="text-[11px] text-slate-500 hover:text-slate-700 underline"
-            >
-              {gerandoFallback
-                ? 'Gerando...'
-                : 'Problemas no download? Gerar pacote offline no cliente'}
-            </button>
-          </div>
+          {/* Mensagem de Sucesso */}
+          {downloadConcluido && !gerando && !erroMsg && (
+            <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-900 text-xs flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <div>
+                <strong>Download concluído com sucesso!</strong>
+                <p className="text-[11px] mt-0.5 text-emerald-800">
+                  O arquivo <strong>{nomeArquivoZip}</strong> foi validado e gerado com{' '}
+                  {validacaoInfo?.totalArquivos ?? 'todos os'} arquivos essenciais.
+                </p>
+              </div>
+            </div>
+          )}
 
           <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100">
             <Button
@@ -241,20 +245,28 @@ export const DownloadPacotePcModal: React.FC<DownloadPacotePcModalProps> = ({
               variant="outline"
               onClick={() => onOpenChange(false)}
               className="text-xs"
+              disabled={gerando}
             >
               Fechar
             </Button>
-            <a
-              href={`./${nomeArquivoZip}`}
-              download={nomeArquivoZip}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleAvisoDownloadNativo}
-              className="inline-flex items-center justify-center rounded-md font-bold text-xs h-9 px-4 bg-[#1E3A5F] hover:bg-[#152a45] text-white gap-2 shadow-sm transition-colors"
+            <Button
+              type="button"
+              onClick={handleGerarEBaixarPacote}
+              disabled={gerando}
+              className="font-bold text-xs h-9 px-4 bg-[#1E3A5F] hover:bg-[#152a45] text-white gap-2 shadow-sm transition-colors"
             >
-              <Download className="w-4 h-4 text-[#C9A227]" />
-              Baixar Arquivo ZIP para PC (.zip)
-            </a>
+              {gerando ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#C9A227]" />
+                  Gerando Pacote...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 text-[#C9A227]" />
+                  Gerar e Baixar Pacote ZIP para PC (.zip)
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </div>
       </DialogContent>

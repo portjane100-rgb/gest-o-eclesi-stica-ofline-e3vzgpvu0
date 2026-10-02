@@ -1,12 +1,22 @@
 /**
  * Utilitário cliente para gerar o arquivo .ZIP do sistema local offline
- * no próprio navegador do usuário (sem depender de internet ou servidor).
- * Usa compressão ZIP padrão sem bibliotecas externas pesadas.
+ * no próprio navegador do usuário (sem depender de arquivos pré-empacotados no servidor).
+ * Usa compressão ZIP padrão sem bibliotecas externas pesadas e funciona tanto no browser
+ * quanto em ambientes Node/teste que suportam fetch e Blob.
  */
 
 export interface ZipFileInfo {
   relativePath: string
   content: string | Uint8Array
+}
+
+export interface ClientZipValidationResult {
+  valido: boolean
+  erros: string[]
+  avisos: string[]
+  totalArquivos: number
+  tamanhoBytes: number
+  arquivos: { nome: string; tamanho: number }[]
 }
 
 // CRC32 table para cálculo de integridade do ZIP
@@ -24,7 +34,7 @@ const makeCrcTable = () => {
 }
 const CRC_TABLE = makeCrcTable()
 
-function crc32(buf: Uint8Array): number {
+export function crc32(buf: Uint8Array): number {
   let crc = 0 ^ -1
   for (let i = 0; i < buf.length; i++) {
     crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ buf[i]) & 0xff]
@@ -33,8 +43,8 @@ function crc32(buf: Uint8Array): number {
 }
 
 /**
- * Construtor básico de ZIP Store (sem compressão proprietária ou Deflate puro)
- * 100% suportado nativamente pelo Windows Explorer, macOS Archive Utility e Linux.
+ * Construtor de ZIP Store (método 0)
+ * 100% suportado nativamente pelo Windows Explorer (Extrair Tudo), macOS e Linux.
  */
 export function buildZipBlob(files: ZipFileInfo[]): Blob {
   const parts: BlobPart[] = []
@@ -44,7 +54,8 @@ export function buildZipBlob(files: ZipFileInfo[]): Blob {
   const textEncoder = new TextEncoder()
 
   for (const file of files) {
-    const filenameBytes = textEncoder.encode(file.relativePath)
+    const filename = file.relativePath.replace(/\\/g, '/')
+    const filenameBytes = textEncoder.encode(filename)
     const contentBytes =
       typeof file.content === 'string' ? textEncoder.encode(file.content) : file.content
     const uncompressedSize = contentBytes.length
@@ -99,7 +110,7 @@ export function buildZipBlob(files: ZipFileInfo[]): Blob {
 
     offset += localHeader.byteLength + contentBytes.length
   }
-  // Central directory start offset
+
   const centralDirOffset = offset
   let centralDirSize = 0
   for (const cdp of centralDirParts) {
@@ -127,241 +138,525 @@ export function buildZipBlob(files: ZipFileInfo[]): Blob {
 }
 
 /**
- * Monta os arquivos do pacote offline cliente e gera o Blob final
+ * Converte Uint8Array em Base64 de forma compatível com Browser e Node
  */
-export async function gerarPacoteZipNoCliente(
-  onProgresso?: (mensagem: string, percentual: number) => void,
-): Promise<Blob> {
-  onProgresso?.('Preparando arquivos de inicialização...', 15)
-
-  const abrirBat = `@echo off
-chcp 65001 >nul
-title Gestão Eclesiástica - Versão PC Offline
-cls
-echo ====================================================================
-echo        GESTÃO ECLESIÁSTICA - VERSÃO LOCAL DESKTOP (100%% OFFLINE)
-echo ====================================================================
-echo.
-echo Iniciando sistema local no navegador padrão...
-echo.
-
-set "HTML_FILE=%~dp0index.html"
-
-REM 1. Tentar abrir no Google Chrome em modo aplicativo
-if exist "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe" (
-    start "" "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%"
-    if %errorlevel% equ 0 goto :fim
-  )
-  if exist "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe" (
-    start "" "%ProgramFiles(x86)%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%"
-    if %errorlevel% equ 0 goto :fim
-  )
-  if exist "%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe" (
-    start "" "%LocalAppData%\\Google\\Chrome\\Application\\chrome.exe" --app="file:///%HTML_FILE%"
-    if %errorlevel% equ 0 goto :fim
-  )
-
-  REM 2. Tentar Microsoft Edge
-  if exist "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe" (
-    start "" "%ProgramFiles(x86)%\\Microsoft\\Edge\\Application\\msedge.exe" --app="file:///%HTML_FILE%"
-    if %errorlevel% equ 0 goto :fim
-  )
-  if exist "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe" (
-    start "" "%ProgramFiles%\\Microsoft\\Edge\\Application\\msedge.exe" --app="file:///%HTML_FILE%"
-    if %errorlevel% equ 0 goto :fim
-  )
-REM 3. Fallback: abre no navegador padrão do Windows
-start "" "%HTML_FILE%"
-exit /b 0
-`
-
-  const abrirCommand = `#!/bin/bash
-DIR="$( cd "$( dirname "\${BASH_SOURCE[0]}" )" && pwd )"
-HTML_FILE="$DIR/index.html"
-
-echo "===================================================================="
-echo "       GESTÃO ECLESIÁSTICA - VERSÃO LOCAL DESKTOP (100% OFFLINE)"
-echo "===================================================================="
-echo ""
-echo "Iniciando sistema local no navegador..."
-echo ""
-
-# 1. Tentar Chrome no Mac
-if [ -d "/Applications/Google Chrome.app" ]; then
-  open -a "Google Chrome" --args --app="file://$HTML_FILE"
-  exit 0
-fi
-
-# 2. Tentar Edge no Mac
-if [ -d "/Applications/Microsoft Edge.app" ]; then
-  open -a "Microsoft Edge" --args --app="file://$HTML_FILE"
-  exit 0
-fi
-
-# 3. Tentar Brave Browser
-if [ -d "/Applications/Brave Browser.app" ]; then
-  open -a "Brave Browser" --args --app="file://$HTML_FILE"
-  exit 0
-fi
-# 4. Fallback para o navegador padrão
-open "$HTML_FILE"
-exit 0
-`
-
-  let leiaMe = ''
-  try {
-    const res = await fetch('./LEIA-ME.txt')
-    if (res.ok) leiaMe = await res.text()
-  } catch (_) {
-    // fallback
+export function uint8ArrayToBase64(bytes: Uint8Array): string {
+  const globalObj =
+    typeof globalThis !== 'undefined'
+      ? (globalThis as unknown as {
+          Buffer?: { from: (b: Uint8Array) => { toString: (enc: string) => string } }
+        })
+      : undefined
+  if (globalObj?.Buffer) {
+    return globalObj.Buffer.from(bytes).toString('base64')
   }
-
-  if (!leiaMe) {
-    leiaMe = `====================================================================
-           GESTÃO ECLESIÁSTICA — VERSÃO LOCAL DESKTOP (100% OFFLINE)
-====================================================================
-
-Como usar:
-1. Extraia todo o conteúdo deste arquivo ZIP em uma pasta do seu computador.
-2. No Windows: dê duplo clique em ABRIR_SISTEMA.bat (ou index.html).
-3. No Mac: dê duplo clique em ABRIR_SISTEMA.command (ou index.html).
-4. No primeiro acesso: O sistema abre livre sem exigir senha pré-definida.
-   Crie o seu próprio login e senha de Administrador Geral (Nome, Usuário e Senha).
-   Nenhuma conta de revendedor fica gravada. Nas entradas seguintes, use o login criado.
-5. Todos os dados ficam salvos no seu próprio PC de forma 100% segura.
-`
+  let binary = ''
+  const len = bytes.byteLength
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i])
   }
-
-  onProgresso?.('Empacotando scripts e estilos da aplicação...', 40)
-
-  let instalarBat = ''
-  try {
-    const res = await fetch('./INSTALAR.bat')
-    if (res.ok) instalarBat = await res.text()
-  } catch (_) {
-    // fallback
-  }
-
-  // Coleta os scripts e estilos da página atual para inclusão com URLs relativas
-  const files: ZipFileInfo[] = [
-    { relativePath: 'Gestao_Eclesiastica_PC/ABRIR_SISTEMA.bat', content: abrirBat },
-    { relativePath: 'Gestao_Eclesiastica_PC/ABRIR_SISTEMA.command', content: abrirCommand },
-    { relativePath: 'Gestao_Eclesiastica_PC/LEIA-ME.txt', content: leiaMe },
-  ]
-  if (instalarBat) {
-    files.push({ relativePath: 'Gestao_Eclesiastica_PC/INSTALAR.bat', content: instalarBat })
-  }
-
-  // Clonar o HTML atual e ajustar os caminhos para relativos e auto-contidos
-  try {
-    let htmlContent = document.documentElement.outerHTML
-
-    // Remove referências a scripts de terceiros/dev que não fazem sentido em offline
-    htmlContent = htmlContent.replace(/<script[^>]*src="[^"]*@vite\/client"[^>]*><\/script>/gi, '')
-    htmlContent = htmlContent.replace(/<link[^>]+googleapis\.com[^>]*>/gi, '')
-    htmlContent = htmlContent.replace(/<link[^>]+gstatic\.com[^>]*>/gi, '')
-
-    // Converte caminhos absolutos / para relativos ./
-    htmlContent = htmlContent.replace(/(href|src)=["']\/([^"']+)["']/g, '$1="./$2"')
-
-    // Injeta scripts inline de estilos capturados do documento
-    let inlineStyles = ''
-    try {
-      const styleSheets = Array.from(document.styleSheets)
-      for (const sheet of styleSheets) {
-        try {
-          if (sheet.cssRules) {
-            const rulesText = Array.from(sheet.cssRules)
-              .map((r) => r.cssText)
-              .join('\n')
-            inlineStyles += `<style>\n${rulesText}\n</style>\n`
-          }
-        } catch (_) {
-          // Possível bloqueio de CORS de estilos externos
-        }
-      }
-    } catch (_) {
-      // Ignora erro
-    }
-
-    if (inlineStyles) {
-      htmlContent = htmlContent.replace('</head>', `${inlineStyles}\n</head>`)
-    }
-
-    // Ajusta o doctype
-    const fullHtml = '<!DOCTYPE html>\n' + htmlContent
-
-    files.push({
-      relativePath: 'Gestao_Eclesiastica_PC/index.html',
-      content: fullHtml,
-    })
-  } catch (err) {
-    console.warn('Erro ao ler HTML:', err)
-  }
-
-  // Tenta buscar manifest.json se existir
-  try {
-    const mRes = await fetch('./manifest.json')
-    if (mRes.ok) {
-      const mText = await mRes.text()
-      files.push({
-        relativePath: 'Gestao_Eclesiastica_PC/manifest.json',
-        content: mText,
-      })
-    }
-  } catch {
-    /* intentionally ignored */
-  }
-
-  onProgresso?.('Finalizando compressão e montagem do ZIP...', 80)
-  const zipBlob = buildZipBlob(files)
-  onProgresso?.('Pacote pronto!', 100)
-
-  return zipBlob
+  return btoa(binary)
 }
 
 /**
- * Resolve a URL absoluta ou relativa correta para um recurso estático em public/
- * levando em conta se está rodando em subcaminho, preview ou iframe.
+ * Infere o MIME type a partir da extensão
+ */
+function getMimeTypeFromExt(ext: string): string {
+  switch (ext.toLowerCase()) {
+    case '.woff2':
+      return 'font/woff2'
+    case '.woff':
+      return 'font/woff'
+    case '.ttf':
+      return 'font/ttf'
+    case '.svg':
+      return 'image/svg+xml'
+    case '.png':
+      return 'image/png'
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg'
+    case '.ico':
+      return 'image/x-icon'
+    case '.webp':
+      return 'image/webp'
+    case '.json':
+      return 'application/json'
+    case '.css':
+      return 'text/css'
+    case '.js':
+      return 'application/javascript'
+    default:
+      return 'application/octet-stream'
+  }
+}
+
+/**
+ * Realiza fetch de um recurso com validação de status HTTP
+ */
+async function fetchResource(
+  url: string,
+  asBinary: boolean = false,
+): Promise<{ ok: boolean; status: number; text?: string; bytes?: Uint8Array; error?: string }> {
+  try {
+    const res = await fetch(url, { cache: 'no-cache' })
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        error: `HTTP ${res.status} ${res.statusText}`,
+      }
+    }
+    if (asBinary) {
+      const buffer = await res.arrayBuffer()
+      return {
+        ok: true,
+        status: res.status,
+        bytes: new Uint8Array(buffer),
+      }
+    }
+    const text = await res.text()
+    return {
+      ok: true,
+      status: res.status,
+      text,
+    }
+  } catch (err: any) {
+    return {
+      ok: false,
+      status: 0,
+      error: err?.message || 'Erro de conexão ou CORS ao baixar recurso',
+    }
+  }
+}
+
+/**
+ * Resolve caminhos de CSS referenciados em url(...) embutindo como data-URI
+ */
+async function inlineCssAssets(
+  cssText: string,
+  cssBaseUrl: string,
+  onAssetWarning?: (msg: string) => void,
+): Promise<string> {
+  const urlRegex = /url\((['"]?)(\/?[^'")]+)\1\)/g
+  const matches = Array.from(cssText.matchAll(urlRegex))
+
+  let processed = cssText
+
+  for (const match of matches) {
+    const fullMatch = match[0]
+    const rawAsset = (match[2] || '').trim()
+
+    if (
+      !rawAsset ||
+      rawAsset.startsWith('data:') ||
+      rawAsset.startsWith('http://') ||
+      rawAsset.startsWith('https://')
+    ) {
+      continue
+    }
+
+    try {
+      const resolvedAssetUrl = new URL(rawAsset, cssBaseUrl).href
+      const ext =
+        rawAsset
+          .split('?')[0]
+          .split('#')[0]
+          .match(/\.[^.]+$/)?.[0] || ''
+      const mime = getMimeTypeFromExt(ext)
+
+      const assetRes = await fetchResource(resolvedAssetUrl, true)
+      if (assetRes.ok && assetRes.bytes) {
+        const b64 = uint8ArrayToBase64(assetRes.bytes)
+        const dataUri = `url("data:${mime};base64,${b64}")`
+        processed = processed.replace(fullMatch, dataUri)
+      } else {
+        onAssetWarning?.(`Aviso: Recurso de CSS não baixado (${rawAsset}): ${assetRes.error}`)
+      }
+    } catch (err: any) {
+      onAssetWarning?.(`Aviso: Falha ao processar URL em CSS (${rawAsset}): ${err?.message}`)
+    }
+  }
+
+  return processed
+}
+
+export interface StandaloneHtmlResult {
+  html: string
+  assetsEmpacotados: { caminho: string; bytes: number }[]
+  recursosComErro: { recurso: string; erro: string }[]
+}
+
+/**
+ * Constrói o HTML autônomo (standalone) reproduzindo e estendendo a lógica
+ * de `scripts/generate-pc-zip.mjs` no navegador.
+ */
+export async function buildStandaloneHtmlFromUrl(
+  baseUrl: string,
+  onProgresso?: (msg: string, pct: number) => void,
+): Promise<StandaloneHtmlResult> {
+  const assetsEmpacotados: { caminho: string; bytes: number }[] = []
+  const recursosComErro: { recurso: string; erro: string }[] = []
+
+  // 1. Baixar o index.html publicado
+  const indexUrl = new URL('./index.html', baseUrl).href
+  onProgresso?.('Baixando index.html publicado...', 10)
+
+  const indexRes = await fetchResource(indexUrl, false)
+  if (!indexRes.ok || !indexRes.text) {
+    recursosComErro.push({
+      recurso: 'index.html',
+      erro: `Falha ao carregar index.html: ${indexRes.error}`,
+    })
+    throw new Error(`Falha ao obter index.html publicado (${indexRes.error})`)
+  }
+
+  let html = indexRes.text
+
+  // 2. Localizar arquivos CSS referenciados no index.html
+  onProgresso?.('Localizando e baixando folhas de estilo CSS...', 25)
+  const cssLinkRegex =
+    /<link[^>]+rel=["']stylesheet["'][^>]*href=["']([^"']+)["'][^>]*>|<link[^>]+href=["']([^"']+)["'][^>]*rel=["']stylesheet["'][^>]*>/gi
+  const cssMatches = Array.from(html.matchAll(cssLinkRegex))
+
+  for (const match of cssMatches) {
+    const fullTag = match[0]
+    const rawHref = (match[1] || match[2] || '').trim()
+
+    if (!rawHref || rawHref.startsWith('http://') || rawHref.startsWith('https://')) {
+      // Ignorar CDNs externas se houver
+      continue
+    }
+
+    const cssUrl = new URL(rawHref, baseUrl).href
+    const cleanHref = rawHref.replace(/^\.?\//, '')
+    onProgresso?.(`Baixando estilo: ${cleanHref}...`, 30)
+
+    const cssRes = await fetchResource(cssUrl, false)
+    if (!cssRes.ok || !cssRes.text) {
+      recursosComErro.push({
+        recurso: cleanHref,
+        erro: `Falha ao carregar CSS essencial ${cleanHref}: ${cssRes.error}`,
+      })
+      continue
+    }
+
+    // Embutir recursos internos do CSS (fontes, SVGs) se existirem
+    const inlinedCss = await inlineCssAssets(cssRes.text, cssUrl, (msg) => {
+      console.warn(msg)
+    })
+
+    const styleTag = `<style>/* Inlined ${cleanHref} */\n${inlinedCss}\n</style>`
+    html = html.replace(fullTag, styleTag)
+    assetsEmpacotados.push({
+      caminho: cleanHref,
+      bytes: new TextEncoder().encode(inlinedCss).length,
+    })
+  }
+
+  // 3. Localizar e embutir scripts JavaScript do bundle
+  onProgresso?.('Localizando e embutindo scripts JavaScript...', 45)
+  const scriptRegex = /<script([^>]*)\ssrc=["']([^"']+)["']([^>]*)><\/script>/gi
+  const scriptMatches = Array.from(html.matchAll(scriptRegex))
+
+  for (const match of scriptMatches) {
+    const fullTag = match[0]
+    const rawSrc = match[2]?.trim() || ''
+
+    if (
+      !rawSrc ||
+      rawSrc.includes('goskip.dev') ||
+      rawSrc.startsWith('http://') ||
+      rawSrc.startsWith('https://')
+    ) {
+      continue
+    }
+
+    const jsUrl = new URL(rawSrc, baseUrl).href
+    const cleanSrc = rawSrc.replace(/^\.?\//, '')
+    onProgresso?.(`Baixando script: ${cleanSrc}...`, 55)
+
+    const jsRes = await fetchResource(jsUrl, false)
+    if (!jsRes.ok || !jsRes.text) {
+      recursosComErro.push({
+        recurso: cleanSrc,
+        erro: `Falha ao carregar script JS essencial ${cleanSrc}: ${jsRes.error}`,
+      })
+      continue
+    }
+
+    let jsContent = jsRes.text
+    // Converter referências a /assets/ em caminhos relativos
+    jsContent = jsContent.replace(/["']\/assets\/([^"']+)["']/g, '"./assets/$1"')
+
+    const inlinedScript = `<script type="module">\n/* Inlined ${cleanSrc} */\n${jsContent}\n</script>`
+    html = html.replace(fullTag, inlinedScript)
+    assetsEmpacotados.push({ caminho: cleanSrc, bytes: new TextEncoder().encode(jsContent).length })
+  }
+
+  // 4. Embutir favicon / ícones referenciados
+  onProgresso?.('Embutindo ícones e favicon...', 65)
+  const iconRegex = /<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*href=["']([^"']+)["'][^>]*>/gi
+  const iconMatches = Array.from(html.matchAll(iconRegex))
+
+  for (const match of iconMatches) {
+    const fullTag = match[0]
+    const rawHref = match[1]?.trim() || ''
+
+    if (!rawHref || rawHref.startsWith('data:') || rawHref.startsWith('http')) {
+      continue
+    }
+
+    const iconUrl = new URL(rawHref, baseUrl).href
+    const cleanIcon = rawHref.replace(/^\.?\//, '')
+    const iconRes = await fetchResource(iconUrl, true)
+
+    if (iconRes.ok && iconRes.bytes) {
+      const ext = cleanIcon.match(/\.[^.]+$/)?.[0] || '.ico'
+      const mime = getMimeTypeFromExt(ext)
+      const b64 = uint8ArrayToBase64(iconRes.bytes)
+      const replacedTag = `<link rel="icon" type="${mime}" href="data:${mime};base64,${b64}" />`
+      html = html.replace(fullTag, replacedTag)
+      assetsEmpacotados.push({ caminho: cleanIcon, bytes: iconRes.bytes.length })
+    }
+  }
+
+  // 5. Garantir caminhos estáticos relativos (./ em vez de /)
+  html = html.replace(/(href|src)=["']\/([^"']+)["']/g, '$1="./$2"')
+
+  // 6. Injetar window.__ADTC_OFFLINE_ONLY__ = true e polyfill para file://
+  const headStartTag = '<head>'
+  const fileProtocolPatch = `<head>
+    <script>
+      // Gestão Eclesiástica - Versão PC 100% Offline (blindagem à nuvem)
+      window.__ADTC_OFFLINE_ONLY__ = true;
+      if (window.location.protocol === 'file:') {
+        console.log('Gestão Eclesiástica: Executando em modo 100% Offline (file://)');
+      }    </script>`
+
+  if (html.includes(headStartTag)) {
+    html = html.replace(headStartTag, fileProtocolPatch)
+  } else {
+    html = fileProtocolPatch + '\n' + html
+  }
+
+  return {
+    html,
+    assetsEmpacotados,
+    recursosComErro,
+  }
+}
+
+/**
+ * Valida o arquivo ZIP gerado e suas entradas
+ */
+export function validarPacoteZipGerado(
+  files: ZipFileInfo[],
+  zipBlob: Blob,
+): ClientZipValidationResult {
+  const erros: string[] = []
+  const avisos: string[] = []
+  const pastaRaiz = 'Gestao_Eclesiastica_PC/'
+
+  // 1. Arquivo ZIP existe e tamanho > 0
+  if (!zipBlob || zipBlob.size <= 0) {
+    erros.push('O arquivo ZIP gerado está vazio (tamanho 0 bytes).')
+  }
+
+  // 2. Validar presença de index.html
+  const indexEntry = files.find(
+    (f) => f.relativePath === pastaRaiz + 'index.html' || f.relativePath === 'index.html',
+  )
+  if (!indexEntry) {
+    erros.push('index.html não foi encontrado dentro do pacote.')
+  } else {
+    const contentStr =
+      typeof indexEntry.content === 'string'
+        ? indexEntry.content
+        : new TextDecoder('utf-8').decode(indexEntry.content)
+
+    if (contentStr.length < 500) {
+      erros.push('index.html é pequeno demais, sugerindo arquivo corrompido ou incompleto.')
+    }
+
+    if (!contentStr.includes('window.__ADTC_OFFLINE_ONLY__ = true')) {
+      erros.push('index.html não contém a injeção obrigatória window.__ADTC_OFFLINE_ONLY__ = true.')
+    }
+
+    // Verificar se ainda há scripts apontando para /src/main.tsx sem bundle
+    if (contentStr.includes('src="/src/main.tsx"') || contentStr.includes("src='/src/main.tsx'")) {
+      avisos.push(
+        'index.html parece referenciar /src/main.tsx cru. Certifique-se de usar a versão de build compilada.',
+      )
+    }
+  }
+
+  // 3. Validar arquivos de apoio obrigatórios
+  const arquivosObrigatorios = [
+    pastaRaiz + 'ABRIR_SISTEMA.bat',
+    pastaRaiz + 'INSTALAR.bat',
+    pastaRaiz + 'LEIA-ME.txt',
+    pastaRaiz + 'favicon.ico',
+  ]
+
+  for (const obrigatorio of arquivosObrigatorios) {
+    const nomeCurto = obrigatorio.replace(pastaRaiz, '')
+    const entry = files.find((f) => f.relativePath === obrigatorio)
+    if (!entry) {
+      erros.push(`Arquivo de apoio obrigatório ausente no pacote: ${nomeCurto}`)
+    } else {
+      const len = typeof entry.content === 'string' ? entry.content.length : entry.content.length
+      if (len === 0) {
+        erros.push(`Arquivo obrigatório ${nomeCurto} está com tamanho 0.`)
+      }
+    }
+  }
+
+  // 4. Validar o conteúdo do INSTALAR.bat
+  const instalarEntry = files.find((f) => f.relativePath === pastaRaiz + 'INSTALAR.bat')
+  if (instalarEntry) {
+    const instalarStr =
+      typeof instalarEntry.content === 'string'
+        ? instalarEntry.content
+        : new TextDecoder('utf-8').decode(instalarEntry.content)
+
+    if (instalarStr.includes('C:\\GestaoEclesiastica')) {
+      erros.push('INSTALAR.bat contém referência incorreta a C:\\GestaoEclesiastica.')
+    }
+    if (!instalarStr.includes('%LOCALAPPDATA%\\GestaoEclesiastica')) {
+      erros.push(
+        'INSTALAR.bat não contém o caminho de destino esperado %LOCALAPPDATA%\\GestaoEclesiastica.',
+      )
+    }
+    if (!instalarStr.includes('[OK] Arquivos copiados') || !instalarStr.includes('[OK]')) {
+      erros.push('INSTALAR.bat não contém as mensagens de confirmação [OK] esperadas.')
+    }
+  }
+
+  const arquivosList = files.map((f) => ({
+    nome: f.relativePath,
+    tamanho: typeof f.content === 'string' ? f.content.length : f.content.length,
+  }))
+
+  return {
+    valido: erros.length === 0,
+    erros,
+    avisos,
+    totalArquivos: files.length,
+    tamanhoBytes: zipBlob ? zipBlob.size : 0,
+    arquivos: arquivosList,
+  }
+}
+
+/**
+ * Monta os arquivos do pacote offline cliente e gera o Blob final autônomo
+ */
+export async function gerarPacoteZipNoCliente(
+  onProgresso?: (mensagem: string, percentual: number) => void,
+): Promise<{ blob: Blob; validacao: ClientZipValidationResult }> {
+  const pastaRaiz = 'Gestao_Eclesiastica_PC/'
+  const base =
+    typeof window !== 'undefined' ? document.baseURI || window.location.href : 'http://localhost/'
+
+  onProgresso?.('Iniciando análise dos arquivos da aplicação...', 5)
+
+  // 1. Obter e processar o index.html com inlining de CSS, scripts e fontes
+  const standaloneResult = await buildStandaloneHtmlFromUrl(base, onProgresso)
+
+  if (standaloneResult.recursosComErro.length > 0) {
+    const listaErros = standaloneResult.recursosComErro
+      .map((r) => `${r.recurso}: ${r.erro}`)
+      .join('; ')
+    throw new Error(
+      `Falha ao baixar recursos essenciais do sistema: ${listaErros}. O ZIP não foi gerado.`,
+    )
+  }
+
+  // 2. Baixar arquivos de apoio diretamente do site público
+  onProgresso?.('Baixando scripts de instalação e arquivos de suporte...', 70)
+
+  const arquivosApoio = [
+    { nome: 'INSTALAR.bat', obrigatorio: true, binario: false },
+    { nome: 'ABRIR_SISTEMA.bat', obrigatorio: true, binario: false },
+    { nome: 'ABRIR_SISTEMA.command', obrigatorio: false, binario: false },
+    { nome: 'LEIA-ME.txt', obrigatorio: true, binario: false },
+    { nome: 'favicon.ico', obrigatorio: true, binario: true },
+    { nome: 'manifest.json', obrigatorio: false, binario: false },
+  ]
+
+  const files: ZipFileInfo[] = [
+    {
+      relativePath: pastaRaiz + 'index.html',
+      content: standaloneResult.html,
+    },
+  ]
+
+  for (const item of arquivosApoio) {
+    const itemUrl = new URL(`./${item.nome}`, base).href
+    onProgresso?.(`Baixando ${item.nome}...`, 75)
+
+    const res = await fetchResource(itemUrl, item.binario)
+    if (!res.ok) {
+      if (item.obrigatorio) {
+        throw new Error(
+          `Não foi possível baixar o arquivo de apoio obrigatório '${item.nome}' (${res.error}). O pacote não pode ser gerado incompleto.`,
+        )
+      }
+      continue
+    }
+
+    const content = item.binario ? res.bytes! : res.text!
+    files.push({
+      relativePath: pastaRaiz + item.nome,
+      content,
+    })
+  }
+
+  // 3. Adicionar versao-pacote.json com metadados
+  const metaPacote = JSON.stringify(
+    {
+      app: 'Gestão Eclesiástica',
+      version: '0.0.40',
+      buildTimestamp: new Date().toISOString(),
+      offlineOnly: true,
+      geradoNoCliente: true,
+      arquivosTotal: files.length + 1,
+    },
+    null,
+    2,
+  )
+  files.push({
+    relativePath: pastaRaiz + 'versao-pacote.json',
+    content: metaPacote,
+  })
+
+  // 4. Construir o ZIP Blob
+  onProgresso?.('Compactando arquivos no formato ZIP autônomo...', 88)
+  const zipBlob = buildZipBlob(files)
+
+  // 5. Validar o ZIP antes de liberar
+  onProgresso?.('Executando validação de integridade do pacote...', 95)
+  const validacao = validarPacoteZipGerado(files, zipBlob)
+
+  if (!validacao.valido) {
+    const msg = validacao.erros.join('; ')
+    throw new Error(`Validação do pacote falhou: ${msg}`)
+  }
+
+  onProgresso?.('Pacote gerado e verificado com sucesso!', 100)
+  return { blob: zipBlob, validacao }
+}
+
+/**
+ * Resolve a URL absoluta ou relativa para um recurso
  */
 export function getStaticAssetUrl(filename: string): string {
   if (typeof window === 'undefined') return `/${filename}`
-  // Respeita a base da página atual se houver base href ou caminho
   const base = document.baseURI || window.location.href
   try {
     return new URL(filename, base).href
   } catch {
     return `./${filename}`
-  }
-}
-
-/**
- * Dispara o download de um arquivo estático ou URL direta.
- * Funciona de forma robusta dentro de iframes com atributos de download e fallback via window.open.
- */
-export function dispararDownloadUrl(url: string, nomeArquivo: string): boolean {
-  try {
-    const a = document.createElement('a')
-    a.href = url
-    a.download = nomeArquivo
-    a.target = '_blank'
-    a.rel = 'noopener noreferrer'
-    document.body.appendChild(a)
-    a.click()
-    setTimeout(() => {
-      if (a.parentNode) {
-        document.body.removeChild(a)
-      }
-    }, 1000)
-    return true
-  } catch (err) {
-    console.warn('Falha no clique da âncora direta:', err)
-    try {
-      window.open(url, '_blank')
-      return true
-    } catch {
-      return false
-    }
   }
 }
 
@@ -382,5 +677,5 @@ export function dispararDownloadBlob(blob: Blob, nomeArquivo: string) {
       document.body.removeChild(a)
     }
     URL.revokeObjectURL(url)
-  }, 2000)
+  }, 3000)
 }
