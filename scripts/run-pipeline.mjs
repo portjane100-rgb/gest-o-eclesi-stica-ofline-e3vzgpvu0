@@ -8,6 +8,10 @@ console.log('=== RUNNING PACKAGING PIPELINE IN TEST PHASE ===')
 console.log('[PIPELINE] Passo 1: Executando vite build...')
 execSync('npx vite build', { stdio: 'inherit' })
 
+// 1.1 Executar prova do gerador ZIP de cliente
+console.log('[PIPELINE] Passo 1.1: Executando test-client-zip.mjs...')
+execSync('node scripts/test-client-zip.mjs', { stdio: 'inherit' })
+
 // 2. Gerar ZIP a partir do dist/ e salvar em public/ e dist/
 console.log('[PIPELINE] Passo 2: Executando gerador de ZIP a partir de dist/... ')
 execSync('node scripts/generate-pc-zip.mjs', { stdio: 'inherit' })

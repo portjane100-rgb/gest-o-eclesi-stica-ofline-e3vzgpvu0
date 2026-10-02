@@ -218,6 +218,13 @@ server.listen(0, '127.0.0.1', async () => {
       'utf-8',
     )
 
+    // Também salvar cópia no repo para persistir além do sandbox de build
+    fs.writeFileSync(
+      path.resolve('scripts/client-zip-summary.json'),
+      JSON.stringify(testSummary, null, 2),
+      'utf-8',
+    )
+
     server.close()
     console.log('\n[TESTE CLIENTE ZIP] Todos os testes passaram com sucesso!')
     process.exit(0)
