@@ -40,7 +40,6 @@ import { useToast } from '@/hooks/use-toast'
 import { ModoRevendaSection } from '@/components/ModoRevendaSection'
 import { KitImplantacaoSection } from '@/components/KitImplantacaoSection'
 import { BackupRestoreSection } from '@/components/BackupRestoreSection'
-import { ModelosDocumentosSection } from '@/components/ModelosDocumentosSection'
 import { hashPassword, localDb } from '@/lib/localDb'
 
 interface PerfilUserRecord {
@@ -80,15 +79,6 @@ export const AdminConfig: React.FC = () => {
   const [isSavingUser, setIsSavingUser] = useState(false)
 
   // Modal para cadastrar novo login de secretário (Tesoureiro)
-  // Modal de Zerar Dados do Sistema (Ação Perigosa / Modo Revenda)
-  const [isZerarModalOpen, setIsZerarModalOpen] = useState(false)
-  const [zerarConfirmacaoTexto, setZerarConfirmacaoTexto] = useState('')
-  const [isZerandoDados, setIsZerandoDados] = useState(false)
-  const [resultadoZerar, setResultadoZerar] = useState<{
-    counts: Record<string, number>
-    totalDeleted: number
-  } | null>(null)
-
   const [isNewUserModalOpen, setIsNewUserModalOpen] = useState(false)
   const [newUserName, setNewUserName] = useState('')
   const [newUserEmail, setNewUserEmail] = useState('')
@@ -105,65 +95,6 @@ export const AdminConfig: React.FC = () => {
   const [ownConfirmPassword, setOwnConfirmPassword] = useState('')
   const [showOwnPassword, setShowOwnPassword] = useState(false)
   const [isChangingOwnPass, setIsChangingOwnPass] = useState(false)
-
-  const handleExecutarZerarDados = async () => {
-    if (zerarConfirmacaoTexto.trim().toUpperCase() !== 'ZERAR') {
-      toast({
-        variant: 'destructive',
-        title: 'Confirmação incorreta',
-        description: 'Digite exatamente a palavra ZERAR em maiúsculas para confirmar.',
-      })
-      return
-    }
-
-    setIsZerandoDados(true)
-    try {
-      const collectionsToClear = [
-        'membros',
-        'congregados',
-        'obreiros',
-        'dizimistas',
-        'patrimonio',
-        'escala',
-        'escala_semana',
-        'calendario',
-        'agenda_semanal',
-        'albuns_fotos',
-        'fotos',
-        'cartas_recebidas',
-        'solicitacoes_cadastro',
-        'planilhas_mensais',
-      ]
-
-      const counts: Record<string, number> = {}
-      let totalDeleted = 0
-
-      for (const col of collectionsToClear) {
-        const c = await localDb.count(col)
-        counts[col] = c
-        totalDeleted += c
-        await localDb.clearCollection(col)
-      }
-
-      setResultadoZerar({
-        counts,
-        totalDeleted,
-      })
-
-      toast({
-        title: 'Dados operacionais zerados com sucesso!',
-        description: `${totalDeleted} registros operacionais foram apagados do computador. Logins, congregações e configurações foram preservados.`,
-      })
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao zerar dados',
-        description: err?.message || 'Falha ao executar operação.',
-      })
-    } finally {
-      setIsZerandoDados(false)
-    }
-  }
 
   const fetchPerfisUsers = async () => {
     setIsLoadingPerfis(true)
@@ -564,50 +495,8 @@ export const AdminConfig: React.FC = () => {
       {/* BACKUP & RESTAURAÇÃO LOCAL (OFFLINE / PENDRIVE / PASTA) */}
       <BackupRestoreSection />
 
-      {/* MODELOS DE TEXTO DOS DOCUMENTOS PDF */}
-      <ModelosDocumentosSection />
-
       {/* KIT DE IMPLANTAÇÃO (EXCLUSIVO DO TESOUREIRO PARA ENTREGA A NOVOS CLIENTES) */}
       {isTesoureiro && <KitImplantacaoSection />}
-
-      {/* BLOCO DE AÇÃO PERIGOSA: ZERAR DADOS DO SISTEMA (MODO REVENDA) */}
-      {isTesoureiro && (
-        <Card className="border-rose-200 bg-rose-50/40 shadow-xs rounded-2xl overflow-hidden">
-          <div className="h-1.5 bg-rose-600" />
-          <CardHeader className="p-5 sm:p-6 pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-100 border border-rose-300 text-rose-800 text-[11px] font-bold uppercase tracking-wider">
-                  <AlertOctagon className="w-3.5 h-3.5 text-rose-600" />
-                  Zona de Risco • Revenda & Limpeza
-                </div>
-                <CardTitle className="font-serif text-xl font-bold text-rose-950 flex items-center gap-2">
-                  Preparar para Novo Cliente
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm text-rose-900/80">
-                  Apaga todos os registros operacionais (membros, congregados, obreiros, dízimos,
-                  escalas, eventos, patrimônio e documentos gerados).
-                  <strong> Mantém intactos:</strong> congregações, configurações da igreja e contas
-                  de usuários (logins).
-                </CardDescription>
-              </div>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => {
-                  setZerarConfirmacaoTexto('')
-                  setResultadoZerar(null)
-                  setIsZerarModalOpen(true)
-                }}
-                className="bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs sm:text-sm shadow-xs self-start sm:self-auto gap-1.5 shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-                Preparar para Novo Cliente
-              </Button>
-            </div>
-          </CardHeader>
-        </Card>
-      )}
 
       {/* MODO REVENDA (IDENTIDADE, CORES, TEXTOS, RÓTULOS, LOGO) */}
       <ModoRevendaSection />
@@ -1319,165 +1208,6 @@ export const AdminConfig: React.FC = () => {
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL DE CONFIRMAÇÃO DUPLA: ZERAR DADOS DO SISTEMA */}
-      <Dialog
-        open={isZerarModalOpen}
-        onOpenChange={(open) => {
-          if (!isZerandoDados) {
-            setIsZerarModalOpen(open)
-            if (!open) {
-              setZerarConfirmacaoTexto('')
-              setResultadoZerar(null)
-            }
-          }
-        }}
-      >
-        <DialogContent className="max-w-xl bg-white border border-[#E6E2D8] shadow-2xl rounded-2xl">
-          <DialogHeader>
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-2 border border-rose-200">
-              <AlertOctagon className="w-6 h-6" />
-            </div>
-            <DialogTitle className="text-center font-serif text-xl font-bold text-rose-950">
-              Preparar para Novo Cliente (Zerar Dados Operacionais)
-            </DialogTitle>
-            <DialogDescription className="text-center text-xs sm:text-sm text-slate-600">
-              Esta ação irreversível apaga todo o histórico e cadastros operacionais da instância
-              para prepará-la para um novo cliente ou recomeço.
-            </DialogDescription>
-          </DialogHeader>
-
-          {!resultadoZerar ? (
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-950 space-y-1.5">
-                  <span className="font-bold uppercase tracking-wider text-[10px] text-rose-700 block">
-                    ❌ O que será APAGADO:
-                  </span>
-                  <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-900 leading-relaxed">
-                    <li>Membros e Congregados</li>
-                    <li>Obreiros e Escalas de Trabalho</li>
-                    <li>Dizimistas e Planilhas Mensais</li>
-                    <li>Bens de Patrimônio</li>
-                    <li>Calendário e Festividades</li>
-                    <li>Documentos e Certificados Emitidos</li>
-                  </ul>
-                </div>
-
-                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-1.5">
-                  <span className="font-bold uppercase tracking-wider text-[10px] text-emerald-700 block">
-                    ✅ O que será MANTIDO:
-                  </span>
-                  <ul className="list-disc list-inside space-y-0.5 text-[11px] text-emerald-900 leading-relaxed">
-                    <li>Contas de Usuários (logins e senhas)</li>
-                    <li>Congregações / Unidades cadastradas</li>
-                    <li>
-                      Configurações institucionais da igreja (nome, endereço, cores, logos,
-                      liderança)
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                <label className="text-xs font-bold text-slate-800 block">
-                  Confirmação obrigatória: Digite a palavra{' '}
-                  <span className="font-mono text-rose-700 bg-rose-100 px-1 py-0.5 rounded">
-                    ZERAR
-                  </span>{' '}
-                  para habilitar a exclusão:
-                </label>
-                <Input
-                  type="text"
-                  value={zerarConfirmacaoTexto}
-                  disabled={isZerandoDados}
-                  onChange={(e) => setZerarConfirmacaoTexto(e.target.value)}
-                  placeholder="Digite ZERAR em maiúsculas..."
-                  className="font-mono text-sm uppercase bg-white border-slate-300 focus:border-rose-500 focus:ring-rose-500"
-                />
-              </div>
-
-              <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-slate-100">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsZerarModalOpen(false)}
-                  disabled={isZerandoDados}
-                  className="text-xs flex-1"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleExecutarZerarDados}
-                  disabled={
-                    isZerandoDados || zerarConfirmacaoTexto.trim().toUpperCase() !== 'ZERAR'
-                  }
-                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs flex-1 font-bold shadow-xs"
-                >
-                  {isZerandoDados ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                      Apagando registros...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-3.5 h-3.5 mr-1.5" />
-                      Confirmar e Zerar Agora
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </div>
-          ) : (
-            <div className="space-y-4 py-2">
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-2">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">
-                  <Check className="w-5 h-5" />
-                </div>
-                <h4 className="font-bold text-emerald-900 text-sm">Dados zerados com êxito!</h4>
-                <p className="text-xs text-emerald-800">
-                  Foram apagados <strong>{resultadoZerar.totalDeleted}</strong> registros
-                  operacionais. As congregações, configurações e logins de usuários permanecem
-                  intactos.
-                </p>
-              </div>
-
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">
-                  Contagem de registros removidos por coleção:
-                </span>
-                <div className="max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2.5 bg-slate-50 space-y-1 text-xs font-mono">
-                  {Object.entries(resultadoZerar.counts).map(([col, qty]) => (
-                    <div
-                      key={col}
-                      className="flex items-center justify-between py-0.5 border-b border-slate-100 last:border-0"
-                    >
-                      <span className="text-slate-700">{col}</span>
-                      <span className="font-semibold text-rose-700">{qty} apagado(s)</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <DialogFooter className="pt-2 border-t border-slate-100">
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setIsZerarModalOpen(false)
-                    setResultadoZerar(null)
-                    setZerarConfirmacaoTexto('')
-                  }}
-                  className="w-full bg-[#1E3A5F] hover:bg-[#16304F] text-white text-xs font-semibold"
-                >
-                  Concluir e Fechar
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
     </div>

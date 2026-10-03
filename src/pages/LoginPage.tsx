@@ -13,10 +13,7 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
-  FolderDown,
-  MonitorDown,
 } from 'lucide-react'
-import { DownloadPacotePcModal } from '@/components/DownloadPacotePcModal'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { AdtcLogo } from '@/components/AdtcLogo'
 import { Button } from '@/components/ui/button'
@@ -58,9 +55,6 @@ export const LoginPage: React.FC = () => {
   const [migrando, setMigrando] = useState(false)
   const [migrationStatus, setMigrationStatus] = useState<MigrationProgress | null>(null)
   const [migracaoJaFeita, setMigracaoJaFeita] = useState(true)
-
-  // Estado para Modal de Download do Pacote para PC
-  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
 
   // Redireciona se já estiver logado
   useEffect(() => {
@@ -185,34 +179,6 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-[#1E3A5F] flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-4">
-        {/* Banner de Sistema Local Offline com Botão de Download */}
-        <div className="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/15 text-white space-y-2.5">
-          <div className="flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <HardDrive className="h-4 w-4 text-emerald-400" />
-              <span className="font-semibold tracking-wide">Versão Local (Desktop)</span>
-            </div>
-            <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono font-medium text-[11px]">
-              100% Offline
-            </span>
-          </div>
-
-          <div className="pt-1 flex items-center justify-between gap-2 border-t border-white/10">
-            <div className="text-[11px] text-white/80 leading-tight">
-              Testar fora daqui no seu PC ou distribuir na Hotmart:
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setIsDownloadModalOpen(true)}
-              className="bg-[#C9A227] hover:bg-[#b08d20] text-[#1E3A5F] font-bold text-xs h-7 px-3 gap-1.5 shadow-sm shrink-0"
-            >
-              <MonitorDown className="w-3.5 h-3.5" />
-              Baixar para PC
-            </Button>
-          </div>
-        </div>
-
         {/* Card Principal */}
         <Card className="border-0 shadow-2xl bg-white/95 backdrop-blur-lg">
           <CardHeader className="text-center pb-3 pt-6">
@@ -449,21 +415,8 @@ export const LoginPage: React.FC = () => {
           <p className="text-[11px] text-white/60">
             Instalação local individual • Licença vitalícia da igreja
           </p>
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setIsDownloadModalOpen(true)}
-              className="inline-flex items-center gap-1.5 text-xs text-[#C9A227] hover:text-amber-300 underline font-medium cursor-pointer"
-            >
-              <FolderDown className="w-3.5 h-3.5" />
-              Baixar pacote completo do sistema (.zip) para testar no computador
-            </button>
-          </div>
         </div>
       </div>
-
-      {/* Modal de Download do Pacote ZIP */}
-      <DownloadPacotePcModal open={isDownloadModalOpen} onOpenChange={setIsDownloadModalOpen} />
     </div>
   )
 }

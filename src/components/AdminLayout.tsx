@@ -15,7 +15,6 @@ import {
   LogOut,
   Menu,
   X,
-  ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
@@ -82,12 +81,6 @@ export const AdminLayout: React.FC = () => {
     },
     { to: '/admin/documentos', label: 'Documentos Oficiais', icon: FileText, exact: false },
     { to: '/admin/config', label: 'Configurações', icon: Settings, exact: false },
-    {
-      to: '/admin/teste-persistencia',
-      label: 'Teste Persistência 7/7',
-      icon: ShieldCheck,
-      exact: false,
-    },
   ]
 
   const menuItems = allMenuItems.filter((item) => !item.financeiroOnly || podeAcessarFinanceiro)

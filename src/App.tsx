@@ -21,7 +21,6 @@ import AdminCalendario from '@/pages/admin/AdminCalendario'
 import AdminDocumentos from '@/pages/admin/AdminDocumentos'
 import AdminCongregacoes from '@/pages/admin/AdminCongregacoes'
 import AdminConfig from '@/pages/admin/AdminConfig'
-import AdminTestePersistencia from '@/pages/admin/AdminTestePersistencia'
 
 export function App() {
   return (
@@ -65,7 +64,6 @@ export function App() {
               <Route path="congregacoes" element={<AdminCongregacoes />} />
               <Route path="documentos" element={<AdminDocumentos />} />
               <Route path="config" element={<AdminConfig />} />
-              <Route path="teste-persistencia" element={<AdminTestePersistencia />} />
             </Route>
 
             {/* Fallback de rotas desconhecidas */}

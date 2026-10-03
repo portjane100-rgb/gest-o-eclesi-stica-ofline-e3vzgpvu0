@@ -965,8 +965,7 @@ export const Dashboard: React.FC = () => {
                 </Badge>
               </div>
               <p className="text-xs text-slate-500">
-                Membros e congregados com data de nascimento neste mês. Clique para felicitar pelo
-                WhatsApp ou telefone.
+                Membros e congregados com data de nascimento neste mês.
               </p>
             </div>
           </div>
