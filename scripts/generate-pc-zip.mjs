@@ -400,7 +400,7 @@ export function gerarPacoteZip() {
   }
 
   // Gravar arquivo de metadados do pacote (versão do app e timestamp)
-  let packageVersion = '0.0.58'
+  let packageVersion = '0.0.60'
   try {
     const pkgJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'))
     if (pkgJson.version) packageVersion = pkgJson.version

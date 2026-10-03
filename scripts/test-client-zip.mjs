@@ -125,7 +125,7 @@ server.listen(0, '127.0.0.1', async () => {
     }
 
     // Adicionar metadados
-    let testVersion = '0.0.58'
+    let testVersion = '0.0.60'
     try {
       const pkg = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf-8'))
       if (pkg.version) testVersion = pkg.version

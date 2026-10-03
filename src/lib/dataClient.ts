@@ -16,7 +16,21 @@ import { CHURCH_CONFIG_DEFAULTS, type ChurchConfig } from '@/contexts/ChurchConf
 import { toast } from '@/hooks/use-toast'
 
 /**
- * Mensagem clara de sessão expirada para operações de escrita.
+ * Detecta se a operação atual deve ser processada localmente (IndexedDB / localDb).
+ * Roteamento inteligente:
+ * - Se estiver no modo offline explícito (isOfflineOnly()), é local.
+ * - Se não houver token PocketBase válido/ativo (ex.: login com conta local no preview web,
+ *   admin/123456 via AuthContext e localStorage), a operação é roteada diretamente para o
+ *   IndexedDB local, sem bloquear com "sessão expirada".
+ */
+export function isLocalOperation(): boolean {
+  if (isOfflineOnly()) return true
+  if (!pb.authStore.isValid || !pb.authStore.token) return true
+  return false
+}
+
+/**
+ * Mensagem clara de sessão expirada para operações de escrita em servidores PocketBase remotos.
  */
 function notificarSessaoExpirada() {
   toast({
@@ -27,11 +41,13 @@ function notificarSessaoExpirada() {
 }
 
 /**
- * Garante que o client PocketBase possua token de autenticação válido antes de mutações.
- * Se o token estiver ausente, inválido ou perto de expirar, tenta renovar via authRefresh().
+ * Garante que o client PocketBase possua token de autenticação válido antes de mutações no servidor.
+ * Se a operação for local (isLocalOperation()), retorna de imediato sem toast.
+ * Se o token PocketBase estiver ausente ou inválido, renova se possível ou emite toast apenas para
+ * sessões remotas expiradas.
  */
 async function ensureValidAuth(): Promise<void> {
-  if (isOfflineOnly()) return
+  if (isLocalOperation()) return
 
   if (!pb.authStore.isValid || !pb.authStore.token) {
     notificarSessaoExpirada()
@@ -147,7 +163,7 @@ export async function getItems<T = any>(
   collection: string,
   options?: { sort?: string; filter?: string; [key: string]: any },
 ): Promise<T[]> {
-  if (isOfflineOnly()) {
+  if (isLocalOperation()) {
     // No localDb não existe filter SQL: aplica filtro de status/congregacao em memória
     // cobrindo os padrões usados no sistema ("status='Ativo'", etc).
     let items = await localDb.getFullList<T>(collection, { sort: options?.sort })
@@ -159,7 +175,23 @@ export async function getItems<T = any>(
     }
     return items
   }
-  return pb.collection(collection).getFullList<T>(options)
+  try {
+    return await pb.collection(collection).getFullList<T>(options)
+  } catch (err) {
+    // Fallback gracioso para localDb caso a rede ou o PocketBase falhe
+    console.warn(
+      `getItems (${collection}): fallback para localDb por erro de conexão/servidor:`,
+      err,
+    )
+    let items = await localDb.getFullList<T>(collection, { sort: options?.sort })
+    if (options?.filter) {
+      const matches = parseFilter(options.filter)
+      if (matches) {
+        items = items.filter((item: any) => matches(item))
+      }
+    }
+    return items
+  }
 }
 
 /** Conta registros (usado para stats de Dashboard). */
@@ -167,12 +199,21 @@ export async function countItems(
   collection: string,
   options?: { filter?: string },
 ): Promise<number> {
-  if (isOfflineOnly()) {
+  if (isLocalOperation()) {
     const items = await getItems(collection, options)
     return items.length
   }
-  const res = await pb.collection(collection).getList(1, 1, options)
-  return res.totalItems
+  try {
+    const res = await pb.collection(collection).getList(1, 1, options)
+    return res.totalItems
+  } catch (err) {
+    console.warn(
+      `countItems (${collection}): fallback para localDb por erro de conexão/servidor:`,
+      err,
+    )
+    const items = await getItems(collection, options)
+    return items.length
+  }
 }
 
 /** Cria um registro; arquivos opcionais viram Base64 no modo offline. */
@@ -181,7 +222,7 @@ export async function createItem(
   data: FormData | Record<string, any>,
   files?: Record<string, File | Blob>,
 ): Promise<any> {
-  if (isOfflineOnly()) {
+  if (isLocalOperation()) {
     let payload: Record<string, any>
     if (data instanceof FormData) {
       payload = await formDataToLocal(data)
@@ -225,7 +266,7 @@ export async function updateItem(
   data: FormData | Record<string, any>,
   files?: Record<string, File | Blob>,
 ): Promise<any> {
-  if (isOfflineOnly()) {
+  if (isLocalOperation()) {
     let payload: Record<string, any>
     if (data instanceof FormData) {
       payload = await formDataToLocal(data)
@@ -269,7 +310,7 @@ export async function updateItem(
 
 /** Remove um registro. */
 export async function deleteItem(collection: string, id: string): Promise<boolean> {
-  if (isOfflineOnly()) {
+  if (isLocalOperation()) {
     return localDb.delete(collection, id)
   }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { localDb } from '@/lib/localDb'
-import { isOfflineOnly } from '@/lib/offlineMode'
 import pb from '@/lib/pocketbase/client'
+import { isLocalOperation } from '@/lib/dataClient'
 
 export interface CongregacaoItem {
   id: string
@@ -45,7 +45,7 @@ export function ordenarCongregacoes(lista: CongregacaoItem[]): CongregacaoItem[]
 export async function fetchCongregacoesFromDb(): Promise<CongregacaoItem[]> {
   try {
     let records: any[] = []
-    if (isOfflineOnly()) {
+    if (isLocalOperation()) {
       records = await localDb.getFullList<any>('congregacoes')
     } else {
       try {
