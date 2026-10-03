@@ -616,7 +616,7 @@ export async function gerarPacoteZipNoCliente(
   const metaPacote = JSON.stringify(
     {
       app: 'Gestão Eclesiástica',
-      version: '0.0.56',
+      version: '0.0.58',
       buildTimestamp: new Date().toISOString(),
       offlineOnly: true,
       geradoNoCliente: true,

@@ -15,8 +15,6 @@ import {
   CalendarDays,
   FileText,
   UserPlus,
-  PlusCircle,
-  TrendingUp,
   Church,
   Cake,
   UserX,
@@ -36,6 +34,7 @@ import {
 import useRealtime from '@/hooks/use-realtime'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
+
 interface AniversarianteMesItem {
   id: string
   nome: string
@@ -59,6 +58,7 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState({
     totalMembros: 0,
     totalCongregados: 0,
+    totalCongregacoes: 0,
     totalObreiros: 0,
     totalDizimistasMes: 0,
     totalEventosFuturos: 0,
@@ -71,7 +71,7 @@ export const Dashboard: React.FC = () => {
   const [obreirosPorCargo, setObreirosPorCargo] = useState<Record<string, number>>({})
   const [todosEventos, setTodosEventos] = useState<CalendarioEvento[]>([])
   const [aniversariantesDoMes, setAniversariantesDoMes] = useState<AniversarianteMesItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
 
   // Mês e ano selecionados para o calendário
   const hoje = new Date()
@@ -152,7 +152,11 @@ export const Dashboard: React.FC = () => {
 
       // Congregados ativos
       const congregadosAtivos = todosCongregados.filter((c) => {
-        const s = ((c as any).situacao || c.status || 'Ativo').toLowerCase()
+        const s = (
+          (c as unknown as { situacao?: string }).situacao ||
+          c.status ||
+          'Ativo'
+        ).toLowerCase()
         return s.includes('ativo') && !s.includes('inativo') && !s.includes('falecido')
       })
 
@@ -161,7 +165,9 @@ export const Dashboard: React.FC = () => {
         (m.status || '').toLowerCase().includes('falecido'),
       ).length
       const congregadosFalecidos = todosCongregados.filter((c) =>
-        ((c as any).situacao || c.status || '').toLowerCase().includes('falecido'),
+        ((c as unknown as { situacao?: string }).situacao || c.status || '')
+          .toLowerCase()
+          .includes('falecido'),
       ).length
       const totalFalecidosGeral = membrosFalecidos + congregadosFalecidos
 
@@ -177,7 +183,7 @@ export const Dashboard: React.FC = () => {
         )
       }).length
       const congregadosInativos = todosCongregados.filter((c) => {
-        const s = ((c as any).situacao || c.status || '').toLowerCase()
+        const s = ((c as unknown as { situacao?: string }).situacao || c.status || '').toLowerCase()
         return (s.includes('inativo') || s.includes('afastado')) && !s.includes('falecido')
       }).length
       const totalInativosGeral = membrosInativos + congregadosInativos
@@ -217,7 +223,10 @@ export const Dashboard: React.FC = () => {
 
       // Processar Congregados
       congregadosAtivos.forEach((c) => {
-        const dm = extrairDiaMes(c.data_nascimento, (c as any).data_nascimento_texto)
+        const dm = extrairDiaMes(
+          c.data_nascimento,
+          (c as unknown as { data_nascimento_texto?: string }).data_nascimento_texto,
+        )
         if (dm) {
           if (dm.dia === diaHoje && dm.mes === mesHoje) {
             anivHojeCount++
@@ -231,7 +240,8 @@ export const Dashboard: React.FC = () => {
               dia: dm.dia,
               mes: dm.mes,
               data_nascimento: c.data_nascimento,
-              data_nascimento_texto: (c as any).data_nascimento_texto,
+              data_nascimento_texto: (c as unknown as { data_nascimento_texto?: string })
+                .data_nascimento_texto,
               whatsapp: c.whatsapp,
               telefone: c.telefone,
             })
@@ -251,6 +261,7 @@ export const Dashboard: React.FC = () => {
       setStats({
         totalMembros: membrosAtivos.length,
         totalCongregados: congregadosAtivos.length,
+        totalCongregacoes: totalUnidades,
         totalObreiros: obreirosAtivos.length,
         totalDizimistasMes: todosDizimistas.length,
         totalEventosFuturos: eventosRes.length,
@@ -272,7 +283,8 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     loadDashboardData()
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalUnidades])
 
   useRealtime<Membro>('membros', () => loadDashboardData())
   useRealtime<Congregado>('congregados', () => loadDashboardData())
@@ -314,8 +326,6 @@ export const Dashboard: React.FC = () => {
     const mapa: Record<number, CalendarioEvento[]> = {}
     todosEventos.forEach((ev) => {
       if (!ev.data_inicio) return
-      // Verificar se o evento toca o ano/mês em exibição
-      // Para simplificar e cobrir intervalos:
       const iniStr = ev.data_inicio.slice(0, 10).split('-')
       if (iniStr.length !== 3) return
       const evAno = parseInt(iniStr[0], 10)
@@ -385,7 +395,8 @@ export const Dashboard: React.FC = () => {
     const hojeStr = new Date().toISOString().slice(0, 10)
     return todosEventos
       .filter((ev) => {
-        const fim = ev.data_termino || (ev as any).data_fim || ev.data_inicio
+        const fim =
+          ev.data_termino || (ev as unknown as { data_fim?: string }).data_fim || ev.data_inicio
         return (fim || '').slice(0, 10) >= hojeStr
       })
       .slice(0, 5)
@@ -400,28 +411,28 @@ export const Dashboard: React.FC = () => {
   const SaudacaoIcone = saudacaoHorario.icone
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="-m-4 sm:-m-6 lg:-m-8 p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-[#F2EFE9] via-[#EDE8E0] to-[#E5DFC5]/40 min-h-full space-y-7 pb-12">
       {/* =========================================================================
           1. CABEÇALHO COM IDENTIDADE VISUAL AZUL-PROFUNDO / DOURADO & SAUDAÇÃO
       ========================================================================= */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F1F38] via-[#162D4E] to-[#1E3A5F] text-white p-6 sm:p-8 shadow-xl border border-[#C9A227]/30">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F1F38] via-[#162D4E] to-[#1E3A5F] text-white p-6 sm:p-7 shadow-xl border border-[#C9A227]/40">
         {/* Detalhe de fundo dourado luminoso */}
         <div className="absolute -right-16 -top-16 w-80 h-80 bg-gradient-to-br from-[#C9A227]/25 to-amber-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-12 -bottom-12 w-64 h-64 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+        <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
           <div className="flex items-start sm:items-center gap-4">
             {config.logoUrl && (
               <img
                 src={config.logoUrl}
                 alt={config.nomeIgreja || 'Logo da Igreja'}
-                className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover bg-white p-1 border-2 border-[#C9A227] shadow-lg flex-shrink-0"
+                className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover bg-white p-1 border-2 border-[#C9A227] shadow-lg flex-shrink-0"
                 onError={(e) => {
                   ;(e.target as HTMLImageElement).style.display = 'none'
                 }}
               />
             )}
-            <div className="space-y-2 max-w-2xl">
+            <div className="space-y-1.5 max-w-2xl">
               {/* Saudação com horário e nome */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs font-semibold text-amber-200">
                 <SaudacaoIcone className={`w-4 h-4 ${saudacaoHorario.cor}`} />
@@ -435,14 +446,14 @@ export const Dashboard: React.FC = () => {
                 </span>
               </div>
 
-              <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white">
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
                 Painel de Gestão da{' '}
                 <span className="text-[#E7C768]">
                   {config.siglaIgreja || config.nomeIgreja || 'Gestão Eclesiástica'}
                 </span>
               </h1>
 
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              <p className="text-xs text-slate-300 leading-relaxed">
                 {config.denominacao || 'Sistema de Gestão Eclesiástica Integrado'} — Rol de membros,
                 congregações, dizimistas, escalas e emissão oficial de documentos.
               </p>
@@ -450,10 +461,10 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Ações Rápidas em Destaque */}
-          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
             <Button
               asChild
-              className="bg-[#C9A227] hover:bg-[#b08d20] text-[#1E3A5F] font-bold text-xs h-10 px-4 shadow-lg hover:shadow-xl transition-all"
+              className="bg-[#C9A227] hover:bg-[#b08d20] text-[#1E3A5F] font-bold text-xs h-9 px-3.5 shadow-md hover:shadow-lg transition-all"
             >
               <Link to="/admin/membros?novo=true">
                 <UserPlus className="w-4 h-4 mr-1.5" />
@@ -463,7 +474,7 @@ export const Dashboard: React.FC = () => {
             <Button
               asChild
               variant="outline"
-              className="border-white/20 bg-white/10 hover:bg-white/20 text-white text-xs h-10 px-4 backdrop-blur-xs"
+              className="border-white/20 bg-white/10 hover:bg-white/20 text-white text-xs h-9 px-3.5 backdrop-blur-xs"
             >
               <Link to="/admin/calendario">
                 <CalendarDays className="w-4 h-4 mr-1.5 text-amber-300" />
@@ -473,7 +484,7 @@ export const Dashboard: React.FC = () => {
             <Button
               asChild
               variant="outline"
-              className="border-white/20 bg-white/10 hover:bg-white/20 text-white text-xs h-10 px-4 backdrop-blur-xs"
+              className="border-white/20 bg-white/10 hover:bg-white/20 text-white text-xs h-9 px-3.5 backdrop-blur-xs"
             >
               <Link to="/admin/documentos">
                 <FileText className="w-4 h-4 mr-1.5 text-[#C9A227]" />
@@ -485,24 +496,24 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* =========================================================================
-          2. CARTÕES DE MÓDULOS (CORES VIVAS, ÍCONES PADRONIZADOS, PALETA DOURADO/AZUL)
+          2. CARTÕES DE MÓDULOS (CORES VIVAS DE FUNDO, CARDS SEPARADOS, ÍCONES PADRONIZADOS)
       ========================================================================= */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        {/* Membros Ativos */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-3.5">
+        {/* Card 1: Membros Ativos */}
         <Link to="/admin/membros" className="block group">
-          <Card className="border-2 border-blue-200/90 hover:border-[#1E3A5F] bg-gradient-to-b from-white to-blue-50/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#1E3A5F] to-[#2B5282] text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-blue-200">
+          <Card className="border border-blue-200/90 hover:border-blue-500 bg-gradient-to-br from-blue-50/90 via-sky-50/60 to-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-3.5 space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1E3A5F] to-[#2B5282] text-white shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ring-2 ring-blue-200/80">
                 <Users className="w-5 h-5 text-amber-300" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-900/80 block">
                   Rol de Membros
                 </span>
-                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
+                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block leading-tight">
                   {stats.totalMembros}
                 </span>
-                <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                <span className="text-[11px] text-emerald-700 font-semibold flex items-center gap-1 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                   Em comunhão
                 </span>
@@ -511,63 +522,90 @@ export const Dashboard: React.FC = () => {
           </Card>
         </Link>
 
-        {/* Congregados */}
+        {/* Card 2: Congregados (CARD PRÓPRIO, CONTAGEM DE CONGREGADOS) */}
         <Link to="/admin/congregados" className="block group">
-          <Card className="border-2 border-amber-300/80 hover:border-[#C9A227] bg-gradient-to-b from-white to-amber-50/50 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#C9A227] to-[#997610] text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-amber-200">
+          <Card className="border border-amber-200/90 hover:border-[#C9A227] bg-gradient-to-br from-amber-50/90 via-yellow-50/60 to-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-3.5 space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#C9A227] to-[#997610] text-white shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ring-2 ring-amber-200/80">
                 <UserCheck className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900/80 block">
                   Congregados
                 </span>
-                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
+                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block leading-tight">
                   {stats.totalCongregados}
                 </span>
-                <span className="text-[11px] text-amber-800 font-semibold">
-                  {totalUnidades} {totalUnidades === 1 ? 'congregação' : 'congregações'}
+                <span className="text-[11px] text-amber-800 font-semibold flex items-center gap-1 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                  Frequentadores
                 </span>
               </div>
             </CardContent>
           </Card>
         </Link>
 
-        {/* Corpo de Obreiros */}
+        {/* Card 3: Congregações (CARD SEPARADO, CONTAGEM DE CONGREGAÇÕES) */}
+        <Link to="/admin/congregacoes" className="block group">
+          <Card className="border border-orange-200/90 hover:border-orange-500 bg-gradient-to-br from-orange-50/90 via-amber-50/50 to-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-3.5 space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#9A3412] to-[#C2410C] text-white shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ring-2 ring-orange-200/80">
+                <Church className="w-5 h-5 text-amber-200" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-orange-900/80 block">
+                  Congregações
+                </span>
+                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block leading-tight">
+                  {stats.totalCongregacoes}
+                </span>
+                <span className="text-[11px] text-orange-800 font-semibold block mt-0.5 truncate">
+                  {stats.totalCongregacoes === 1
+                    ? '1 congregação'
+                    : `${stats.totalCongregacoes} unidades`}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Card 4: Corpo de Obreiros */}
         <Link to="/admin/obreiros" className="block group">
-          <Card className="border-2 border-emerald-300/80 hover:border-emerald-600 bg-gradient-to-b from-white to-emerald-50/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-emerald-200">
+          <Card className="border border-emerald-200/90 hover:border-emerald-600 bg-gradient-to-br from-emerald-50/90 via-teal-50/60 to-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-3.5 space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 text-white shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ring-2 ring-emerald-200/80">
                 <Award className="w-5 h-5 text-amber-200" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/80 block">
                   Obreiros
                 </span>
-                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
+                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block leading-tight">
                   {stats.totalObreiros}
                 </span>
-                <span className="text-[11px] text-emerald-700 font-bold">Corpo Ministerial</span>
+                <span className="text-[11px] text-emerald-800 font-semibold block mt-0.5">
+                  Corpo Ministerial
+                </span>
               </div>
             </CardContent>
           </Card>
         </Link>
 
-        {/* Aniversariantes do Mês */}
+        {/* Card 5: Aniversariantes do Mês */}
         <Link to="/admin/membros?aba=aniversariantes" className="block group">
-          <Card className="border-2 border-pink-300/80 hover:border-pink-500 bg-gradient-to-b from-white to-pink-50/50 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-pink-200">
+          <Card className="border border-pink-200/90 hover:border-pink-500 bg-gradient-to-br from-pink-50/90 via-rose-50/60 to-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-3.5 space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ring-2 ring-pink-200/80">
                 <Cake className="w-5 h-5 text-white" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-pink-900 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-pink-900/80 block">
                   Aniversariantes
                 </span>
-                <span className="font-serif text-2xl font-bold text-pink-700 block">
+                <span className="font-serif text-2xl font-bold text-pink-700 block leading-tight">
                   {stats.totalAniversariantesMes}
                 </span>
-                <span className="text-[11px] text-pink-600 font-bold">
+                <span className="text-[11px] text-pink-700 font-semibold block mt-0.5 truncate">
                   {stats.totalAniversariantesHoje > 0
                     ? `🎉 ${stats.totalAniversariantesHoje} celebrando hoje!`
                     : 'Neste mês'}
@@ -577,24 +615,24 @@ export const Dashboard: React.FC = () => {
           </Card>
         </Link>
 
-        {/* Dizimistas & Tesouraria */}
+        {/* Card 6: Dizimistas & Tesouraria */}
         <Link
           to={podeAcessarFinanceiro ? '/admin/dizimistas' : '#'}
           className={`block group ${!podeAcessarFinanceiro ? 'pointer-events-none opacity-80' : ''}`}
         >
-          <Card className="border-2 border-purple-300/80 hover:border-purple-600 bg-gradient-to-b from-white to-purple-50/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-700 to-indigo-900 text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-purple-200">
+          <Card className="border border-purple-200/90 hover:border-purple-600 bg-gradient-to-br from-purple-50/90 via-violet-50/60 to-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-3.5 space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-700 to-indigo-900 text-white shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ring-2 ring-purple-200/80">
                 <Wallet className="w-5 h-5 text-amber-300" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-900 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-900/80 block">
                   Dízimos & Ofertas
                 </span>
-                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
+                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block leading-tight">
                   {stats.totalDizimistasMes}
                 </span>
-                <span className="text-[11px] text-purple-700 font-bold">
+                <span className="text-[11px] text-purple-800 font-semibold block mt-0.5 truncate">
                   {podeAcessarFinanceiro ? 'Sessão Financeira' : 'Acesso Restrito'}
                 </span>
               </div>
@@ -602,21 +640,23 @@ export const Dashboard: React.FC = () => {
           </Card>
         </Link>
 
-        {/* Eventos / Festas */}
+        {/* Card 7: Eventos / Festas */}
         <Link to="/admin/calendario" className="block group">
-          <Card className="border-2 border-indigo-300/80 hover:border-[#1E3A5F] bg-gradient-to-b from-white to-indigo-50/40 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
-            <CardContent className="p-4 space-y-2.5">
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#1E3A5F] via-[#102A45] to-amber-600 text-white shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform ring-2 ring-indigo-200">
+          <Card className="border border-indigo-200/90 hover:border-indigo-600 bg-gradient-to-br from-indigo-50/90 via-blue-50/50 to-white shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 rounded-2xl overflow-hidden h-full">
+            <CardContent className="p-3.5 space-y-2">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1E3A5F] via-[#102A45] to-[#254C78] text-white shadow-xs flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ring-2 ring-indigo-200/80">
                 <CalendarDays className="w-5 h-5 text-[#C9A227]" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-900 block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-900/80 block">
                   Festas & Agenda
                 </span>
-                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block">
+                <span className="font-serif text-2xl font-bold text-[#1E3A5F] block leading-tight">
                   {stats.totalEventosFuturos}
                 </span>
-                <span className="text-[11px] text-[#C9A227] font-bold">Calendário Oficial</span>
+                <span className="text-[11px] text-indigo-800 font-semibold block mt-0.5">
+                  Calendário Oficial
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -624,29 +664,27 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* =========================================================================
-          3. SEÇÃO PRINCIPAL COMPACTA: CALENDÁRIO ENXUTO + PRÓXIMOS EVENTOS + ACOMPANHAMENTO
+          3. SEÇÃO PRINCIPAL EQUILIBRADA: CALENDÁRIO COMPACTO + PRÓXIMOS EVENTOS + ACOMPANHAMENTO
       ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        {/* Calendário Mensal Compacto e Enxuto (7 colunas lg:col-span-7) */}
-        <div className="lg:col-span-7 bg-white border border-[#E6E2D8] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+        {/* Calendário Mensal Compacto (lg:col-span-6 para deixar equilibrado e não dominante) */}
+        <div className="lg:col-span-6 bg-white/95 border border-[#E0D9C9] rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-2.5">
           {/* Cabeçalho do Calendário Compacto */}
-          <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-[#E6E2D8]">
+          <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#EAE4D7]">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1E3A5F] to-[#12243B] text-[#C9A227] flex items-center justify-center font-bold shadow-xs">
-                <CalendarIcon className="w-4 h-4" />
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#1E3A5F] to-[#12243B] text-[#C9A227] flex items-center justify-center font-bold shadow-2xs shrink-0">
+                <CalendarIcon className="w-3.5 h-3.5" />
               </div>
               <div>
-                <h2 className="font-serif text-base sm:text-lg font-bold text-[#1E3A5F] flex items-center gap-1.5 leading-tight">
+                <h2 className="font-serif text-sm sm:text-base font-bold text-[#1E3A5F] flex items-center gap-1.5 leading-tight">
                   <span>
                     {mesesNomes[mesAtual]} {anoAtual}
                   </span>
-                  <Badge className="bg-[#C9A227] text-[#1E3A5F] font-bold text-[9px] px-1.5 py-0 h-4 uppercase">
+                  <Badge className="bg-[#C9A227] text-[#1E3A5F] font-bold text-[9px] px-1.5 py-0 h-3.5 uppercase">
                     Festas
                   </Badge>
                 </h2>
-                <span className="text-[10px] text-slate-500">
-                  Pontos coloridos indicam eventos no dia
-                </span>
+                <span className="text-[10px] text-slate-500">Pontos coloridos indicam eventos</span>
               </div>
             </div>
 
@@ -656,7 +694,7 @@ export const Dashboard: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={voltarMesAtual}
-                className="text-[11px] h-7 px-2 border-[#E6E2D8] text-slate-700"
+                className="text-[10px] h-6 px-1.5 border-[#D8D0BE] text-slate-700 bg-white hover:bg-slate-50"
               >
                 Hoje
               </Button>
@@ -664,25 +702,25 @@ export const Dashboard: React.FC = () => {
                 variant="outline"
                 size="icon"
                 onClick={() => mudarMes(-1)}
-                className="h-7 w-7 border-[#E6E2D8] text-[#1E3A5F]"
+                className="h-6 w-6 border-[#D8D0BE] text-[#1E3A5F] bg-white hover:bg-slate-50"
                 title="Mês Anterior"
               >
-                <ChevronLeft className="w-3.5 h-3.5" />
+                <ChevronLeft className="w-3 h-3" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => mudarMes(1)}
-                className="h-7 w-7 border-[#E6E2D8] text-[#1E3A5F]"
+                className="h-6 w-6 border-[#D8D0BE] text-[#1E3A5F] bg-white hover:bg-slate-50"
                 title="Próximo Mês"
               >
-                <ChevronRight className="w-3.5 h-3.5" />
+                <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
           </div>
 
           {/* Grade de Dias da Semana Compacta */}
-          <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-bold text-slate-500 pb-0.5">
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-500 pb-0.5">
             <span className="text-rose-600">D</span>
             <span>S</span>
             <span>T</span>
@@ -692,7 +730,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-blue-600">S</span>
           </div>
 
-          {/* Grade de Células Compactas do Calendário com Pontinhos */}
+          {/* Grade de Células Compactas do Calendário (h-7 sm:h-8) */}
           <div className="grid grid-cols-7 gap-1">
             {gridDias.map((dia, idx) => {
               const temEvento = dia.eventos.length > 0
@@ -712,20 +750,20 @@ export const Dashboard: React.FC = () => {
                       : ''
                   }
                   onClick={() => dia.mesAtual && setDiaSelecionado(dia.numero)}
-                  className={`h-9 sm:h-10 p-1 rounded-lg text-center flex flex-col items-center justify-between transition-all duration-150 relative ${
+                  className={`h-7 sm:h-8 p-0.5 rounded-md text-center flex flex-col items-center justify-between transition-all duration-150 relative ${
                     !dia.mesAtual
-                      ? 'bg-slate-50/40 text-slate-300 cursor-default opacity-30'
+                      ? 'bg-slate-50/30 text-slate-300 cursor-default opacity-25'
                       : selecionado
-                        ? 'bg-[#1E3A5F] text-white shadow-xs font-bold ring-2 ring-[#C9A227]'
+                        ? 'bg-[#1E3A5F] text-white shadow-xs font-bold ring-1.5 ring-[#C9A227]'
                         : dia.isHoje
-                          ? 'bg-amber-100/80 border border-[#C9A227] text-slate-900 font-extrabold'
+                          ? 'bg-amber-100/90 border border-[#C9A227] text-slate-900 font-extrabold'
                           : temEvento
-                            ? 'bg-blue-50/80 border border-blue-200/90 text-slate-900 hover:bg-blue-100/70 font-semibold'
+                            ? 'bg-blue-50/90 border border-blue-200/80 text-slate-900 hover:bg-blue-100/70 font-semibold'
                             : 'bg-white border border-slate-100 text-slate-700 hover:bg-slate-50'
                   }`}
                 >
                   <span
-                    className={`text-[11px] sm:text-xs leading-none ${
+                    className={`text-[10px] leading-none ${
                       selecionado
                         ? 'text-white'
                         : dia.isHoje
@@ -736,13 +774,13 @@ export const Dashboard: React.FC = () => {
                     {dia.numero}
                   </span>
 
-                  {/* Marcadores em pontinho/bolinhas discretas */}
+                  {/* Marcadores em pontinho discretos */}
                   {temEvento && (
-                    <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                    <div className="flex items-center justify-center gap-0.5">
                       {dia.eventos.slice(0, 3).map((ev, eIdx) => (
                         <span
                           key={ev.id || eIdx}
-                          className={`w-1.5 h-1.5 rounded-full ${
+                          className={`w-1 h-1 rounded-full ${
                             selecionado
                               ? 'bg-amber-300'
                               : eIdx === 0
@@ -762,13 +800,13 @@ export const Dashboard: React.FC = () => {
 
           {/* Detalhes do Dia Selecionado Enxutos */}
           {diaSelecionado && (
-            <div className="p-3 rounded-xl bg-[#F7F5F0] border border-[#E6E2D8] space-y-1.5 text-xs">
+            <div className="p-2.5 rounded-xl bg-[#F6F3EC] border border-[#E2DBD0] space-y-1 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#1E3A5F] flex items-center gap-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#1E3A5F] flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-[#C9A227]" />
                   Dia {diaSelecionado} de {mesesNomes[mesAtual]}:
                 </span>
-                <span className="text-[11px] text-slate-500 font-medium">
+                <span className="text-[10px] text-slate-500 font-medium">
                   {eventosDoDiaSelecionado.length === 0
                     ? 'Nenhum evento'
                     : `${eventosDoDiaSelecionado.length} evento(s)`}
@@ -776,17 +814,17 @@ export const Dashboard: React.FC = () => {
               </div>
 
               {eventosDoDiaSelecionado.length > 0 ? (
-                <div className="space-y-1.5 pt-1">
+                <div className="space-y-1 pt-0.5">
                   {eventosDoDiaSelecionado.map((ev) => (
                     <div
                       key={ev.id}
-                      className="p-2 bg-white border border-[#E6E2D8] rounded-lg flex items-center justify-between gap-2 shadow-2xs"
+                      className="p-1.5 bg-white border border-[#E0D9C9] rounded-lg flex items-center justify-between gap-2 shadow-2xs"
                     >
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <Badge
                             variant="outline"
-                            className="text-[9px] px-1 py-0 h-4 border-[#C9A227] text-[#8C6D15] bg-[#F1EBD8]/50"
+                            className="text-[9px] px-1 py-0 h-3.5 border-[#C9A227] text-[#8C6D15] bg-[#F1EBD8]/50"
                           >
                             {ev.departamento || 'Geral'}
                           </Badge>
@@ -807,7 +845,7 @@ export const Dashboard: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-[11px] text-slate-500 italic">
+                <p className="text-[10px] text-slate-500 italic">
                   Dia livre de eventos institucionais no calendário oficial.
                 </p>
               )}
@@ -815,10 +853,10 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Coluna Lateral Compacta: Próximos Compromissos & Atalhos Pastorais (5 colunas lg:col-span-5) */}
-        <div className="lg:col-span-5 space-y-4">
-          <div className="bg-white border border-[#E6E2D8] rounded-2xl p-4 sm:p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between pb-2.5 border-b border-[#E6E2D8]">
+        {/* Coluna Lateral: Próximos Compromissos & Atalhos Pastorais (lg:col-span-6) */}
+        <div className="lg:col-span-6 space-y-4">
+          <div className="bg-white/95 border border-[#E0D9C9] rounded-2xl p-4 sm:p-4.5 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-[#EAE4D7]">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-amber-50 text-[#C9A227] flex items-center justify-center font-bold">
                   <Clock className="w-3.5 h-3.5" />
@@ -842,16 +880,16 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {proximosCompromissos.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {proximosCompromissos.slice(0, 4).map((ev) => (
                   <div
                     key={ev.id}
-                    className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:border-[#C9A227] transition-all space-y-0.5 group"
+                    className="p-2.5 rounded-xl bg-[#FAF9F5] border border-[#E6E1D3] hover:border-[#C9A227] transition-all space-y-0.5 group"
                   >
                     <div className="flex items-center justify-between gap-1 text-[10px]">
                       <Badge
                         variant="outline"
-                        className="text-[9px] px-1 py-0 h-4 border-[#C9A227] text-[#8C6D15] bg-[#F1EBD8]/40"
+                        className="text-[9px] px-1 py-0 h-3.5 border-[#C9A227] text-[#8C6D15] bg-[#F1EBD8]/40"
                       >
                         {ev.departamento || 'Geral'}
                       </Badge>
@@ -869,14 +907,14 @@ export const Dashboard: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="py-6 text-center text-slate-400 space-y-1.5">
-                <CalendarDays className="w-6 h-6 mx-auto text-slate-300" />
+              <div className="py-5 text-center text-slate-400 space-y-1">
+                <CalendarDays className="w-5 h-5 mx-auto text-slate-300" />
                 <p className="text-xs">Nenhum evento futuro agendado.</p>
                 <Button
                   asChild
                   size="sm"
                   variant="outline"
-                  className="text-xs h-7 border-[#E6E2D8]"
+                  className="text-xs h-6 px-2 border-[#E0D9C9]"
                 >
                   <Link to="/admin/calendario">Cadastrar Festa</Link>
                 </Button>
@@ -889,7 +927,7 @@ export const Dashboard: React.FC = () => {
             {/* In Memória */}
             <Link
               to="/admin/membros?aba=in_memoria"
-              className="p-3 rounded-xl bg-gradient-to-br from-slate-900 to-[#102A45] text-white border border-slate-700/80 shadow-xs hover:shadow-md transition-all group"
+              className="p-3 rounded-xl bg-gradient-to-br from-[#12243B] via-[#1A3353] to-[#203D66] text-white border border-[#2B4E7A] shadow-xs hover:shadow-md transition-all group"
             >
               <div className="flex items-center justify-between mb-0.5">
                 <Cross className="w-3.5 h-3.5 text-amber-200" />
@@ -906,16 +944,16 @@ export const Dashboard: React.FC = () => {
             {/* Inativos */}
             <Link
               to="/admin/membros?aba=inativos"
-              className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-slate-900 shadow-xs hover:shadow-md transition-all group"
+              className="p-3 rounded-xl bg-gradient-to-br from-amber-100/90 to-yellow-50/80 border border-amber-300/80 text-slate-900 shadow-xs hover:shadow-md transition-all group"
             >
               <div className="flex items-center justify-between mb-0.5">
-                <UserX className="w-3.5 h-3.5 text-amber-700" />
-                <span className="text-[9px] text-amber-800 font-semibold uppercase">Pastoral</span>
+                <UserX className="w-3.5 h-3.5 text-amber-800" />
+                <span className="text-[9px] text-amber-900 font-semibold uppercase">Pastoral</span>
               </div>
-              <span className="font-serif font-bold text-base block text-amber-900">
+              <span className="font-serif font-bold text-base block text-amber-950">
                 {stats.totalInativos}
               </span>
-              <span className="text-[10px] text-amber-800 group-hover:underline block truncate">
+              <span className="text-[10px] text-amber-900 group-hover:underline block truncate">
                 Inativos →
               </span>
             </Link>
@@ -926,10 +964,10 @@ export const Dashboard: React.FC = () => {
       {/* =========================================================================
           4. ANIVERSARIANTES DO MÊS (MEMBROS E CONGREGADOS COM CONTATOS E WHATSAPP)
       ========================================================================= */}
-      <div className="bg-white border border-[#E6E2D8] rounded-3xl p-5 sm:p-7 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-[#E6E2D8]">
+      <div className="bg-white/95 border border-[#E0D9C9] rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3.5 border-b border-[#EAE4D7]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-pink-100 text-pink-700 border border-pink-200 flex items-center justify-center font-bold shadow-xs">
+            <div className="w-10 h-10 rounded-xl bg-pink-100 text-pink-700 border border-pink-200 flex items-center justify-center font-bold shadow-xs shrink-0">
               <Cake className="w-5 h-5 text-pink-600" />
             </div>
             <div>
@@ -951,7 +989,7 @@ export const Dashboard: React.FC = () => {
             asChild
             variant="outline"
             size="sm"
-            className="border-[#E6E2D8] text-[#1E3A5F] text-xs font-semibold"
+            className="border-[#D8D0BE] text-[#1E3A5F] text-xs font-semibold bg-white hover:bg-slate-50"
           >
             <Link to="/admin/membros?aba=aniversariantes">
               Ver todos no Rol de Membros <ArrowRight className="w-3.5 h-3.5 ml-1" />
@@ -960,25 +998,24 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {aniversariantesDoMes.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {aniversariantesDoMes.map((aniv) => {
               const eHoje = aniv.dia === hoje.getDate()
-              const temContato = Boolean(aniv.whatsapp || aniv.telefone)
               const contatoExibicao = aniv.whatsapp || aniv.telefone || 'Sem contato'
 
               return (
                 <div
                   key={aniv.id}
-                  className={`p-4 rounded-2xl border transition-all duration-200 flex flex-col justify-between space-y-3 ${
+                  className={`p-3.5 rounded-2xl border transition-all duration-200 flex flex-col justify-between space-y-2.5 ${
                     eHoje
-                      ? 'bg-gradient-to-br from-pink-50 via-rose-50/50 to-amber-50/60 border-pink-300 shadow-sm ring-1 ring-pink-400'
-                      : 'bg-slate-50/60 hover:bg-white border-[#E6E2D8] hover:border-pink-200 shadow-2xs'
+                      ? 'bg-gradient-to-br from-pink-50 via-rose-50/60 to-amber-50/60 border-pink-300 shadow-sm ring-1 ring-pink-400'
+                      : 'bg-[#FAF8F5] hover:bg-white border-[#E6E1D3] hover:border-pink-300 shadow-2xs'
                   }`}
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <span className="w-7 h-7 rounded-lg bg-pink-100 text-pink-700 font-bold text-xs flex items-center justify-center font-mono">
+                        <span className="w-6 h-6 rounded-lg bg-pink-100 text-pink-700 font-bold text-xs flex items-center justify-center font-mono">
                           {String(aniv.dia).padStart(2, '0')}
                         </span>
                         <span className="text-[11px] font-bold text-pink-700 uppercase">
@@ -1024,7 +1061,7 @@ export const Dashboard: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="p-8 text-center text-slate-400 italic bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+          <div className="p-8 text-center text-slate-400 italic bg-slate-50/80 rounded-2xl border border-dashed border-slate-200">
             Nenhum membro ou congregado faz aniversário no mês de {mesesNomes[hoje.getMonth()]}.
           </div>
         )}
@@ -1033,8 +1070,8 @@ export const Dashboard: React.FC = () => {
       {/* =========================================================================
           5. CORPO MINISTERIAL: DISTRIBUIÇÃO DE OBREIROS
       ========================================================================= */}
-      <div className="bg-white border border-[#E6E2D8] rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[#E6E2D8]">
+      <div className="bg-white/95 border border-[#E0D9C9] rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[#EAE4D7]">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
               <Award className="w-4 h-4 text-emerald-700" />
@@ -1056,7 +1093,7 @@ export const Dashboard: React.FC = () => {
             (cargo) => (
               <div
                 key={cargo}
-                className="p-3.5 rounded-2xl bg-[#F7F5F0] border border-[#E6E2D8] text-center space-y-1 hover:border-[#C9A227] transition-colors"
+                className="p-3.5 rounded-2xl bg-[#F6F3EC] border border-[#E0D9C9] text-center space-y-1 hover:border-[#C9A227] transition-colors"
               >
                 <span className="text-[10px] uppercase font-bold text-slate-600 block truncate">
                   {cargo}

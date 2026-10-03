@@ -400,14 +400,13 @@ export function gerarPacoteZip() {
   }
 
   // Gravar arquivo de metadados do pacote (versão do app e timestamp)
-  let packageVersion = '0.0.56'
+  let packageVersion = '0.0.58'
   try {
-    const pkgJson = JSON.parse(fs.readFileSync(path.resolve(cwd, 'package.json'), 'utf-8'))
+    const pkgJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'))
     if (pkgJson.version) packageVersion = pkgJson.version
   } catch {
-    /* ignore */
+    // Mantém fallback
   }
-
   const infoPacote = JSON.stringify(
     {
       app: 'Gestão Eclesiástica',
