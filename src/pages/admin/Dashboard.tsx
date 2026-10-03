@@ -27,7 +27,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Phone,
-  MessageCircle,
   Calendar as CalendarIcon,
   Sparkles,
   MapPin,
@@ -37,11 +36,6 @@ import {
 import useRealtime from '@/hooks/use-realtime'
 import { useAuth } from '@/contexts/AuthContext'
 import { useChurchConfig } from '@/contexts/ChurchConfigContext'
-import {
-  ModalFelicitarAniversariante,
-  type AniversarianteFelicitarData,
-} from '@/components/ModalFelicitarAniversariante'
-
 interface AniversarianteMesItem {
   id: string
   nome: string
@@ -85,11 +79,6 @@ export const Dashboard: React.FC = () => {
     new Date(hoje.getFullYear(), hoje.getMonth(), 1),
   )
   const [diaSelecionado, setDiaSelecionado] = useState<number | null>(hoje.getDate())
-
-  // Modal para felicitar aniversariante
-  const [aniversarianteSelecionado, setAniversarianteSelecionado] =
-    useState<AniversarianteFelicitarData | null>(null)
-  const [isModalFelicitarOpen, setIsModalFelicitarOpen] = useState(false)
 
   // Saudação por horário
   const saudacaoHorario = useMemo(() => {
@@ -407,18 +396,6 @@ export const Dashboard: React.FC = () => {
     if (!diaSelecionado) return []
     return eventosPorDia[diaSelecionado] || []
   }, [diaSelecionado, eventosPorDia])
-
-  // Abrir modal de felicitações
-  const handleFelicitar = (aniv: AniversarianteMesItem) => {
-    setAniversarianteSelecionado({
-      nome: aniv.nome,
-      whatsapp: aniv.whatsapp,
-      telefone: aniv.telefone,
-      tipo: aniv.tipo,
-      congregacao: aniv.congregacao,
-    })
-    setIsModalFelicitarOpen(true)
-  }
 
   const SaudacaoIcone = saudacaoHorario.icone
 
@@ -1042,22 +1019,6 @@ export const Dashboard: React.FC = () => {
                       <span className="font-mono truncate">{contatoExibicao}</span>
                     </div>
                   </div>
-
-                  <div className="pt-2 border-t border-slate-200/70 flex items-center justify-between gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => handleFelicitar(aniv)}
-                      className={`w-full text-xs h-8 font-semibold gap-1.5 ${
-                        temContato
-                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                          : 'bg-white border border-[#E6E2D8] text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      {temContato ? 'Felicitar no WhatsApp' : 'Ver Mensagem'}
-                    </Button>
-                  </div>
                 </div>
               )
             })}
@@ -1108,17 +1069,6 @@ export const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
-
-      {/* Modal para Felicitar Aniversariante */}
-      <ModalFelicitarAniversariante
-        open={isModalFelicitarOpen}
-        onOpenChange={setIsModalFelicitarOpen}
-        aniversariante={aniversarianteSelecionado}
-        mensagemPadrao={
-          config.mensagemAniversario ||
-          'A Paz do Senhor, amado(a) irmão(ã) {nome}! A liderança da Igreja louva a Deus pela sua vida e lhe parabeniza com ricas bênçãos dos céus neste aniversário!'
-        }
-      />
     </div>
   )
 }

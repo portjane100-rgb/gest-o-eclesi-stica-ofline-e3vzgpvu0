@@ -119,29 +119,95 @@ export async function validarArquivoBackup(file: File): Promise<{
   valido: boolean
   metadata?: BackupMetadata
   rawContent?: BackupFileContent
+  collectionsCount?: Record<string, number>
   error?: string
 }> {
   try {
-    const text = await file.text()
-    const parsed = JSON.parse(text) as BackupFileContent
-
-    if (!parsed || !parsed.data || typeof parsed.data !== 'object') {
+    const rawText = await file.text()
+    const text = rawText.trim()
+    if (!text) {
       return {
         valido: false,
-        error: 'O arquivo informado não contém uma estrutura de dados de backup válida.',
+        error: 'O arquivo selecionado está vazio.',
       }
+    }
+
+    let parsed: any
+    try {
+      parsed = JSON.parse(text)
+    } catch (parseErr: any) {
+      return {
+        valido: false,
+        error: `Formato de arquivo inválido. Certifique-se de selecionar um arquivo .adtcbackup ou .json gerado pelo sistema (${parseErr?.message || 'JSON inválido'}).`,
+      }
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      return {
+        valido: false,
+        error: 'O arquivo não contém um objeto JSON válido.',
+      }
+    }
+
+    // Normalizar a estrutura: suportar tanto formato com envelope { metadata, data } quanto objeto direto { membros: [...], ... }
+    let dataMap: Record<string, any[]> | null = null
+    let metadata: BackupMetadata | undefined = undefined
+
+    if (parsed.data && typeof parsed.data === 'object' && !Array.isArray(parsed.data)) {
+      dataMap = parsed.data
+      if (parsed.metadata && typeof parsed.metadata === 'object') {
+        metadata = parsed.metadata
+      }
+    } else if (!parsed.data && !parsed.metadata) {
+      // Formato plano direto: { membros: [...], congregados: [...] }
+      const hasArrays = Object.values(parsed).some((v) => Array.isArray(v))
+      if (hasArrays) {
+        dataMap = parsed as Record<string, any[]>
+      }
+    }
+
+    if (!dataMap || typeof dataMap !== 'object') {
+      return {
+        valido: false,
+        error: 'O arquivo informado não contém coleções de dados reconhecíveis.',
+      }
+    }
+
+    // Contabilizar coleções e registros
+    const collectionsCount: Record<string, number> = {}
+    let totalRecords = 0
+
+    for (const [col, items] of Object.entries(dataMap)) {
+      if (Array.isArray(items)) {
+        collectionsCount[col] = items.length
+        totalRecords += items.length
+      }
+    }
+
+    if (!metadata) {
+      metadata = {
+        version: '1.0',
+        appName: 'Gestao Eclesiastica Desktop',
+        exportDate: new Date().toISOString(),
+        churchName: 'ADTC',
+        totalRecords,
+        collections: collectionsCount,
+      }
+    } else {
+      metadata.totalRecords = totalRecords
+      metadata.collections = collectionsCount
+    }
+
+    const normalizedContent: BackupFileContent = {
+      metadata,
+      data: dataMap,
     }
 
     return {
       valido: true,
-      metadata: parsed.metadata || {
-        version: '1.0',
-        appName: 'Gestao Eclesiastica',
-        exportDate: new Date().toISOString(),
-        totalRecords: Object.values(parsed.data).reduce((acc, cur) => acc + (cur?.length || 0), 0),
-        collections: {},
-      },
-      rawContent: parsed,
+      metadata,
+      rawContent: normalizedContent,
+      collectionsCount,
     }
   } catch (err: any) {
     return { valido: false, error: err?.message || 'Arquivo corrompido ou formato inválido.' }
@@ -153,12 +219,12 @@ export async function validarArquivoBackup(file: File): Promise<{
  */
 export async function restaurarBackup(
   backupContent: BackupFileContent,
-): Promise<{ totalRestaurado: number }> {
+): Promise<{ totalRestaurado: number; collections: Record<string, number> }> {
   if (!backupContent || !backupContent.data) {
     throw new Error('Conteúdo do backup vazio ou inválido.')
   }
 
   const res = await localDb.importAllData(backupContent.data)
   registrarDataBackup()
-  return { totalRestaurado: res.total }
+  return { totalRestaurado: res.total, collections: res.collections }
 }

@@ -300,13 +300,21 @@ class LocalDatabase {
     return exportObj
   }
 
-  public async importAllData(data: Record<string, any[]>): Promise<{ total: number }> {
+  public async importAllData(
+    data: Record<string, any[]>,
+  ): Promise<{ total: number; collections: Record<string, number> }> {
     const db = await this.open()
     let total = 0
+    const collectionsRestored: Record<string, number> = {}
 
-    for (const col of LOCAL_COLLECTIONS) {
+    // Obter todas as chaves fornecidas no backup, priorizando LOCAL_COLLECTIONS conhecidas
+    const providedKeys = Object.keys(data || {})
+    const targetCollections = new Set<string>([...LOCAL_COLLECTIONS, ...providedKeys])
+
+    for (const col of targetCollections) {
       if (!db.objectStoreNames.contains(col)) continue
-      const items = data[col] || []
+      const items = Array.isArray(data[col]) ? data[col] : []
+      let colCount = 0
 
       await new Promise<void>((resolve, reject) => {
         const tx = db.transaction(col, 'readwrite')
@@ -314,20 +322,27 @@ class LocalDatabase {
         store.clear()
 
         for (const item of items) {
-          if (item && item.id) {
-            store.put(item)
+          if (item && typeof item === 'object') {
+            const record = { ...item }
+            if (!record.id) {
+              record.id = this.generateId()
+            }
+            store.put(record)
+            colCount++
             total++
           }
         }
 
         tx.oncomplete = () => resolve()
-        tx.onerror = () => reject(tx.error)
+        tx.onerror = () => reject(tx.error || new Error(`Erro na transação da coleção ${col}`))
+        tx.onabort = () => reject(new Error(`Transação abortada na coleção ${col}`))
       })
 
+      collectionsRestored[col] = colCount
       this.notify(col, 'update', { bulk: true })
     }
 
-    return { total }
+    return { total, collections: collectionsRestored }
   }
 
   public async count(collection: LocalCollectionName | string): Promise<number> {
