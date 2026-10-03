@@ -94,6 +94,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (savedId) {
         const u = await localDb.getOne<LocalUser>('users', savedId)
         if (u && u.ativo !== false) {
+          // Se houver backend PocketBase com authStore, verificar se a sessão remota é válida
+          try {
+            const { default: pb } = await import('@/lib/pocketbase/client')
+            if (pb.authStore.isValid) {
+              // Tenta renovar se estiver próximo de expirar
+              await pb
+                .collection('users')
+                .authRefresh()
+                .catch(() => {
+                  // Se falhar a renovação, apenas limpa a authStore remota
+                  pb.authStore.clear()
+                })
+            }
+          } catch {
+            /* ignore offline or network */
+          }
+
           setUser({
             id: u.id,
             email: u.email,
@@ -290,6 +307,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem(CURRENT_USER_SESSION_KEY)
     setUser(null)
+    try {
+      import('@/lib/pocketbase/client').then(({ default: pb }) => {
+        pb.authStore.clear()
+      })
+    } catch {
+      /* ignore */
+    }
   }
 
   const isAdmin = Boolean(user && user.ativo !== false)

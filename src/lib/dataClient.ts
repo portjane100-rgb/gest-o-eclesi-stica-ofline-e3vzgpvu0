@@ -13,6 +13,61 @@ import pb from '@/lib/pocketbase/client'
 import { isOfflineOnly } from '@/lib/offlineMode'
 import { localDb } from '@/lib/localDb'
 import { CHURCH_CONFIG_DEFAULTS, type ChurchConfig } from '@/contexts/ChurchConfigContext'
+import { toast } from '@/hooks/use-toast'
+
+/**
+ * Mensagem clara de sessão expirada para operações de escrita.
+ */
+function notificarSessaoExpirada() {
+  toast({
+    variant: 'destructive',
+    title: 'Sessão expirada',
+    description: 'Sua sessão expirou. Faça login novamente para continuar.',
+  })
+}
+
+/**
+ * Garante que o client PocketBase possua token de autenticação válido antes de mutações.
+ * Se o token estiver ausente, inválido ou perto de expirar, tenta renovar via authRefresh().
+ */
+async function ensureValidAuth(): Promise<void> {
+  if (isOfflineOnly()) return
+
+  if (!pb.authStore.isValid || !pb.authStore.token) {
+    notificarSessaoExpirada()
+    throw new Error('Sua sessão expirou. Faça login novamente para continuar.')
+  }
+
+  // Se o token estiver perto de expirar (menos de 5 minutos), tenta renovar
+  try {
+    const model = pb.authStore.record || pb.authStore.model
+    const collectionName = (model as any)?.collectionName || 'users'
+    await pb.collection(collectionName).authRefresh()
+  } catch (err: any) {
+    const status = err?.status || err?.response?.status
+    if (status === 401 || status === 404 || !pb.authStore.isValid) {
+      pb.authStore.clear()
+      notificarSessaoExpirada()
+      throw new Error('Sua sessão expirou. Faça login novamente para continuar.')
+    }
+  }
+}
+
+/**
+ * Trata erros de mutações (create, update, delete) do PocketBase.
+ * Se retornar 401 ou 404 por sessão inválida, exibe toast amigável.
+ */
+function handleMutationError(err: any): never {
+  const status = err?.status || err?.response?.status
+  if (status === 401 || status === 404) {
+    if (!pb.authStore.isValid || status === 401) {
+      pb.authStore.clear()
+      notificarSessaoExpirada()
+      throw new Error('Sua sessão expirou. Faça login novamente para continuar.')
+    }
+  }
+  throw err
+}
 
 /** Converte um File/Blob em Base64 dataURL via FileReader (funciona em file://). */
 export function fileToDataUrl(file: File | Blob): Promise<string> {
@@ -140,6 +195,8 @@ export async function createItem(
     return localDb.create(collection, payload)
   }
 
+  await ensureValidAuth()
+
   let body: FormData | Record<string, any> = data
   if (files && Object.keys(files).length > 0) {
     const formData =
@@ -154,7 +211,11 @@ export async function createItem(
     }
     body = formData
   }
-  return pb.collection(collection).create(body as any)
+  try {
+    return await pb.collection(collection).create(body as any)
+  } catch (err: any) {
+    return handleMutationError(err)
+  }
 }
 
 /** Atualiza um registro; arquivos opcionais viram Base64 no modo offline. */
@@ -183,6 +244,8 @@ export async function updateItem(
     return localDb.update(collection, id, payload)
   }
 
+  await ensureValidAuth()
+
   let body: FormData | Record<string, any> = data
   if (files && Object.keys(files).length > 0) {
     const formData =
@@ -197,7 +260,11 @@ export async function updateItem(
     }
     body = formData
   }
-  return pb.collection(collection).update(id, body as any)
+  try {
+    return await pb.collection(collection).update(id, body as any)
+  } catch (err: any) {
+    return handleMutationError(err)
+  }
 }
 
 /** Remove um registro. */
@@ -205,7 +272,14 @@ export async function deleteItem(collection: string, id: string): Promise<boolea
   if (isOfflineOnly()) {
     return localDb.delete(collection, id)
   }
-  return pb.collection(collection).delete(id)
+
+  await ensureValidAuth()
+
+  try {
+    return await pb.collection(collection).delete(id)
+  } catch (err: any) {
+    return handleMutationError(err)
+  }
 }
 
 /**

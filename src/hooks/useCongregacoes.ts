@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { localDb } from '@/lib/localDb'
+import { isOfflineOnly } from '@/lib/offlineMode'
+import pb from '@/lib/pocketbase/client'
 
 export interface CongregacaoItem {
   id: string
@@ -42,7 +44,18 @@ export function ordenarCongregacoes(lista: CongregacaoItem[]): CongregacaoItem[]
 
 export async function fetchCongregacoesFromDb(): Promise<CongregacaoItem[]> {
   try {
-    const records = await localDb.getFullList<any>('congregacoes')
+    let records: any[] = []
+    if (isOfflineOnly()) {
+      records = await localDb.getFullList<any>('congregacoes')
+    } else {
+      try {
+        records = await pb.collection('congregacoes').getFullList({ sort: 'ordem,nome' })
+      } catch (pbErr) {
+        // Fallback para localDb em caso de falha de conexão
+        records = await localDb.getFullList<any>('congregacoes')
+      }
+    }
+
     if (records.length > 0) {
       const mapeadas: CongregacaoItem[] = records.map((r) => ({
         id: r.id,
@@ -70,7 +83,7 @@ export async function fetchCongregacoesFromDb(): Promise<CongregacaoItem[]> {
       return ordenarCongregacoes(mapeadas.filter((c) => c.ativo !== false))
     }
   } catch (err) {
-    console.warn('Erro ao carregar congregacoes do banco local:', err)
+    console.warn('Erro ao carregar congregacoes:', err)
   }
   return []
 }

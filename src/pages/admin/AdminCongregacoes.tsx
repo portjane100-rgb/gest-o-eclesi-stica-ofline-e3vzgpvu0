@@ -54,7 +54,7 @@ export const AdminCongregacoes: React.FC = () => {
   const [dirigente, setDirigente] = useState('')
   const [diasCulto, setDiasCulto] = useState('')
   const [dirigentePercentual, setDirigentePercentual] = useState<number>(20)
-  const [ordem, setOrdem] = useState<number>(1)
+  const [ordem, setOrdem] = useState<number | string>(1)
   const [ativo, setAtivo] = useState(true)
 
   // Próxima ordem sugerida
@@ -131,7 +131,7 @@ export const AdminCongregacoes: React.FC = () => {
           nome.trim().toLowerCase() === 'sede' ? undefined : Number(dirigentePercentual) || 20,
         dias_culto: diasCulto.trim(),
         diasCulto: diasCulto.trim(),
-        ordem: Number(ordem) || 1,
+        ordem: typeof ordem === 'string' ? parseInt(ordem, 10) || 0 : Number(ordem) || 0,
         ativo,
       }
 
@@ -475,9 +475,16 @@ export const AdminCongregacoes: React.FC = () => {
                 </label>
                 <Input
                   type="number"
-                  min={1}
+                  min={0}
                   value={ordem}
-                  onChange={(e) => setOrdem(parseInt(e.target.value, 10) || 1)}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val === '') {
+                      setOrdem('')
+                    } else {
+                      setOrdem(parseInt(val, 10) || 0)
+                    }
+                  }}
                   className="bg-white border-[#E6E2D8] text-xs sm:text-sm"
                 />
               </div>
