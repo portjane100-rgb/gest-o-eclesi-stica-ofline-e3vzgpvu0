@@ -13,16 +13,11 @@ import {
 } from '@/components/ui/dialog'
 
 import {
-  KeyRound,
-  QrCode,
   Lock,
   Check,
   Loader2,
   Eye,
   EyeOff,
-  Upload,
-  Trash2,
-  Image as ImageIcon,
   PenTool,
   Sparkles,
   Users,
@@ -33,7 +28,6 @@ import {
   Edit2,
   Save,
   PlusCircle,
-  AlertOctagon,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
