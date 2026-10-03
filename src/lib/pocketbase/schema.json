@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-03T15:47:52.453Z",
+  "generatedAt": "2026-10-03T16:20:30.213Z",
   "collections": [
     {
       "name": "users",
@@ -29,21 +29,31 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "perfil",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["tesoureiro", "secretario1", "secretario2", "admin"]
+          "selectValues": [
+            "tesoureiro",
+            "secretario1",
+            "secretario2",
+            "admin"
+          ]
         },
         {
           "name": "ativo",
@@ -121,7 +131,12 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Ativo", "Inativo/Afastado", "Transferido por Mudança", "Falecido"]
+          "selectValues": [
+            "Ativo",
+            "Inativo/Afastado",
+            "Transferido por Mudança",
+            "Falecido"
+          ]
         },
         {
           "name": "numero_registro",
@@ -134,14 +149,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "numero_ficha",
@@ -268,21 +288,30 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "status",
           "type": "select",
           "required": false,
           "system": false,
-          "selectValues": ["Ativo", "Inativo/Afastado", "Falecido"]
+          "selectValues": [
+            "Ativo",
+            "Inativo/Afastado",
+            "Falecido"
+          ]
         },
         {
           "name": "whatsapp",
@@ -319,7 +348,13 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Pastor Presidente", "Evangelista", "Presbítero", "Diácono", "Auxiliar"]
+          "selectValues": [
+            "Pastor Presidente",
+            "Evangelista",
+            "Presbítero",
+            "Diácono",
+            "Auxiliar"
+          ]
         },
         {
           "name": "foto",
@@ -350,7 +385,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Ativo", "Inativo"]
+          "selectValues": [
+            "Ativo",
+            "Inativo"
+          ]
         },
         {
           "name": "ordem",
@@ -369,14 +407,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -419,14 +462,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "membro",
@@ -470,7 +518,11 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Templo", "Casa Pastoral", "Bem Inventariado"]
+          "selectValues": [
+            "Templo",
+            "Casa Pastoral",
+            "Bem Inventariado"
+          ]
         },
         {
           "name": "nome",
@@ -507,17 +559,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_patrimonio_tipo ON patrimonio (tipo)"]
+      "indexes": [
+        "CREATE INDEX idx_patrimonio_tipo ON patrimonio (tipo)"
+      ]
     },
     {
       "name": "escala",
@@ -589,14 +648,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "professores_salinha_criancas",
@@ -656,14 +720,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "foto",
@@ -672,7 +741,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE INDEX idx_calendario_inicio ON calendario (data_inicio)"]
+      "indexes": [
+        "CREATE INDEX idx_calendario_inicio ON calendario (data_inicio)"
+      ]
     },
     {
       "name": "agenda_semanal",
@@ -702,7 +773,15 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
+          "selectValues": [
+            "Segunda",
+            "Terça",
+            "Quarta",
+            "Quinta",
+            "Sexta",
+            "Sábado",
+            "Domingo"
+          ]
         },
         {
           "name": "horario",
@@ -727,14 +806,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -770,14 +854,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "arquivo",
@@ -786,7 +875,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_configuracoes_chave ON configuracoes (chave)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_configuracoes_chave ON configuracoes (chave)"
+      ]
     },
     {
       "name": "salmos",
@@ -834,14 +925,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -889,17 +985,24 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_albuns_fotos_ordem ON albuns_fotos (ordem)"]
+      "indexes": [
+        "CREATE INDEX idx_albuns_fotos_ordem ON albuns_fotos (ordem)"
+      ]
     },
     {
       "name": "fotos",
@@ -942,14 +1045,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -1009,14 +1117,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "fotos",
@@ -1052,7 +1165,10 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["Membro", "Obreiro"]
+          "selectValues": [
+            "Membro",
+            "Obreiro"
+          ]
         },
         {
           "name": "funcao_obreiro",
@@ -1107,14 +1223,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -1139,14 +1260,21 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["membro", "congregado"]
+          "selectValues": [
+            "membro",
+            "congregado"
+          ]
         },
         {
           "name": "status_solicitacao",
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["pendente", "aprovada", "rejeitada"]
+          "selectValues": [
+            "pendente",
+            "aprovada",
+            "rejeitada"
+          ]
         },
         {
           "name": "nome",
@@ -1261,14 +1389,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "whatsapp",
@@ -1347,14 +1480,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "dirigente_percentual",
@@ -1363,7 +1501,9 @@
           "system": false
         }
       ],
-      "indexes": ["CREATE UNIQUE INDEX idx_congregacoes_nome ON congregacoes (nome)"]
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_congregacoes_nome ON congregacoes (nome)"
+      ]
     },
     {
       "name": "planilhas_mensais",
@@ -1483,14 +1623,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "percentual_sede",
